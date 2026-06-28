@@ -167,4 +167,19 @@ describe('MVP API', () => {
     assert.ok(exported.export.filePath.includes('exports'));
     assert.ok(exported.export.fileSize > 0);
   });
+
+  test('prepares a real Note Station dry-run without writing notes', async () => {
+    const before = await requestJson('/api/notes');
+    const dryRun = await requestJson('/api/imports/notestation/dry-run', {
+      method: 'POST',
+      body: JSON.stringify({ fileName: 'real-export.zip', fileType: 'zip' })
+    });
+    const afterNotes = await requestJson('/api/notes');
+
+    assert.equal(dryRun.dryRun, true);
+    assert.equal(dryRun.status, 'needs_real_sample');
+    assert.equal(dryRun.records.length, 0);
+    assert.ok(dryRun.requiredSampleInfo.length >= 3);
+    assert.equal(afterNotes.notes.length, before.notes.length);
+  });
 });

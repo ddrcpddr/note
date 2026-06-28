@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { commitNotestationImport, createNotestationSamplePreview, getImportPreview } from '../importers/notestation/index.js';
+import {
+  commitNotestationImport,
+  createNotestationDryRunPreview,
+  createNotestationSamplePreview,
+  getImportPreview
+} from '../importers/notestation/index.js';
 import { listNotes } from './notes.js';
 
 export const importsRouter = Router();
@@ -7,6 +12,10 @@ export const importsRouter = Router();
 importsRouter.post('/notestation/sample-preview', (request, response) => {
   const memberId = request.body?.memberId || 'history';
   response.status(201).json(createNotestationSamplePreview(memberId));
+});
+
+importsRouter.post('/notestation/dry-run', (request, response) => {
+  response.json(createNotestationDryRunPreview(request.body || {}));
 });
 
 importsRouter.get('/notestation/:importId', (request, response) => {

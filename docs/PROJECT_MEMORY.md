@@ -305,3 +305,11 @@ MVP 需要覆盖：
 - Express 服务现在会在存在 `dist/` 时托管前端构建产物，因此容器内一个端口即可访问前端和 API。
 - 默认容器端口为 `3300`，`NOTE_DATA_DIR=/data`。
 - 文档中只写示例 NAS 路径，不写死用户真实 NAS 地址，也不包含账号密码。
+
+### 阶段 D：真实 Note Station 导入准备
+
+- 新增 `docs/NOTESTATION_REAL_IMPORT_PLAN.md`，说明真实导入前需要用户提供的样例文件和字段信息。
+- 新增 `POST /api/imports/notestation/dry-run`。
+- 当前 dry-run 不写入正式数据库，只返回 `needs_real_sample`、失败提示和 required sample info。
+- 自动化测试已覆盖 dry-run 不写入记录。
+- 仍然不硬猜真实 Note Station 导出格式，等用户提供脱敏样例后再实现 JSON / HTML / Markdown / ZIP 解析器。

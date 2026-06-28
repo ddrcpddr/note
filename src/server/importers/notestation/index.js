@@ -1,6 +1,40 @@
 import { createId, getDb, slugifyTag } from '../../db/database.js';
 import { notestationSampleFailures, notestationSampleRecords } from './sample.js';
 
+export function createNotestationDryRunPreview(payload = {}) {
+  const fileName = String(payload.fileName || 'notestation_export_sample.zip');
+  const fileType = String(payload.fileType || 'unknown');
+
+  return {
+    importId: null,
+    dryRun: true,
+    fileName,
+    fileType,
+    status: 'needs_real_sample',
+    totalCount: 0,
+    successCount: 0,
+    failedCount: 1,
+    attachmentCount: 0,
+    originalCategoryCount: 0,
+    records: [],
+    failures: [
+      {
+        id: 'notestation-real-sample-required',
+        originalTitle: fileName,
+        originalPath: '',
+        errorMessage: '尚未提供真实 Note Station 导出样例；dry-run 只做预检，不会写入正式数据库。'
+      }
+    ],
+    requiredSampleInfo: [
+      '导出文件类型，例如 zip、json、html、md',
+      '是否包含附件',
+      '是否包含创建时间和更新时间',
+      '是否保留原始文件夹或路径',
+      '任选 3-5 条脱敏记录用于结构分析'
+    ]
+  };
+}
+
 export function createNotestationSamplePreview(memberId = 'history') {
   const db = getDb();
   const importId = createId('import');

@@ -39,6 +39,23 @@ POST /api/imports/notestation/sample-preview
 }
 ```
 
+### 真实导入 dry-run 预检
+
+```http
+POST /api/imports/notestation/dry-run
+```
+
+请求体示例：
+
+```json
+{
+  "fileName": "real-export.zip",
+  "fileType": "zip"
+}
+```
+
+当前 dry-run 不会写入正式数据库；在没有真实样例文件前，它会返回需要用户补充的文件信息和 `needs_real_sample` 状态。
+
 ### 查询预览
 
 ```http
