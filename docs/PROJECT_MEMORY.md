@@ -216,3 +216,22 @@ MVP 需要覆盖：
 - 无法解析的样例记录写入 `import_failures` 并在导入页展示。
 - 阶段 3 仍不处理真实附件文件和真实导出格式。
 - 已创建 `docs/NOTESTATION_IMPORT.md` 记录导入框架、API 和后续扩展方式。
+
+### 阶段 4：NAS 存储与备份
+
+- 实现本地目录模拟 NAS 存储，不连接真实 NAS，不写死 NAS 地址。
+- 数据根目录默认是 `data/`，可用 `NOTE_DATA_DIR` 环境变量覆盖。
+- 当前目录结构：
+  - `data/database/app.db`
+  - `data/attachments/`
+  - `data/backups/`
+  - `data/imports/notestation/`
+  - `data/exports/`
+- 新增存储 API：
+  - `GET /api/storage/status`
+  - `POST /api/storage/backup`
+  - `POST /api/storage/export-json`
+- 设置页会显示数据库位置、附件目录、备份目录、导出目录、最近备份时间。
+- 设置页支持手动备份、JSON 导出、NAS 在线 / 离线模拟和备份失败提示。
+- `.gitignore` 已确保数据库、备份、导出、附件和导入原始文件不会提交。
+- 已创建 `docs/NAS_DEPLOYMENT.md` 记录部署目录、API 和限制。

@@ -944,18 +944,72 @@ function SettingsScreen({ onOpenImport }) {
   const [nasOnline, setNasOnline] = useState(true);
   const [lastBackup, setLastBackup] = useState('今天 09:30');
   const [backupState, setBackupState] = useState('idle');
+  const [storageStatus, setStorageStatus] = useState(null);
+  const [storageMessage, setStorageMessage] = useState('');
 
-  function runBackup() {
+  useEffect(() => {
+    async function loadStorageStatus() {
+      try {
+        const response = await fetch('/api/storage/status');
+        if (!response.ok) throw new Error('storage unavailable');
+        const data = await response.json();
+        setStorageStatus(data);
+        if (data.latestBackup?.createdAt) {
+          setLastBackup(formatShortTime(data.latestBackup.createdAt));
+        } else {
+          setLastBackup('尚未备份');
+        }
+      } catch {
+        setStorageMessage('当前仅显示本地模拟路径，启动服务端后可查看真实目录。');
+      }
+    }
+
+    loadStorageStatus();
+  }, []);
+
+  async function runBackup() {
     if (!nasOnline) {
       setBackupState('failed');
+      try {
+        await fetch('/api/storage/backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nasOnline: false })
+        });
+      } catch {
+        // The visible state already tells the story for the mock prototype.
+      }
       return;
     }
 
     setBackupState('running');
-    window.setTimeout(() => {
+    try {
+      const response = await fetch('/api/storage/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nasOnline: true })
+      });
+      if (!response.ok) throw new Error('backup failed');
+      const data = await response.json();
+      setStorageStatus(data);
       setLastBackup('刚刚');
       setBackupState('done');
-    }, 800);
+      setStorageMessage(`备份已保存：${data.backup.filePath}`);
+    } catch {
+      setBackupState('failed');
+      setStorageMessage('备份失败，请检查数据目录是否可写。');
+    }
+  }
+
+  async function exportJson() {
+    try {
+      const response = await fetch('/api/storage/export-json', { method: 'POST' });
+      if (!response.ok) throw new Error('export failed');
+      const data = await response.json();
+      setStorageMessage(`JSON 已导出：${data.export.filePath}`);
+    } catch {
+      setStorageMessage('JSON 导出失败，请启动服务端后重试。');
+    }
   }
 
   return (
@@ -1004,6 +1058,7 @@ function SettingsScreen({ onOpenImport }) {
         </div>
         {backupState === 'done' && <p className="mt-4 text-[15px] font-medium text-teal-600">已完成一次模拟备份。</p>}
         {backupState === 'failed' && <p className="mt-4 text-[15px] font-medium text-amber-600">当前无法连接家庭 NAS，请恢复局域网连接后再试。</p>}
+        {storageMessage && <p className="mt-4 break-all text-[14px] leading-relaxed text-muted">{storageMessage}</p>}
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
           <ShieldCheck size={20} className="shrink-0" />
           <span>所有记录集中保存在家庭 NAS，建议每天或每周备份一次。</span>
@@ -1011,16 +1066,18 @@ function SettingsScreen({ onOpenImport }) {
       </section>
       <SectionTitle>导出</SectionTitle>
       <section className="soft-card divide-y divide-line">
-        <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action="模拟完成" />
+        <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action="导出" onClick={exportJson} />
         <SettingsRow title="导出 Markdown" desc="导出所有记录为 Markdown 文件" icon={FileText} action="后续功能" disabled />
       </section>
       <SectionTitle>附件目录</SectionTitle>
       <section className="soft-card">
-        <SettingsRow title="附件目录" desc="/data/attachments/" icon={Folder} action=">" />
+        <SettingsRow title="附件目录" desc={storageStatus?.dataPaths?.attachmentsDir || 'data/attachments/'} icon={Folder} action=">" />
       </section>
       <SectionTitle>数据库位置</SectionTitle>
       <section className="soft-card divide-y divide-line">
-        <SettingsRow title="数据库位置" desc="/data/database/app.db" icon={Database} action=">" />
+        <SettingsRow title="数据库位置" desc={storageStatus?.dataPaths?.dbPath || 'data/database/app.db'} icon={Database} action=">" />
+        <SettingsRow title="备份目录" desc={storageStatus?.dataPaths?.backupsDir || 'data/backups/'} icon={Database} action=">" />
+        <SettingsRow title="导出目录" desc={storageStatus?.dataPaths?.exportsDir || 'data/exports/'} icon={Folder} action=">" />
         <SettingsRow title="导入 Note Station" desc="导入旧记录并保留来源信息" icon={FileText} action=">" onClick={onOpenImport} />
       </section>
       <div className="mt-6 rounded-2xl border border-orange-200 bg-amber-50 px-4 py-3 text-[15px] leading-relaxed text-[#a35b00]">
@@ -1237,12 +1294,12 @@ function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClic
     >
       <div className="flex items-center gap-4">
         <div className="circle-icon bg-teal-50 text-teal-700"><Icon size={31} /></div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[20px] font-semibold">{title}</p>
-          <p className="mt-1 text-[15px] text-muted">{desc}</p>
+          <p className="mt-1 break-all text-[15px] leading-relaxed text-muted">{desc}</p>
         </div>
       </div>
-      <span className="text-[15px] text-muted">{action}</span>
+      <span className="shrink-0 text-[15px] text-muted">{action}</span>
     </button>
   );
 }
