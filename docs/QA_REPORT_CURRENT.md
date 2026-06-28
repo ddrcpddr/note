@@ -18,6 +18,8 @@
 | `npm.cmd run build` | 通过 | Vite 构建通过 |
 | `Invoke-RestMethod http://localhost:3300/api/health` | 通过 | 后端健康接口正常 |
 | `npm.cmd run test` | 通过 | 阶段 A 新增自动化测试，使用临时数据目录，不污染正式 `data/` |
+| `docker compose config` | 通过 | 阶段 C Docker Compose 配置可解析，不包含真实 NAS 地址或敏感信息 |
+| `docker build -t note-mvp:stage-c .` | 未运行成功 | 本机 Docker CLI 存在，但 Docker Desktop Linux daemon 未运行，无法连接 `dockerDesktopLinuxEngine` |
 
 ## 通过的测试项
 

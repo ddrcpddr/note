@@ -296,3 +296,12 @@ MVP 需要覆盖：
   - `apple-touch-icon`
   - manifest 链接
 - MVP 阶段不启用复杂 service worker，避免缓存 API 请求影响家庭 NAS 在线试用。
+
+### 阶段 C：Docker / NAS 部署准备
+
+- 新增 `Dockerfile`，使用 Node 22，容器内构建前端并运行 Express 服务。
+- 新增 `docker-compose.yml`，默认把 `./data` 挂载到容器内 `/data`。
+- 新增 `.dockerignore`，排除 `node_modules`、`dist`、`data`、`.git` 和本地环境文件。
+- Express 服务现在会在存在 `dist/` 时托管前端构建产物，因此容器内一个端口即可访问前端和 API。
+- 默认容器端口为 `3300`，`NOTE_DATA_DIR=/data`。
+- 文档中只写示例 NAS 路径，不写死用户真实 NAS 地址，也不包含账号密码。

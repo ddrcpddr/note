@@ -109,3 +109,55 @@ data/exports/
 - 不做外网访问。
 - 不做手机本地数据库同步。
 - Markdown 导出仍作为后续功能保留。
+
+## Docker / NAS 部署准备
+
+当前项目已提供：
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `.dockerignore`
+
+本地模拟 NAS 部署：
+
+```bash
+docker compose up -d --build
+```
+
+访问地址：
+
+```text
+http://localhost:3300
+```
+
+容器内使用：
+
+```text
+NOTE_DATA_DIR=/data
+```
+
+默认挂载：
+
+```yaml
+volumes:
+  - ./data:/data
+```
+
+因此容器内外目录对应关系为：
+
+```text
+/data/database/app.db          -> ./data/database/app.db
+/data/attachments/             -> ./data/attachments/
+/data/backups/                 -> ./data/backups/
+/data/imports/notestation/     -> ./data/imports/notestation/
+/data/exports/                 -> ./data/exports/
+```
+
+部署到家庭 NAS 时，不要在代码里写死真实 NAS 地址。建议只修改 `docker-compose.yml` 的挂载路径，例如：
+
+```yaml
+volumes:
+  - /your/nas/path/note-data:/data
+```
+
+当前 compose 不包含账号、密码、Token 或真实 NAS 地址。

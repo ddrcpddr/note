@@ -140,6 +140,22 @@ $env:NOTE_DATA_DIR="X:\note-data"
 npm.cmd run server
 ```
 
+## Docker / NAS 部署准备
+
+项目已提供基础容器配置：
+
+```bash
+docker compose up -d --build
+```
+
+默认容器端口：
+
+```text
+http://localhost:3300
+```
+
+`docker-compose.yml` 会把项目下的 `data/` 挂载到容器内 `/data`，并通过 `NOTE_DATA_DIR=/data` 让数据库、附件、备份、导入和导出都集中写入该目录。部署到 NAS 时，可以把 compose 里的 `./data:/data` 改成 NAS 上的实际目录，例如 `/volume1/docker/note-data:/data`。
+
 ## 备份
 
 设置页可以点击“立即备份”，会把 SQLite 数据库复制到：

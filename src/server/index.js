@@ -1,5 +1,5 @@
 import express from 'express';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { getDataPaths, getDb, getDbPath } from './db/database.js';
 import { categoriesRouter } from './routes/categories.js';
@@ -70,6 +70,19 @@ app.use('/api/members', membersRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/imports', importsRouter);
 app.use('/api/storage', storageRouter);
+
+const distDir = path.resolve(process.cwd(), 'dist');
+if (existsSync(distDir)) {
+  app.use(express.static(distDir));
+  app.get('*', (request, response, next) => {
+    if (request.path.startsWith('/api/')) {
+      next();
+      return;
+    }
+
+    response.sendFile(path.join(distDir, 'index.html'));
+  });
+}
 
 app.listen(port, () => {
   console.log(`note server listening on http://localhost:${port}`);
