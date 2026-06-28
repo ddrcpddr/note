@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+
+data/app.db
+data/app.db-*
+data/attachments/*
+data/imports/*
+data/backups/*
+
+!data/attachments/.gitkeep
+!data/imports/.gitkeep
+!data/backups/.gitkeep
+
+npm-debug.log*
+*.local
