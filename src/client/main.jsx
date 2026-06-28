@@ -321,7 +321,20 @@ function App() {
       {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} />}
       {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
       {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} />}
-      {screen === 'import' && <ImportScreen onBack={() => navigate('settings')} />}
+      {screen === 'import' && (
+        <ImportScreen
+          currentMemberId={currentMemberId}
+          onBack={() => navigate('settings')}
+          onImported={(importedNotes) => {
+            const normalized = importedNotes.map(normalizeNote);
+            setNotesData((current) => {
+              const existingIds = new Set(current.map((note) => note.id));
+              return [...normalized.filter((note) => !existingIds.has(note.id)), ...current];
+            });
+            showToast('Note Station 样例导入完成');
+          }}
+        />
+      )}
       {screen === 'settings' && <SettingsScreen onOpenImport={() => navigate('import')} />}
 
       {(screen === 'home' || screen === 'categories') && (
@@ -690,8 +703,10 @@ function CategoriesScreen({ notes, onSelectCategory }) {
   );
 }
 
-function ImportScreen({ onBack }) {
+function ImportScreen({ currentMemberId, onBack, onImported }) {
   const [stage, setStage] = useState(1);
+  const [preview, setPreview] = useState(null);
+  const [error, setError] = useState('');
   const steps = [
     ['1', '上传导出文件'],
     ['2', '解析预览'],
@@ -699,6 +714,56 @@ function ImportScreen({ onBack }) {
     ['4', '导入完成']
   ];
   const canPreview = stage >= 2;
+
+  async function createPreview() {
+    setError('');
+    try {
+      const response = await fetch('/api/imports/notestation/sample-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: currentMemberId })
+      });
+      if (!response.ok) throw new Error('无法创建导入预览');
+      const data = await response.json();
+      setPreview(data);
+      setStage(2);
+    } catch (previewError) {
+      setError(previewError.message || '导入预览失败');
+    }
+  }
+
+  async function commitImport() {
+    if (!preview?.importId) return;
+    setError('');
+    try {
+      const response = await fetch(`/api/imports/notestation/${preview.importId}/commit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: currentMemberId })
+      });
+      if (!response.ok) throw new Error('确认导入失败');
+      const data = await response.json();
+      setPreview(data);
+      onImported(data.notes || []);
+      setStage(4);
+    } catch (commitError) {
+      setError(commitError.message || '确认导入失败');
+    }
+  }
+
+  function handlePrimaryAction() {
+    if (stage === 1) {
+      createPreview();
+      return;
+    }
+    if (stage === 2) {
+      setStage(3);
+      return;
+    }
+    if (stage === 3) {
+      commitImport();
+    }
+  }
 
   return (
     <>
@@ -719,7 +784,7 @@ function ImportScreen({ onBack }) {
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[22px] font-bold">{canPreview ? 'notestation_export.zip' : '等待选择导出文件'}</h2>
+            <h2 className="truncate text-[22px] font-bold">{canPreview ? preview?.fileName || 'notestation_sample.json' : '等待选择导出文件'}</h2>
             <p className="mt-1 text-[16px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '模拟上传，不读取真实文件'}</p>
           </div>
         </div>
@@ -727,15 +792,20 @@ function ImportScreen({ onBack }) {
           {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 点击下方按钮选择文件</>}
         </span>
       </section>
-      {canPreview && (
+      {error && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[15px] text-amber-600">
+          {error}
+        </div>
+      )}
+      {canPreview && preview && (
         <>
           <section className="soft-card mt-4 p-5">
             <div className="grid grid-cols-2 gap-3">
               {[
-                ['记录', '1,284 条', FileText, 'text-teal-600'],
-                ['分类', '12 个', Folder, 'text-blue-600'],
-                ['附件', '386 个', Paperclip, 'text-teal-600'],
-                ['失败项', '3 个', AlertCircle, 'text-amber-500']
+                ['记录', `${preview.totalCount} 条`, FileText, 'text-teal-600'],
+                ['分类', `${preview.originalCategoryCount} 个`, Folder, 'text-blue-600'],
+                ['附件', `${preview.attachmentCount} 个`, Paperclip, 'text-teal-600'],
+                ['失败项', `${preview.failedCount} 个`, AlertCircle, 'text-amber-500']
               ].map(([label, value, Icon, tone]) => (
                 <div className="rounded-2xl bg-soft p-3 text-center" key={label}>
                   <Icon className={`mx-auto ${tone}`} size={28} />
@@ -750,30 +820,39 @@ function ImportScreen({ onBack }) {
           </section>
           <section className="soft-card mt-4 p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-[20px] font-bold">预览记录（最新 3 条）</h2>
+              <h2 className="text-[20px] font-bold">预览记录（{preview.records.length} 条）</h2>
               <span className="text-[16px] text-teal-600">查看全部</span>
             </div>
-            {[
-              ['宽带续费记录', '中国移动宽带，300M 套餐，费用 120 元/月，下次续费时间 2025-06-15。', '账单'],
-              ['洗衣机维修', '海尔洗衣机服务，已更换排水泵，保修期 3 个月。', '维修'],
-              ['孩子疫苗提醒', '下次接种时间 2025-06-01，已完成第 2 针。', '孩子教育']
-            ].map(([title, desc, tag]) => (
-              <div className="mt-4 flex gap-3 border-t border-line pt-4" key={title}>
+            {preview.records.map((record) => (
+              <div className="mt-4 flex gap-3 border-t border-line pt-4" key={record.originalId}>
                 <div className="circle-icon bg-teal-50 text-teal-600">
                   <FileText size={28} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-[18px] font-bold">{title}</h3>
-                  <p className="mt-1 text-[15px] leading-relaxed text-muted">{desc}</p>
+                  <h3 className="text-[18px] font-bold">{record.title}</h3>
+                  <p className="mt-1 text-[15px] leading-relaxed text-muted">{record.content}</p>
+                  <p className="mt-1 text-[13px] text-muted">{record.originalPath}</p>
                 </div>
-                <span className="tag h-fit shrink-0 bg-teal-50 text-teal-600">{tag}</span>
+                <span className="tag h-fit shrink-0 bg-teal-50 text-teal-600">{record.originalCategory}</span>
               </div>
             ))}
           </section>
+          {preview.failures.length > 0 && (
+            <section className="soft-card mt-4 p-5">
+              <h2 className="text-[20px] font-bold">失败项</h2>
+              {preview.failures.map((failure) => (
+                <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-[15px] text-amber-700" key={failure.id}>
+                  <p className="font-semibold">{failure.originalTitle}</p>
+                  <p className="mt-1">{failure.errorMessage}</p>
+                  <p className="mt-1 text-[13px]">{failure.originalPath}</p>
+                </div>
+              ))}
+            </section>
+          )}
           <section className="soft-card mt-4 p-5">
             <h2 className="text-[20px] font-bold">检测到的分类</h2>
             <div className="scroll-row mt-4 flex gap-2">
-              {['账单 256', '维修 142', '孩子教育 98', '证件 76'].map((label) => (
+              {[...new Set(preview.records.map((record) => record.originalCategory))].map((label) => (
                 <span className="chip" key={label}>{label}</span>
               ))}
             </div>
@@ -782,10 +861,10 @@ function ImportScreen({ onBack }) {
         </>
       )}
       <div className="fixed bottom-0 left-1/2 z-30 grid h-[96px] w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
-        <button className="rounded-2xl border border-teal-600 text-[18px] font-medium text-teal-600" type="button" onClick={() => setStage(1)}>
+        <button className="rounded-2xl border border-teal-600 text-[18px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
           {canPreview ? '重新选择文件' : '取消'}
         </button>
-        <button className="rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={() => setStage((current) => Math.min(current + 1, 4))}>
+        <button className="rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
           {stage === 1 ? '选择文件' : stage === 2 ? '确认导入' : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>

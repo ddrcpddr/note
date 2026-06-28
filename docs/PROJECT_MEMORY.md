@@ -201,3 +201,18 @@ MVP 需要覆盖：
 - 附件阶段 2 只保存元数据，不做真实上传。
 - 真实数据库文件、附件、备份和导出文件不会提交到 GitHub。
 - 已创建 `docs/DATA_MODEL.md` 记录数据结构和阶段限制。
+
+### 阶段 3：Note Station 导入框架
+
+- 没有真实 Synology Note Station 导出样例，因此没有猜测真实格式。
+- 新增导入模块目录：`src/server/importers/notestation/`。
+- 实现样例导入预览和确认导入 API：
+  - `POST /api/imports/notestation/sample-preview`
+  - `GET /api/imports/notestation/:importId`
+  - `POST /api/imports/notestation/:importId/commit`
+- 导入页接入 API，可完成选择样例文件、解析预览、确认导入、导入完成 4 步流程。
+- 导入记录写入本地 SQLite，`source_type` 标记为 `notestation_import`。
+- 导入记录保留原始标题、路径、分类、创建时间、更新时间和原始 JSON 元数据。
+- 无法解析的样例记录写入 `import_failures` 并在导入页展示。
+- 阶段 3 仍不处理真实附件文件和真实导出格式。
+- 已创建 `docs/NOTESTATION_IMPORT.md` 记录导入框架、API 和后续扩展方式。

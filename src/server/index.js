@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { getDataPaths, getDb, getDbPath } from './db/database.js';
 import { categoriesRouter } from './routes/categories.js';
+import { importsRouter } from './routes/imports.js';
 import { listNotes, notesRouter } from './routes/notes.js';
 
 const app = express();
@@ -64,6 +65,7 @@ app.get('/api/app-data', (_request, response) => {
 
 app.use('/api/categories', categoriesRouter);
 app.use('/api/notes', notesRouter);
+app.use('/api/imports', importsRouter);
 
 app.listen(port, () => {
   console.log(`note server listening on http://localhost:${port}`);
