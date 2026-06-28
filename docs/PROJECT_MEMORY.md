@@ -143,3 +143,16 @@ MVP 需要覆盖：
   - 分类页改为单列卡片，避免中文被挤成竖排。
   - 导入页长标题和文件名使用截断，统计卡改为两列，更适合手机阅读。
 - 用户新增长期约定：每个阶段结束后推送到 GitHub，并把项目记忆同步到 `docs/PROJECT_MEMORY.md`。
+
+### V1 参考图提交约定
+
+- 已删除本地 `design/home-records-prototype` 中的 V2 PNG、V2 README 和 V2 生成脚本。
+- GitHub 只提交 7 张 V1 页面参考图：
+  - `page-1-home-selected.png`
+  - `page-2-new-record.png`
+  - `page-3-record-detail.png`
+  - `page-4-search.png`
+  - `page-5-categories.png`
+  - `page-6-import-note-station.png`
+  - `page-7-settings-backup.png`
+- `concept-*` 图片、zip、设计 README 和 `Thumbs.db` 不作为本轮 V1 唯一视觉参考，已从本地设计目录清理。
