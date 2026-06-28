@@ -5,13 +5,17 @@ dist/
 
 data/app.db
 data/app.db-*
+data/database/*
 data/attachments/*
 data/imports/*
 data/backups/*
+data/exports/*
 
+!data/database/.gitkeep
 !data/attachments/.gitkeep
 !data/imports/.gitkeep
 !data/backups/.gitkeep
+!data/exports/.gitkeep
 
 npm-debug.log*
 *.local

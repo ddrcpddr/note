@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   AlertCircle,
@@ -60,6 +60,14 @@ const categories = [
   { id: 'work', name: '工作 / 杂事', count: 25, update: '5月14日 14:12 更新', icon: Briefcase, tone: 'bg-blue-50 text-blue-700' },
   { id: 'temporary', name: '临时记录', count: 19, update: '今天 09:15 更新', icon: FileText, tone: 'bg-purple-50 text-purple-600' },
   { id: 'uncategorized', name: '未分类', count: 14, update: '5月12日 11:02 更新', icon: Inbox, tone: 'bg-neutral-100 text-neutral-600' }
+];
+
+const fallbackMembers = [
+  { id: 'dad', name: '爸爸', avatar: '爸' },
+  { id: 'mom', name: '妈妈', avatar: '妈' },
+  { id: 'child', name: '孩子', avatar: '孩' },
+  { id: 'elder', name: '老人', avatar: '老' },
+  { id: 'history', name: '历史导入', avatar: '历' }
 ];
 
 const initialNotes = [
@@ -148,6 +156,9 @@ const recordTypes = [
 
 function App() {
   const [notesData, setNotesData] = useState(initialNotes);
+  const [members, setMembers] = useState(fallbackMembers);
+  const [currentMemberId, setCurrentMemberId] = useState('dad');
+  const [dataMode, setDataMode] = useState('mock');
   const [screen, setScreen] = useState('home');
   const [selectedId, setSelectedId] = useState('leak');
   const [homeFilter, setHomeFilter] = useState('all');
@@ -155,6 +166,41 @@ function App() {
   const [homeCategory, setHomeCategory] = useState('all');
   const [toast, setToast] = useState('');
   const selectedNote = useMemo(() => notesData.find((note) => note.id === selectedId) ?? notesData[0], [notesData, selectedId]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      try {
+        const response = await fetch('/api/app-data');
+        if (!response.ok) {
+          throw new Error('app data unavailable');
+        }
+
+        const data = await response.json();
+        if (!isMounted) return;
+
+        const nextMembers = data.members?.length ? data.members.map(normalizeMember) : fallbackMembers;
+        const nextNotes = data.notes?.length ? data.notes.map(normalizeNote) : initialNotes;
+        const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
+
+        setMembers(nextMembers);
+        setCurrentMemberId(currentMember.id);
+        setNotesData(nextNotes);
+        setSelectedId(nextNotes[0]?.id ?? 'leak');
+        setDataMode('sqlite');
+      } catch {
+        if (!isMounted) return;
+        setDataMode('mock');
+      }
+    }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function openDetail(id) {
     setSelectedId(id);
@@ -182,10 +228,44 @@ function App() {
     navigate('home');
   }
 
-  function createMockNote(draft) {
+  async function createMockNote(draft) {
     const category = findCategoryForType(draft.type);
     const body = draft.body.trim() || '刚刚新建的一条家庭记录，稍后可以继续补充细节。';
     const title = draft.title.trim() || body.slice(0, 24);
+    const currentMember = members.find((member) => member.id === currentMemberId) ?? members[0] ?? fallbackMembers[0];
+
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content: body,
+            categoryId: category.id,
+            memberId: currentMember.id,
+            noteType: draft.type,
+            tags: draft.tags,
+            attachments: draft.hasAttachment ? [{ fileName: '家庭记录附件.jpg', originalName: '家庭记录附件.jpg' }] : []
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('save failed');
+        }
+
+        const data = await response.json();
+        const note = normalizeNote(data.note);
+        setNotesData((current) => [note, ...current]);
+        setSelectedId(note.id);
+        setScreen('detail');
+        showToast('记录已保存到本地数据库');
+        return;
+      } catch {
+        showToast('数据库保存失败，已临时保存在当前页面');
+      }
+    }
+
     const note = {
       id: `mock-${Date.now()}`,
       title,
@@ -199,7 +279,8 @@ function App() {
       iconTone: category.tone,
       tags: draft.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
       time: '刚刚',
-      member: '爸爸',
+      member: currentMember.name,
+      memberId: currentMember.id,
       attachmentCount: draft.hasAttachment ? 1 : 0,
       status: '保存中',
       source: '手动创建',
@@ -233,12 +314,13 @@ function App() {
           onCategoryChange={setHomeCategory}
           onOpenDetail={openDetail}
           onOpenSearch={openSearch}
+          members={members}
         />
       )}
       {screen === 'new' && <NewRecordScreen onBack={() => navigate('home')} onSave={createMockNote} />}
       {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} />}
-      {screen === 'search' && <SearchScreen notes={notesData} onOpenDetail={openDetail} />}
-      {screen === 'categories' && <CategoriesScreen onSelectCategory={applyCategory} />}
+      {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
+      {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} />}
       {screen === 'import' && <ImportScreen onBack={() => navigate('settings')} />}
       {screen === 'settings' && <SettingsScreen onOpenImport={() => navigate('import')} />}
 
@@ -270,6 +352,60 @@ function findTagTone(label) {
   if (label === '购物') return 'shopping';
   if (label === '账单') return 'bill';
   return 'done';
+}
+
+function normalizeMember(member) {
+  return {
+    id: member.id,
+    name: member.name,
+    avatar: member.avatar || member.name?.slice(0, 1) || '家',
+    isCurrent: Boolean(member.isCurrent)
+  };
+}
+
+function normalizeNote(note) {
+  const category = categories.find((item) => item.id === note.categoryId) ?? categories.find((item) => item.id === 'uncategorized') ?? categories[0];
+  const tags = Array.isArray(note.tags) ? note.tags.map((tag) => tag.label || tag.name || tag).filter(Boolean) : [];
+  const attachments = Array.isArray(note.attachments) ? note.attachments : [];
+  const sourceType = note.sourceType || 'manual';
+
+  return {
+    id: note.id,
+    title: note.title,
+    summary: note.summary || note.content?.slice(0, 42) || note.title,
+    content: note.content || note.summary || note.title,
+    category: note.categoryName || category.name,
+    categoryId: note.categoryId || category.id,
+    categoryIcon: category.icon,
+    categoryColor: 'text-teal-600',
+    icon: category.icon,
+    iconTone: category.tone,
+    tags: tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
+    time: formatShortTime(note.occurredAt || note.createdAt),
+    member: note.memberName || '爸爸',
+    memberId: note.memberId || 'dad',
+    attachmentCount: attachments.length,
+    status: note.saveStatus === 'saved' ? '已保存到 NAS' : '保存中',
+    source: sourceType === 'notestation_import' ? 'Note Station 导入' : '手动创建',
+    sourceType,
+    createdAt: formatLongTime(note.createdAt),
+    updatedAt: formatShortTime(note.updatedAt),
+    attachments: attachments.map((attachment) => attachment.originalName || attachment.fileName || attachment)
+  };
+}
+
+function formatShortTime(value) {
+  if (!value) return '刚刚';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatLongTime(value) {
+  if (!value) return '刚刚';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function findCategoryForType(type) {
@@ -309,7 +445,7 @@ function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', 
   });
 }
 
-function HomeScreen({ notes, filter, member, category, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {
+function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {
   const visibleNotes = filterNotes(notes, { filter, member, category });
   const categoryName = categories.find((item) => item.id === category)?.name ?? '全部分类';
   return (
@@ -329,7 +465,7 @@ function HomeScreen({ notes, filter, member, category, onFilterChange, onMemberC
       </header>
       <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
       <QuickFilters active={filter} onChange={onFilterChange} />
-      <MemberFilters active={member} onChange={onMemberChange} />
+      <MemberFilters members={members} active={member} onChange={onMemberChange} />
       <CategoryFilters active={category} onChange={onCategoryChange} />
       <TodayCard />
       <SectionHeader
@@ -440,7 +576,7 @@ function NewRecordScreen({ onBack, onSave }) {
   );
 }
 
-function SearchScreen({ notes, onOpenDetail }) {
+function SearchScreen({ notes, members, onOpenDetail }) {
   const [query, setQuery] = useState('漏水');
   const [category, setCategory] = useState('all');
   const [tag, setTag] = useState('待办');
@@ -485,7 +621,7 @@ function SearchScreen({ notes, onOpenDetail }) {
       <section className="soft-card mt-5 divide-y divide-line p-4">
         <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
         <FilterRow title="标签" options={['all', '待办', '重要', '维修', '购物']} labels={{ all: '全部' }} active={tag} onChange={setTag} />
-        <FilterRow title="成员" options={['all', '爸爸', '妈妈', '历史导入']} labels={{ all: '全部成员' }} active={member} onChange={setMember} />
+        <FilterRow title="成员" options={['all', ...members.map((item) => item.name)]} labels={{ all: '全部成员' }} active={member} onChange={setMember} />
         <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active={range} onChange={setRange} />
       </section>
       <SectionHeader
@@ -502,9 +638,15 @@ function SearchScreen({ notes, onOpenDetail }) {
   );
 }
 
-function CategoriesScreen({ onSelectCategory }) {
+function CategoriesScreen({ notes, onSelectCategory }) {
   const [query, setQuery] = useState('');
-  const visibleCategories = categories.filter((category) => category.name.includes(query.trim()));
+  const visibleCategories = categories
+    .map((category) => ({
+      ...category,
+      count: notes.filter((note) => note.categoryId === category.id).length,
+      update: notes.some((note) => note.categoryId === category.id) ? '最近有更新' : category.update
+    }))
+    .filter((category) => category.name.includes(query.trim()));
   return (
     <>
       <header className="flex items-start justify-between">
@@ -842,17 +984,12 @@ function QuickFilters({ active, onChange }) {
   );
 }
 
-function MemberFilters({ active, onChange }) {
-  const members = [
-    { key: 'all', label: '全部成员' },
-    { key: '爸爸', label: '爸爸' },
-    { key: '妈妈', label: '妈妈' },
-    { key: '历史导入', label: '历史导入' }
-  ];
+function MemberFilters({ members, active, onChange }) {
+  const options = [{ key: 'all', label: '全部成员', avatar: '全' }, ...members.map((member) => ({ key: member.name, label: member.name, avatar: member.avatar }))];
 
   return (
     <section className="scroll-row mt-4 flex gap-2 pb-1">
-      {members.map((member) => (
+      {options.map((member) => (
         <button
           key={member.key}
           type="button"
@@ -861,7 +998,7 @@ function MemberFilters({ active, onChange }) {
             active === member.key ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'
           }`}
         >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-100 text-[12px] text-teal-700">{member.label.slice(0, 1)}</span>
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-100 text-[12px] text-teal-700">{member.avatar || member.label.slice(0, 1)}</span>
           {member.label}
         </button>
       ))}

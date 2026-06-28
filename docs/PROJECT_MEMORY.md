@@ -181,3 +181,23 @@ MVP 需要覆盖：
   - 数据目录 `data/` 初始化和备份脚本。
   - Note Station 样例文件结构分析与导入解析模块。
   - PWA manifest、离线提示和局域网部署说明。
+
+### 阶段 2：本地数据层
+
+- 使用 Node 内置 SQLite 实现本地持久化，数据库默认位置为 `data/database/app.db`。
+- 新增并初始化 MVP 数据表：
+  - `members`
+  - `categories`
+  - `notes`
+  - `tags`
+  - `note_tags`
+  - `attachments`
+  - `imports`
+  - `import_failures`
+  - `backups`
+- 默认写入家庭成员、分类、常用标签和 3 条示例记录。
+- 前端优先从 `/api/app-data` 读取 SQLite 数据，服务端不可用时回落到阶段 1 mock 数据。
+- 新建记录会通过 `POST /api/notes` 保存到 SQLite；标题为空时由正文自动生成。
+- 附件阶段 2 只保存元数据，不做真实上传。
+- 真实数据库文件、附件、备份和导出文件不会提交到 GitHub。
+- 已创建 `docs/DATA_MODEL.md` 记录数据结构和阶段限制。
