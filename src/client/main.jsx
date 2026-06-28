@@ -262,7 +262,7 @@ function App() {
         showToast('记录已保存到本地数据库');
         return;
       } catch {
-        showToast('数据库保存失败，已临时保存在当前页面');
+        showToast('暂时没有连上家庭记录服务，已先留在当前页面');
       }
     }
 
@@ -516,7 +516,7 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
         {visibleNotes.map((note) => (
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
-        {visibleNotes.length === 0 && <EmptyState title="还没有相关记录" desc="换个分类、成员或筛选条件看看。" />}
+        {visibleNotes.length === 0 && <EmptyState title="这里暂时没有记录" desc="换个分类、成员或筛选条件看看，也可以先新建一条。" />}
       </section>
     </>
   );
@@ -673,7 +673,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
       </section>
-      {results.length === 0 && <EmptyState title="还没有找到相关记录" desc="可以换个关键词，或减少分类、标签、成员筛选。" />}
+      {results.length === 0 && <EmptyState title="没有找到匹配记录" desc="可以换个关键词，或少选一些分类、标签和成员条件。" />}
     </>
   );
 }
@@ -724,7 +724,7 @@ function CategoriesScreen({ notes, onSelectCategory }) {
             </button>
           );
         })}
-        {visibleCategories.length === 0 && <EmptyState title="没有这个分类" desc="后续可以在分类管理中添加新的家庭分类。" />}
+        {visibleCategories.length === 0 && <EmptyState title="暂时没有这个分类" desc="后续可以在分类管理中添加新的家庭分类。" />}
       </section>
     </>
   );
@@ -755,7 +755,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       setPreview(data);
       setStage(2);
     } catch (previewError) {
-      setError(previewError.message || '导入预览失败');
+      setError(previewError.message || '导入预览没有完成，已有记录不会被修改。');
     }
   }
 
@@ -774,7 +774,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       onImported(data.notes || []);
       setStage(4);
     } catch (commitError) {
-      setError(commitError.message || '确认导入失败');
+      setError(commitError.message || '导入没有完成，已有记录不会被修改。');
     }
   }
 
@@ -987,7 +987,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
           setLastBackup('尚未备份');
         }
       } catch {
-        setStorageMessage('当前仅显示本地模拟路径，启动服务端后可查看真实目录。');
+        setStorageMessage('还没有连上家庭记录服务，当前只显示本地模拟路径。');
       }
     }
 
@@ -1024,7 +1024,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       setStorageMessage(`备份已保存：${data.backup.filePath}`);
     } catch {
       setBackupState('failed');
-      setStorageMessage('备份失败，请检查数据目录是否可写。');
+      setStorageMessage('备份没有完成，请确认数据目录存在且可以写入。');
     }
   }
 
@@ -1035,7 +1035,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       const data = await response.json();
       setStorageMessage(`JSON 已导出：${data.export.filePath}`);
     } catch {
-      setStorageMessage('JSON 导出失败，请启动服务端后重试。');
+      setStorageMessage('JSON 没有导出成功，请确认服务端正在运行后再试。');
     }
   }
 
@@ -1110,7 +1110,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
           </button>
         </div>
         {backupState === 'done' && <p className="mt-4 text-[15px] font-medium text-teal-600">已完成一次模拟备份。</p>}
-        {backupState === 'failed' && <p className="mt-4 text-[15px] font-medium text-amber-600">当前无法连接家庭 NAS，请恢复局域网连接后再试。</p>}
+        {backupState === 'failed' && <p className="mt-4 text-[15px] font-medium text-amber-600">当前没有连上家庭 NAS，请恢复局域网连接后再试。</p>}
         {storageMessage && <p className="mt-4 break-all text-[14px] leading-relaxed text-muted">{storageMessage}</p>}
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
           <ShieldCheck size={20} className="shrink-0" />
