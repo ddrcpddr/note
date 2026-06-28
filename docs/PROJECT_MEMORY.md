@@ -329,3 +329,11 @@ MVP 需要覆盖：
   - 如何重置本地测试数据
   - Windows PowerShell 使用 `npm.cmd`
 - 本项只改文档，不改核心代码。
+
+### 安全加固 2：QA 报告完善
+
+- `docs/QA_REPORT_CURRENT.md` 增加清晰表格：
+  - 当前真实可用功能
+  - 当前模拟功能
+  - 后续需要用户提供的信息
+- 记录 Docker CLI 存在但 Docker daemon 未运行的环境限制。
