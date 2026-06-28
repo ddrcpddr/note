@@ -12,7 +12,6 @@ import {
   Cloud,
   Database,
   Download,
-  FileArchive,
   FileText,
   Folder,
   Grid2X2,
@@ -63,7 +62,7 @@ const categories = [
   { id: 'uncategorized', name: '未分类', count: 14, update: '5月12日 11:02 更新', icon: Inbox, tone: 'bg-neutral-100 text-neutral-600' }
 ];
 
-const notes = [
+const initialNotes = [
   {
     id: 'leak',
     title: '下午联系师傅看漏水',
@@ -71,6 +70,7 @@ const notes = [
     content:
       '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。需要拍照留存，顺便问一下厨房水龙头是否也能一起检查。物业说如果确认是楼上管线问题，需要再联系楼上邻居一起处理。',
     category: '家庭事务',
+    categoryId: 'family',
     categoryIcon: Home,
     categoryColor: 'text-teal-600',
     icon: Wrench,
@@ -94,7 +94,8 @@ const notes = [
     title: '买了老人血压计',
     summary: '欧姆龙 J710，上臂式，家里老人用更方便。',
     content: '欧姆龙 J710，上臂式，家里老人用更方便。包装和发票先放在电视柜下面。',
-    category: '购物',
+    category: '购物 / 消费',
+    categoryId: 'shopping',
     categoryIcon: ShoppingBag,
     categoryColor: 'text-teal-600',
     icon: ShoppingBag,
@@ -117,7 +118,8 @@ const notes = [
     title: 'Note Station 导入记录待整理',
     summary: '从 Note Station 导入的历史记录，需要统一分类和标签。',
     content: '从 Note Station 导入的历史记录，需要统一分类和标签。先保留原始路径和来源，稍后慢慢整理。',
-    category: '导入',
+    category: '临时记录',
+    categoryId: 'temporary',
     categoryIcon: Folder,
     categoryColor: 'text-teal-600',
     icon: Download,
@@ -145,9 +147,14 @@ const recordTypes = [
 ];
 
 function App() {
+  const [notesData, setNotesData] = useState(initialNotes);
   const [screen, setScreen] = useState('home');
   const [selectedId, setSelectedId] = useState('leak');
-  const selectedNote = useMemo(() => notes.find((note) => note.id === selectedId) ?? notes[0], [selectedId]);
+  const [homeFilter, setHomeFilter] = useState('all');
+  const [homeMember, setHomeMember] = useState('all');
+  const [homeCategory, setHomeCategory] = useState('all');
+  const [toast, setToast] = useState('');
+  const selectedNote = useMemo(() => notesData.find((note) => note.id === selectedId) ?? notesData[0], [notesData, selectedId]);
 
   function openDetail(id) {
     setSelectedId(id);
@@ -160,13 +167,78 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function showToast(message) {
+    setToast(message);
+    window.setTimeout(() => setToast(''), 1800);
+  }
+
+  function openSearch() {
+    navigate('search');
+  }
+
+  function applyCategory(categoryId) {
+    setHomeCategory(categoryId);
+    setHomeFilter('all');
+    navigate('home');
+  }
+
+  function createMockNote(draft) {
+    const category = findCategoryForType(draft.type);
+    const body = draft.body.trim() || '刚刚新建的一条家庭记录，稍后可以继续补充细节。';
+    const title = draft.title.trim() || body.slice(0, 24);
+    const note = {
+      id: `mock-${Date.now()}`,
+      title,
+      summary: body.slice(0, 42),
+      content: body,
+      category: category.name,
+      categoryId: category.id,
+      categoryIcon: category.icon,
+      categoryColor: 'text-teal-600',
+      icon: category.icon,
+      iconTone: category.tone,
+      tags: draft.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
+      time: '刚刚',
+      member: '爸爸',
+      attachmentCount: draft.hasAttachment ? 1 : 0,
+      status: '保存中',
+      source: '手动创建',
+      createdAt: '今天 刚刚',
+      updatedAt: '刚刚',
+      attachments: draft.hasAttachment ? ['家庭记录附件.jpg'] : []
+    };
+
+    setNotesData((current) => [note, ...current]);
+    setSelectedId(note.id);
+    setScreen('detail');
+    showToast('记录已模拟保存');
+
+    window.setTimeout(() => {
+      setNotesData((current) =>
+        current.map((item) => (item.id === note.id ? { ...item, status: '已保存到 NAS', updatedAt: '刚刚' } : item))
+      );
+    }, 900);
+  }
+
   return (
     <main className="mobile-shell">
-      {screen === 'home' && <HomeScreen onOpenDetail={openDetail} />}
-      {screen === 'new' && <NewRecordScreen onBack={() => navigate('home')} />}
-      {screen === 'detail' && <DetailScreen note={selectedNote} onBack={() => navigate('home')} />}
-      {screen === 'search' && <SearchScreen onOpenDetail={openDetail} />}
-      {screen === 'categories' && <CategoriesScreen />}
+      {screen === 'home' && (
+        <HomeScreen
+          notes={notesData}
+          filter={homeFilter}
+          member={homeMember}
+          category={homeCategory}
+          onFilterChange={setHomeFilter}
+          onMemberChange={setHomeMember}
+          onCategoryChange={setHomeCategory}
+          onOpenDetail={openDetail}
+          onOpenSearch={openSearch}
+        />
+      )}
+      {screen === 'new' && <NewRecordScreen onBack={() => navigate('home')} onSave={createMockNote} />}
+      {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} />}
+      {screen === 'search' && <SearchScreen notes={notesData} onOpenDetail={openDetail} />}
+      {screen === 'categories' && <CategoriesScreen onSelectCategory={applyCategory} />}
       {screen === 'import' && <ImportScreen onBack={() => navigate('settings')} />}
       {screen === 'settings' && <SettingsScreen onOpenImport={() => navigate('import')} />}
 
@@ -182,11 +254,64 @@ function App() {
       )}
 
       {!['detail', 'new', 'import'].includes(screen) && <BottomNav active={screen} onChange={navigate} />}
+      {toast && (
+        <div className="fixed bottom-[96px] left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#173f3b] px-5 py-3 text-[15px] font-medium text-white shadow-float">
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
 
-function HomeScreen({ onOpenDetail }) {
+function findTagTone(label) {
+  if (label === '待办') return 'todo';
+  if (label === '重要') return 'important';
+  if (label === '维修') return 'repair';
+  if (label === '购物') return 'shopping';
+  if (label === '账单') return 'bill';
+  return 'done';
+}
+
+function findCategoryForType(type) {
+  if (type.includes('维修')) return categories.find((item) => item.id === 'repair');
+  if (type.includes('购物')) return categories.find((item) => item.id === 'shopping');
+  if (type.includes('账号')) return categories.find((item) => item.id === 'account');
+  if (type.includes('临时')) return categories.find((item) => item.id === 'temporary');
+  return categories.find((item) => item.name === type) ?? categories[0];
+}
+
+function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', query = '', tag = 'all' }) {
+  const keyword = query.trim().toLowerCase();
+  const categoryItem = categories.find((item) => item.id === category);
+
+  return notes.filter((note) => {
+    const tags = note.tags.map((item) => item.label);
+    const matchesQuick =
+      filter === 'all' ||
+      (filter === 'todo' && tags.includes('待办')) ||
+      (filter === 'important' && tags.includes('重要')) ||
+      (filter === 'attachments' && note.attachmentCount > 0);
+    const matchesMember = member === 'all' || note.member === member;
+    const matchesCategory =
+      category === 'all' ||
+      note.categoryId === category ||
+      note.category === category ||
+      (categoryItem && tags.some((tagLabel) => categoryItem.name.includes(tagLabel)));
+    const matchesTag = tag === 'all' || tags.includes(tag);
+    const matchesQuery =
+      !keyword ||
+      [note.title, note.summary, note.content, note.category, note.member, ...tags]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword);
+
+    return matchesQuick && matchesMember && matchesCategory && matchesTag && matchesQuery;
+  });
+}
+
+function HomeScreen({ notes, filter, member, category, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {
+  const visibleNotes = filterNotes(notes, { filter, member, category });
+  const categoryName = categories.find((item) => item.id === category)?.name ?? '全部分类';
   return (
     <>
       <header className="flex items-start justify-between">
@@ -202,80 +327,112 @@ function HomeScreen({ onOpenDetail }) {
           <MoreHorizontal size={28} className="text-ink" />
         </div>
       </header>
-      <SearchPill placeholder="搜索记录、标签或内容" />
-      <QuickFilters />
-      <MemberFilters />
+      <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
+      <QuickFilters active={filter} onChange={onFilterChange} />
+      <MemberFilters active={member} onChange={onMemberChange} />
+      <CategoryFilters active={category} onChange={onCategoryChange} />
       <TodayCard />
-      <SectionHeader title="最新记录" trailing={<><RotateCw size={18} /> 刚刚更新</>} />
+      <SectionHeader
+        title={category === 'all' ? '最新记录' : categoryName}
+        trailing={<><RotateCw size={18} /> {visibleNotes.length} 条</>}
+      />
       <section className="mt-3 space-y-4">
-        {notes.map((note) => (
+        {visibleNotes.map((note) => (
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
+        {visibleNotes.length === 0 && <EmptyState title="还没有相关记录" desc="换个分类、成员或筛选条件看看。" />}
       </section>
     </>
   );
 }
 
-function NewRecordScreen({ onBack }) {
+function NewRecordScreen({ onBack, onSave }) {
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [type, setType] = useState('家庭事务');
+  const [tags, setTags] = useState(['待办', '重要']);
+  const [hasAttachment, setHasAttachment] = useState(false);
+  const tagOptions = ['待办', '重要', '维修', '购物', '账单'];
+
+  function toggleTag(label) {
+    setTags((current) => (current.includes(label) ? current.filter((item) => item !== label) : [...current, label]));
+  }
+
+  function save() {
+    onSave({ title, body, type, tags: tags.length ? tags : ['待办'], hasAttachment });
+  }
+
   return (
     <>
-      <TopBar title="新记录" onBack={onBack} action="保存" />
+      <TopBar title="新记录" onBack={onBack} action="保存" onAction={save} />
       <section className="soft-card mt-6 flex h-[58px] items-center gap-4 px-5 text-[20px] text-muted">
         <span className="text-[30px]">T</span>
-        标题（可选）
+        <input
+          className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="标题（可选）"
+        />
       </section>
       <section className="soft-card mt-4 min-h-[220px] p-5">
         <div className="flex gap-4 text-[18px] text-muted">
           <FileText className="mt-1 shrink-0" size={25} />
-          <p>写下家里的小事、账单、维修、临时备忘...</p>
+          <textarea
+            className="min-h-[156px] min-w-0 flex-1 resize-none bg-transparent leading-relaxed outline-none placeholder:text-muted"
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder="写下家里的小事、账单、维修、临时备忘..."
+          />
         </div>
-        <div className="mt-32 text-right text-[16px] text-muted">0/1000</div>
+        <div className="mt-4 text-right text-[16px] text-muted">{body.length}/1000</div>
       </section>
       <SectionTitle>记录类型</SectionTitle>
       <section className="grid grid-cols-2 gap-3">
-        {recordTypes.map((type, index) => {
-          const Icon = type.icon;
+        {recordTypes.map((recordType) => {
+          const Icon = recordType.icon;
           return (
             <button
               className={`soft-card flex h-[92px] flex-col items-center justify-center gap-2 text-[17px] ${
-                index === 0 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'text-ink'
+                type === recordType.label ? 'border-teal-600 bg-teal-50 text-teal-700' : 'text-ink'
               }`}
-              key={type.label}
+              key={recordType.label}
               type="button"
+              onClick={() => setType(recordType.label)}
             >
               <Icon size={29} strokeWidth={2.1} />
-              {type.label}
+              {recordType.label}
             </button>
           );
         })}
       </section>
       <SectionTitle>标签</SectionTitle>
       <section className="soft-card flex flex-wrap gap-3 p-4">
-        {[
-          ['待办', tagTones.todo],
-          ['重要', tagTones.important],
-          ['维修', tagTones.repair]
-        ].map(([label, tone]) => (
-          <span className={`tag ${tone}`} key={label}>
-            {label} <X className="ml-1" size={14} />
-          </span>
+        {tagOptions.map((label) => (
+          <button
+            className={`tag ${tags.includes(label) ? tagTones[findTagTone(label)] : 'border border-line bg-white text-muted'}`}
+            key={label}
+            type="button"
+            onClick={() => toggleTag(label)}
+          >
+            {label} {tags.includes(label) && <X className="ml-1" size={14} />}
+          </button>
         ))}
         <span className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[16px] text-muted">
           <Plus size={17} /> 添加标签
         </span>
       </section>
       <SectionTitle>附件</SectionTitle>
-      <section className="soft-card flex h-[72px] items-center justify-between px-5">
+      <button className="soft-card flex h-[72px] w-full items-center justify-between px-5 text-left" type="button" onClick={() => setHasAttachment((value) => !value)}>
         <span className="inline-flex items-center gap-4 text-[18px] text-muted">
-          <Paperclip className="text-teal-600" size={28} /> 添加照片 / 文件
+          <Paperclip className="text-teal-600" size={28} /> {hasAttachment ? '已添加 1 个模拟附件' : '添加照片 / 文件'}
         </span>
-        <ChevronRight className="text-muted" />
-      </section>
+        {hasAttachment ? <CheckCircle2 className="text-teal-600" /> : <ChevronRight className="text-muted" />}
+      </button>
       <div className="fixed bottom-0 left-1/2 z-30 flex h-[104px] w-full max-w-[430px] -translate-x-1/2 items-center gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
         <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[18px] font-medium text-teal-600" type="button">
           <FileText size={22} /> 存为模板
         </button>
-        <button className="flex h-14 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[19px] font-semibold text-white shadow-float" type="button">
+        <button className="flex h-14 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[19px] font-semibold text-white shadow-float" type="button" onClick={save}>
           <Check size={24} /> 保存记录
         </button>
       </div>
@@ -283,7 +440,21 @@ function NewRecordScreen({ onBack }) {
   );
 }
 
-function SearchScreen({ onOpenDetail }) {
+function SearchScreen({ notes, onOpenDetail }) {
+  const [query, setQuery] = useState('漏水');
+  const [category, setCategory] = useState('all');
+  const [tag, setTag] = useState('待办');
+  const [member, setMember] = useState('all');
+  const [range, setRange] = useState('全部时间');
+  const results = filterNotes(notes, { query, category, tag, member });
+  const clearFilters = () => {
+    setQuery('');
+    setCategory('all');
+    setTag('all');
+    setMember('all');
+    setRange('全部时间');
+  };
+
   return (
     <>
       <header className="flex items-start justify-between">
@@ -291,39 +462,49 @@ function SearchScreen({ onOpenDetail }) {
           <h1 className="text-[42px] font-bold leading-none tracking-wide text-[#093f3e]">搜索</h1>
           <p className="mt-3 text-[18px] text-muted">快速找到你需要的记录</p>
         </div>
-        <button className="chip mt-3">
-          <Clock3 size={19} /> 搜索历史
+        <button className="chip mt-3 px-3">
+          <Clock3 size={19} /> 历史
         </button>
       </header>
       <section className="soft-card mt-6 flex h-[68px] items-center gap-4 px-5">
         <Search size={31} className="text-muted" />
-        <span className="flex-1 text-[22px] font-medium">漏水</span>
-        <X size={23} className="text-muted" />
+        <input
+          className="min-w-0 flex-1 bg-transparent text-[22px] font-medium outline-none placeholder:text-muted"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="输入关键词"
+        />
+        {query && (
+          <button type="button" onClick={() => setQuery('')} aria-label="清空搜索">
+            <X size={23} className="text-muted" />
+          </button>
+        )}
         <span className="h-8 w-px bg-line" />
         <span className="text-[18px] font-medium text-teal-600">搜索</span>
       </section>
       <section className="soft-card mt-5 divide-y divide-line p-4">
-        <FilterRow title="分类" options={['全部', '家庭事务', '维修', '账单']} active="全部" />
-        <FilterRow title="标签" options={['全部', '待办', '重要', '有附件']} active="待办" />
-        <FilterRow title="成员" options={['全部成员', '爸爸', '妈妈']} active="全部成员" />
-        <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active="全部时间" />
+        <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
+        <FilterRow title="标签" options={['all', '待办', '重要', '维修', '购物']} labels={{ all: '全部' }} active={tag} onChange={setTag} />
+        <FilterRow title="成员" options={['all', '爸爸', '妈妈', '历史导入']} labels={{ all: '全部成员' }} active={member} onChange={setMember} />
+        <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active={range} onChange={setRange} />
       </section>
-      <SectionHeader title="找到 3 条相关记录" trailing="清除筛选" />
+      <SectionHeader
+        title={`找到 ${results.length} 条相关记录`}
+        trailing={<button type="button" onClick={clearFilters} className="text-muted">清除筛选</button>}
+      />
       <section className="mt-3 space-y-4">
-        {notes.map((note) => (
+        {results.map((note) => (
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
       </section>
-      <section className="mt-5 rounded-[22px] border border-dashed border-line bg-white/70 p-5 text-center">
-        <Search className="mx-auto text-muted" size={42} />
-        <p className="mt-3 text-[17px] font-medium">没有找到时，可以换个关键词试试</p>
-        <p className="mt-1 text-[15px] text-muted">例如：渗水、防水、卫生间、阳台、楼上等</p>
-      </section>
+      {results.length === 0 && <EmptyState title="还没有找到相关记录" desc="可以换个关键词，或减少分类、标签、成员筛选。" />}
     </>
   );
 }
 
-function CategoriesScreen() {
+function CategoriesScreen({ onSelectCategory }) {
+  const [query, setQuery] = useState('');
+  const visibleCategories = categories.filter((category) => category.name.includes(query.trim()));
   return (
     <>
       <header className="flex items-start justify-between">
@@ -335,12 +516,20 @@ function CategoriesScreen() {
           <Grid2X2 size={28} />
         </button>
       </header>
-      <SearchPill placeholder="搜索分类" />
+      <section className="soft-card mt-7 flex h-[64px] w-full items-center gap-4 rounded-[22px] bg-[#f1f2f0] px-5 text-left text-[22px] text-[#8b8e94] shadow-card">
+        <Search size={30} className="text-[#777b82]" />
+        <input
+          className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#8b8e94]"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="搜索分类"
+        />
+      </section>
       <section className="mt-6 space-y-3">
-        {categories.map((category) => {
+        {visibleCategories.map((category) => {
           const Icon = category.icon;
           return (
-            <article className="soft-card flex min-h-[104px] items-center gap-4 p-4" key={category.id}>
+            <button className="soft-card flex min-h-[104px] w-full items-center gap-4 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
               <div className={`circle-icon h-16 w-16 ${category.tone}`}>
                 <Icon size={34} strokeWidth={2.1} />
               </div>
@@ -350,30 +539,35 @@ function CategoriesScreen() {
                 <p className="mt-1 text-[13px] text-muted">{category.update}</p>
               </div>
               <ChevronRight className="shrink-0 text-muted" size={18} />
-            </article>
+            </button>
           );
         })}
+        {visibleCategories.length === 0 && <EmptyState title="没有这个分类" desc="后续可以在分类管理中添加新的家庭分类。" />}
       </section>
     </>
   );
 }
 
 function ImportScreen({ onBack }) {
+  const [stage, setStage] = useState(1);
+  const steps = [
+    ['1', '上传导出文件'],
+    ['2', '解析预览'],
+    ['3', '确认导入'],
+    ['4', '导入完成']
+  ];
+  const canPreview = stage >= 2;
+
   return (
     <>
       <TopBar title="导入 Note Station" onBack={onBack} />
       <section className="mt-7 flex items-start justify-between gap-1">
-        {[
-          ['1', '上传导出文件'],
-          ['2', '解析预览'],
-          ['3', '确认导入'],
-          ['4', '导入完成']
-        ].map(([num, label], index) => (
+        {steps.map(([num, label], index) => (
           <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center" key={num}>
-            <div className={`grid h-12 w-12 place-items-center rounded-full border text-[20px] ${index === 1 ? 'border-teal-600 bg-teal-600 text-white' : 'border-line bg-white text-muted'}`}>
-              {num}
+            <div className={`grid h-12 w-12 place-items-center rounded-full border text-[20px] ${stage === index + 1 ? 'border-teal-600 bg-teal-600 text-white' : stage > index + 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}>
+              {stage > index + 1 ? <Check size={20} /> : num}
             </div>
-            <p className={index <= 1 ? 'text-[13px] leading-tight text-teal-600' : 'text-[13px] leading-tight text-muted'}>{label}</p>
+            <p className={stage >= index + 1 ? 'text-[13px] leading-tight text-teal-600' : 'text-[13px] leading-tight text-muted'}>{label}</p>
           </div>
         ))}
       </section>
@@ -383,70 +577,74 @@ function ImportScreen({ onBack }) {
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[22px] font-bold">notestation_export.zip</h2>
-            <p className="mt-1 text-[16px] text-muted">2.4 MB · 2025-05-18 20:11</p>
+            <h2 className="truncate text-[22px] font-bold">{canPreview ? 'notestation_export.zip' : '等待选择导出文件'}</h2>
+            <p className="mt-1 text-[16px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '模拟上传，不读取真实文件'}</p>
           </div>
         </div>
         <span className="mt-4 inline-flex items-center gap-2 text-[17px] font-medium text-teal-600">
-          <CheckCircle2 size={22} /> 已解析
+          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 点击下方按钮选择文件</>}
         </span>
       </section>
-      <section className="soft-card mt-4 p-5">
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            ['记录', '1,284 条', FileText, 'text-teal-600'],
-            ['分类', '12 个', Folder, 'text-blue-600'],
-            ['附件', '386 个', Paperclip, 'text-teal-600'],
-            ['失败项', '3 个', AlertCircle, 'text-amber-500']
-          ].map(([label, value, Icon, tone]) => (
-            <div className="rounded-2xl bg-soft p-3 text-center" key={label}>
-              <Icon className={`mx-auto ${tone}`} size={28} />
-              <p className="mt-2 text-[15px] text-muted">{label}</p>
-              <p className="mt-1 text-[18px] font-bold">{value}</p>
+      {canPreview && (
+        <>
+          <section className="soft-card mt-4 p-5">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                ['记录', '1,284 条', FileText, 'text-teal-600'],
+                ['分类', '12 个', Folder, 'text-blue-600'],
+                ['附件', '386 个', Paperclip, 'text-teal-600'],
+                ['失败项', '3 个', AlertCircle, 'text-amber-500']
+              ].map(([label, value, Icon, tone]) => (
+                <div className="rounded-2xl bg-soft p-3 text-center" key={label}>
+                  <Icon className={`mx-auto ${tone}`} size={28} />
+                  <p className="mt-2 text-[15px] text-muted">{label}</p>
+                  <p className="mt-1 text-[18px] font-bold">{stage === 4 && label === '失败项' ? '已跳过' : value}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[16px] text-teal-700">
-          <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>导入前不会修改现有记录，可先预览再确认</span>
-        </div>
-      </section>
-      <section className="soft-card mt-4 p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[20px] font-bold">预览记录（最新 3 条）</h2>
-          <span className="text-[16px] text-teal-600">查看全部</span>
-        </div>
-        {[
-          ['宽带续费记录', '中国移动宽带，300M 套餐，费用 120 元/月，下次续费时间 2025-06-15。', '账单'],
-          ['洗衣机维修', '海尔洗衣机服务，已更换排水泵，保修期 3 个月。', '维修'],
-          ['孩子疫苗提醒', '下次接种时间 2025-06-01，已完成第 2 针。', '孩子教育']
-        ].map(([title, desc, tag]) => (
-          <div className="mt-4 flex gap-3 border-t border-line pt-4" key={title}>
-            <div className="circle-icon bg-teal-50 text-teal-600">
-              <FileText size={28} />
+            <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[16px] text-teal-700">
+              <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>{stage === 4 ? '导入已模拟完成，原始来源信息会被保留。' : '导入前不会修改现有记录，可先预览再确认'}</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[18px] font-bold">{title}</h3>
-              <p className="mt-1 text-[15px] leading-relaxed text-muted">{desc}</p>
+          </section>
+          <section className="soft-card mt-4 p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[20px] font-bold">预览记录（最新 3 条）</h2>
+              <span className="text-[16px] text-teal-600">查看全部</span>
             </div>
-            <span className="tag h-fit shrink-0 bg-teal-50 text-teal-600">{tag}</span>
-          </div>
-        ))}
-      </section>
-      <section className="soft-card mt-4 p-5">
-        <h2 className="text-[20px] font-bold">检测到的分类</h2>
-        <div className="scroll-row mt-4 flex gap-2">
-          {['账单 256', '维修 142', '孩子教育 98', '证件 76'].map((label) => (
-            <span className="chip" key={label}>{label}</span>
-          ))}
-        </div>
-        <p className="mt-4 text-[15px] text-muted">分类将自动合并到现有同名分类中，不会创建重复分类。</p>
-      </section>
+            {[
+              ['宽带续费记录', '中国移动宽带，300M 套餐，费用 120 元/月，下次续费时间 2025-06-15。', '账单'],
+              ['洗衣机维修', '海尔洗衣机服务，已更换排水泵，保修期 3 个月。', '维修'],
+              ['孩子疫苗提醒', '下次接种时间 2025-06-01，已完成第 2 针。', '孩子教育']
+            ].map(([title, desc, tag]) => (
+              <div className="mt-4 flex gap-3 border-t border-line pt-4" key={title}>
+                <div className="circle-icon bg-teal-50 text-teal-600">
+                  <FileText size={28} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[18px] font-bold">{title}</h3>
+                  <p className="mt-1 text-[15px] leading-relaxed text-muted">{desc}</p>
+                </div>
+                <span className="tag h-fit shrink-0 bg-teal-50 text-teal-600">{tag}</span>
+              </div>
+            ))}
+          </section>
+          <section className="soft-card mt-4 p-5">
+            <h2 className="text-[20px] font-bold">检测到的分类</h2>
+            <div className="scroll-row mt-4 flex gap-2">
+              {['账单 256', '维修 142', '孩子教育 98', '证件 76'].map((label) => (
+                <span className="chip" key={label}>{label}</span>
+              ))}
+            </div>
+            <p className="mt-4 text-[15px] text-muted">分类将自动合并到现有同名分类中，不会创建重复分类。</p>
+          </section>
+        </>
+      )}
       <div className="fixed bottom-0 left-1/2 z-30 grid h-[96px] w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
-        <button className="rounded-2xl border border-teal-600 text-[18px] font-medium text-teal-600" type="button">
-          重新选择文件
+        <button className="rounded-2xl border border-teal-600 text-[18px] font-medium text-teal-600" type="button" onClick={() => setStage(1)}>
+          {canPreview ? '重新选择文件' : '取消'}
         </button>
-        <button className="rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button">
-          确认导入
+        <button className="rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={() => setStage((current) => Math.min(current + 1, 4))}>
+          {stage === 1 ? '选择文件' : stage === 2 ? '确认导入' : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>
     </>
@@ -522,6 +720,23 @@ function DetailScreen({ note, onBack }) {
 }
 
 function SettingsScreen({ onOpenImport }) {
+  const [nasOnline, setNasOnline] = useState(true);
+  const [lastBackup, setLastBackup] = useState('今天 09:30');
+  const [backupState, setBackupState] = useState('idle');
+
+  function runBackup() {
+    if (!nasOnline) {
+      setBackupState('failed');
+      return;
+    }
+
+    setBackupState('running');
+    window.setTimeout(() => {
+      setLastBackup('刚刚');
+      setBackupState('done');
+    }, 800);
+  }
+
   return (
     <>
       <header className="relative min-h-[160px]">
@@ -539,16 +754,35 @@ function SettingsScreen({ onOpenImport }) {
       </header>
       <SectionTitle>NAS 存储与备份</SectionTitle>
       <section className="soft-card p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="circle-icon bg-teal-50 text-teal-600"><Cloud size={35} /></div>
-            <div>
-              <p className="text-[22px] font-semibold">上次备份：今天 09:30</p>
-              <p className="mt-1 flex items-center gap-2 text-[16px] text-muted">NAS 在线，数据安全 <CheckCircle2 size={18} className="text-teal-600" /></p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className={`circle-icon ${nasOnline ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-500'}`}><Cloud size={35} /></div>
+            <div className="min-w-0">
+              <p className="text-[22px] font-semibold">上次备份：{lastBackup}</p>
+              <p className="mt-1 flex items-center gap-2 text-[16px] text-muted">
+                {nasOnline ? 'NAS 在线，数据安全' : 'NAS 离线，无法备份'}
+                {nasOnline ? <CheckCircle2 size={18} className="text-teal-600" /> : <AlertCircle size={18} className="text-amber-500" />}
+              </p>
             </div>
           </div>
-          <button className="rounded-2xl bg-teal-600 px-5 py-3 text-[18px] font-semibold text-white shadow-card">立即备份</button>
+          <button
+            className={`shrink-0 rounded-2xl px-5 py-3 text-[18px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
+            type="button"
+            onClick={runBackup}
+          >
+            {backupState === 'running' ? '备份中' : '立即备份'}
+          </button>
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button className={`rounded-2xl border px-4 py-3 text-[16px] font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
+            NAS 在线
+          </button>
+          <button className={`rounded-2xl border px-4 py-3 text-[16px] font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
+            模拟离线
+          </button>
+        </div>
+        {backupState === 'done' && <p className="mt-4 text-[15px] font-medium text-teal-600">已完成一次模拟备份。</p>}
+        {backupState === 'failed' && <p className="mt-4 text-[15px] font-medium text-amber-600">当前无法连接家庭 NAS，请恢复局域网连接后再试。</p>}
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
           <ShieldCheck size={20} className="shrink-0" />
           <span>所有记录集中保存在家庭 NAS，建议每天或每周备份一次。</span>
@@ -556,7 +790,7 @@ function SettingsScreen({ onOpenImport }) {
       </section>
       <SectionTitle>导出</SectionTitle>
       <section className="soft-card divide-y divide-line">
-        <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action=">" />
+        <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action="模拟完成" />
         <SettingsRow title="导出 Markdown" desc="导出所有记录为 Markdown 文件" icon={FileText} action="后续功能" disabled />
       </section>
       <SectionTitle>附件目录</SectionTitle>
@@ -575,39 +809,80 @@ function SettingsScreen({ onOpenImport }) {
   );
 }
 
-function SearchPill({ placeholder }) {
+function SearchPill({ placeholder, onClick }) {
   return (
-    <button className="mt-7 flex h-[64px] w-full items-center gap-4 rounded-[22px] bg-[#f1f2f0] px-5 text-left text-[22px] text-[#8b8e94] shadow-card">
+    <button className="mt-7 flex h-[64px] w-full items-center gap-4 rounded-[22px] bg-[#f1f2f0] px-5 text-left text-[22px] text-[#8b8e94] shadow-card" type="button" onClick={onClick}>
       <Search size={30} className="text-[#777b82]" />
       <span className="min-w-0 flex-1 truncate">{placeholder}</span>
     </button>
   );
 }
 
-function QuickFilters() {
+function QuickFilters({ active, onChange }) {
+  const filters = [
+    { key: 'all', label: '全部', icon: Tags },
+    { key: 'todo', label: '待办', icon: Clock3, iconClass: 'text-amber-500' },
+    { key: 'important', label: '重要', textIcon: '☆' },
+    { key: 'attachments', label: '有附件', icon: Paperclip, iconClass: 'text-teal-600' }
+  ];
+
   return (
     <section className="scroll-row mt-6 flex gap-3 pb-1">
-      <span className="chip chip-active"><Tags size={19} /> 全部</span>
-      <span className="chip"><Clock3 size={19} className="text-amber-500" /> 待办</span>
-      <span className="chip"><span className="text-amber-500">☆</span> 重要</span>
-      <span className="chip"><Paperclip size={19} className="text-teal-600" /> 有附件</span>
+      {filters.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button className={`chip ${active === item.key ? 'chip-active' : ''}`} key={item.key} type="button" onClick={() => onChange(item.key)}>
+            {Icon && <Icon size={19} className={active === item.key ? '' : item.iconClass} />}
+            {item.textIcon && <span className={active === item.key ? '' : 'text-amber-500'}>{item.textIcon}</span>}
+            {item.label}
+          </button>
+        );
+      })}
     </section>
   );
 }
 
-function MemberFilters() {
+function MemberFilters({ active, onChange }) {
+  const members = [
+    { key: 'all', label: '全部成员' },
+    { key: '爸爸', label: '爸爸' },
+    { key: '妈妈', label: '妈妈' },
+    { key: '历史导入', label: '历史导入' }
+  ];
+
   return (
     <section className="scroll-row mt-4 flex gap-2 pb-1">
-      {['全部成员', '爸爸', '妈妈', '历史导入'].map((member, index) => (
-        <span
-          key={member}
+      {members.map((member) => (
+        <button
+          key={member.key}
+          type="button"
+          onClick={() => onChange(member.key)}
           className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-[14px] ${
-            index === 0 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'
+            active === member.key ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'
           }`}
         >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-100 text-[12px] text-teal-700">{member.slice(0, 1)}</span>
-          {member}
-        </span>
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-100 text-[12px] text-teal-700">{member.label.slice(0, 1)}</span>
+          {member.label}
+        </button>
+      ))}
+    </section>
+  );
+}
+
+function CategoryFilters({ active, onChange }) {
+  const options = [{ id: 'all', name: '全部分类' }, ...categories.slice(0, 5)];
+
+  return (
+    <section className="scroll-row mt-4 flex gap-2 pb-1">
+      {options.map((category) => (
+        <button
+          className={`chip ${active === category.id ? 'border-teal-600 bg-teal-50 text-teal-700' : ''}`}
+          key={category.id}
+          type="button"
+          onClick={() => onChange(category.id)}
+        >
+          {category.name}
+        </button>
       ))}
     </section>
   );
@@ -662,26 +937,43 @@ function RecordCard({ note, onClick }) {
   );
 }
 
-function TopBar({ title, onBack, action }) {
+function TopBar({ title, onBack, action, onAction }) {
   return (
     <header className="grid grid-cols-[44px_minmax(0,1fr)_64px] items-center">
       <button className="text-ink" onClick={onBack} type="button" aria-label="返回"><ArrowLeft size={34} /></button>
       <h1 className="truncate text-center text-[23px] font-semibold">{title}</h1>
-      <button className="text-right text-[18px] font-medium text-teal-600" type="button">{action}</button>
+      <button className="text-right text-[18px] font-medium text-teal-600" type="button" onClick={onAction}>{action}</button>
     </header>
   );
 }
 
-function FilterRow({ title, options, active }) {
+function FilterRow({ title, options, active, onChange, labels = {} }) {
   return (
     <div className="grid grid-cols-[76px_1fr] gap-3 py-3 first:pt-0 last:pb-0">
       <span className="pt-2 text-[17px] font-medium">{title}</span>
       <div className="scroll-row flex gap-2">
         {options.map((option) => (
-          <span className={`chip ${option === active ? 'border-teal-600 bg-teal-50 text-teal-700' : ''}`} key={option}>{option}</span>
+          <button
+            className={`chip ${option === active ? 'border-teal-600 bg-teal-50 text-teal-700' : ''}`}
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+          >
+            {labels[option] ?? option}
+          </button>
         ))}
       </div>
     </div>
+  );
+}
+
+function EmptyState({ title, desc }) {
+  return (
+    <section className="mt-5 rounded-[22px] border border-dashed border-line bg-white/70 p-5 text-center">
+      <Search className="mx-auto text-muted" size={42} />
+      <p className="mt-3 text-[17px] font-medium">{title}</p>
+      <p className="mt-1 text-[15px] leading-relaxed text-muted">{desc}</p>
+    </section>
   );
 }
 
