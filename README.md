@@ -217,6 +217,34 @@ POST /api/storage/export-json
 6. 手动备份数据库
 7. 导出 JSON
 
+## 当前真实功能
+
+- Express API 可运行。
+- SQLite 数据库可本地持久化。
+- 首页、详情、新建、搜索、分类、导入、设置页面可访问。
+- 新建记录会写入 SQLite，刷新后不丢失。
+- 分类、成员、标签和关键词筛选可用。
+- 手动备份会复制 SQLite 数据库到备份目录。
+- JSON 导出会写入导出目录。
+- Docker / NAS 部署配置已准备。
+- PWA manifest 已准备，可添加到手机桌面。
+
+## 当前模拟功能
+
+- NAS 在线 / 离线状态仍是模拟，不连接真实 NAS。
+- 附件上传只保存元数据，不保存真实附件。
+- Note Station 导入使用样例数据和 dry-run 框架，不解析真实导出文件。
+- 家庭成员切换不等于真实登录。
+- 私密记录 / 权限隔离只预留字段，暂不启用。
+- 复杂离线同步暂不实现。
+
+## 后续需要提供
+
+- 一份脱敏后的 Synology Note Station 真实导出样例。
+- 目标 NAS 的部署方式，例如 Docker、Container Manager 或普通 Node 服务。
+- 家庭成员名单，以及是否需要简单访问口令。
+- 是否需要外网访问，以及计划使用的内网穿透或反向代理方式。
+
 ## Git 忽略规则
 
 不会提交到 GitHub 的内容：
@@ -238,6 +266,9 @@ POST /api/storage/export-json
 - [V1 风格指南](docs/V1_STYLE_GUIDE.md)
 - [产品设计上下文](docs/PRODUCT_DESIGN_CONTEXT.md)
 - [项目记忆](docs/PROJECT_MEMORY.md)
+- [当前 QA 报告](docs/QA_REPORT_CURRENT.md)
+- [下一步建议](docs/NEXT_STEPS.md)
+- [真实 Note Station 导入计划](docs/NOTESTATION_REAL_IMPORT_PLAN.md)
 
 ## 后续待办
 

@@ -313,3 +313,9 @@ MVP 需要覆盖：
 - 当前 dry-run 不写入正式数据库，只返回 `needs_real_sample`、失败提示和 required sample info。
 - 自动化测试已覆盖 dry-run 不写入记录。
 - 仍然不硬猜真实 Note Station 导出格式，等用户提供脱敏样例后再实现 JSON / HTML / Markdown / ZIP 解析器。
+
+### 阶段 E：最终整理
+
+- README 补充当前真实功能、当前模拟功能和后续需要用户提供的信息。
+- 新增 `docs/NEXT_STEPS.md`，列出下一步最建议做的 5 件事。
+- 阶段 E 仍不接真实 NAS、不猜真实 Note Station 格式、不做复杂登录或权限。
