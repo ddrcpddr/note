@@ -367,3 +367,18 @@ MVP 需要覆盖：
 - 新增 `docs/SAMPLE_DATA.md`。
 - 说明默认成员、分类、标签和示例记录来自 `src/shared/defaults.js`。
 - 说明如何删除 `data/database/app.db` 后重新运行 `npm run check` 来重置本地测试数据。
+
+### 安全加固 8：最后总验收
+
+- 已运行：
+  - `npm.cmd run check`
+  - `npm.cmd run test`
+  - `npm.cmd run build`
+  - `git status --short --branch`
+  - `git log --oneline -10`
+- 结果：
+  - check 通过
+  - test 通过，5 项测试通过
+  - build 通过
+  - `main...origin/main`，工作区干净
+- `docs/NEXT_STEPS.md` 已补充最后总验收记录和最近提交列表。

@@ -24,3 +24,35 @@
 | P1 | 附件真实上传 | 家庭维修、发票、保修记录会大量依赖附件 |
 | P1 | 简单访问口令 | 局域网内多成员使用时需要基础保护 |
 | P2 | Markdown 导出 | 方便长期归档，但不是试用首要条件 |
+
+## 最后总验收记录
+
+最近一次总验收结果：
+
+| 检查项 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过 |
+| `npm.cmd run test` | 通过，5 项测试通过 |
+| `npm.cmd run build` | 通过 |
+| `git status --short --branch` | `main...origin/main`，工作区干净 |
+
+当前最新提交：
+
+```text
+325e66b Document sample data
+```
+
+最近提交：
+
+```text
+325e66b Document sample data
+adef873 Improve user-facing status messages
+59d3916 Add known bug list
+8912a2c Add developer handover notes
+2eb30f3 Add MVP user manual
+8b3caba Clarify current QA report
+27ee531 Harden README guidance
+ff26b42 Finalize MVP documentation
+940c2e4 Prepare real Note Station import workflow
+e550d00 Prepare Docker NAS deployment
+```
