@@ -245,6 +245,70 @@ POST /api/storage/export-json
 - 家庭成员名单，以及是否需要简单访问口令。
 - 是否需要外网访问，以及计划使用的内网穿透或反向代理方式。
 
+## 常见问题
+
+### 端口被占用怎么办？
+
+开发模式默认使用：
+
+- 前端：`5173`
+- 后端：`3300`
+
+如果端口被占用，可以先关闭占用该端口的旧服务，或临时指定后端端口：
+
+```powershell
+$env:PORT="3310"
+npm.cmd run server
+```
+
+如果只改后端端口，开发前端代理也需要同步调整 `vite.config.js`。
+
+### 数据库什么时候初始化？
+
+第一次启动后端或运行检查命令时会自动初始化：
+
+```bash
+npm run check
+```
+
+初始化会创建默认成员、分类、标签和示例记录。
+
+### 如何确认当前数据目录？
+
+打开健康接口即可看到：
+
+```text
+http://localhost:3300/api/health
+```
+
+返回内容里会包含数据库、附件、备份、导入和导出目录。
+
+### 如何重置本地测试数据？
+
+停止服务后删除本地数据库文件：
+
+```text
+data/database/app.db
+```
+
+然后重新运行：
+
+```bash
+npm run check
+```
+
+注意：这会清空当前本地记录。真实试用或 NAS 部署时，重置前请先备份 `data/`。
+
+### 为什么 Windows PowerShell 要用 `npm.cmd`？
+
+有些 Windows 环境会禁止执行 `npm.ps1`。遇到执行策略提示时，使用：
+
+```powershell
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
 ## Git 忽略规则
 
 不会提交到 GitHub 的内容：
