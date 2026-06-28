@@ -284,3 +284,15 @@ MVP 需要覆盖：
   - 数据库备份
   - JSON 导出
 - Windows 上临时目录删除曾遇到 SQLite 文件短暂占用，已通过等待服务进程退出和重试清理解决。
+
+### 阶段 B：PWA 基础支持
+
+- 新增 `public/manifest.webmanifest`。
+- 新增 `public/icons/app-icon.svg` 作为 PWA 图标占位。
+- `index.html` 已补充移动端与 PWA meta：
+  - `theme-color`
+  - `mobile-web-app-capable`
+  - `apple-mobile-web-app-capable`
+  - `apple-touch-icon`
+  - manifest 链接
+- MVP 阶段不启用复杂 service worker，避免缓存 API 请求影响家庭 NAS 在线试用。
