@@ -253,3 +253,34 @@ MVP 需要覆盖：
   - 搜索记录
   - 导入历史记录样例
   - 备份 / 导出
+
+### 当前 MVP QA 验收
+
+- 新增 `docs/QA_REPORT_CURRENT.md`，记录当前 MVP 自动验收结果。
+- 已验证：
+  - `npm.cmd install`
+  - `npm.cmd run check`
+  - `npm.cmd run build`
+  - `GET /api/health`
+  - 首页、详情、新建、搜索、分类、导入、设置页面移动端核心流程
+  - 新建记录、搜索、分类筛选、成员筛选、标签筛选
+  - 手动备份和 JSON 导出
+  - Note Station 样例导入流程
+- 当前 MVP 验收结论：建议进入下一阶段。
+
+### 阶段 A：MVP 自动化测试
+
+- 新增 `tests/mvp-api.test.js`，使用 Node 内置 `node:test`，不引入大型测试依赖。
+- 新增 `npm run test`。
+- 测试会启动独立 Express 服务，并使用临时 `NOTE_DATA_DIR`，避免污染项目正式 `data/`。
+- 覆盖：
+  - 读取默认数据和记录列表
+  - 新建记录
+  - 读取记录详情
+  - 关键词搜索
+  - 分类筛选
+  - 成员筛选
+  - 标签筛选
+  - 数据库备份
+  - JSON 导出
+- Windows 上临时目录删除曾遇到 SQLite 文件短暂占用，已通过等待服务进程退出和重试清理解决。

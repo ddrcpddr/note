@@ -69,6 +69,22 @@ npm run build
 npm run preview
 ```
 
+## 测试
+
+运行 MVP 自动化测试：
+
+```bash
+npm run test
+```
+
+Windows PowerShell 可使用：
+
+```bash
+npm.cmd run test
+```
+
+当前测试会临时启动一个独立 Express 服务，并使用临时 `NOTE_DATA_DIR`，不会污染项目下的正式 `data/` 目录。覆盖范围包括读取记录列表、新建记录、读取详情、关键词搜索、分类筛选、成员筛选、标签筛选、数据库备份和 JSON 导出。
+
 ## 初始化数据
 
 第一次启动后端或运行检查脚本时，会自动创建数据库和默认数据。
