@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getDataPaths, getDb, getDbPath } from './db/database.js';
 import { categoriesRouter } from './routes/categories.js';
 import { importsRouter } from './routes/imports.js';
+import { membersRouter } from './routes/members.js';
 import { listNotes, notesRouter } from './routes/notes.js';
 import { storageRouter } from './routes/storage.js';
 
@@ -65,6 +66,7 @@ app.get('/api/app-data', (_request, response) => {
 });
 
 app.use('/api/categories', categoriesRouter);
+app.use('/api/members', membersRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/imports', importsRouter);
 app.use('/api/storage', storageRouter);

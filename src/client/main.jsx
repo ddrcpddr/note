@@ -301,6 +301,26 @@ function App() {
     }, 900);
   }
 
+  async function switchCurrentMember(memberId) {
+    const nextMember = members.find((member) => member.id === memberId);
+    if (!nextMember) return;
+
+    setCurrentMemberId(memberId);
+    setMembers((current) => current.map((member) => ({ ...member, isCurrent: member.id === memberId })));
+
+    if (dataMode === 'sqlite') {
+      try {
+        await fetch('/api/members/current', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId })
+        });
+      } catch {
+        showToast('成员切换已在当前页面生效');
+      }
+    }
+  }
+
   return (
     <main className="mobile-shell">
       {screen === 'home' && (
@@ -335,7 +355,14 @@ function App() {
           }}
         />
       )}
-      {screen === 'settings' && <SettingsScreen onOpenImport={() => navigate('import')} />}
+      {screen === 'settings' && (
+        <SettingsScreen
+          members={members}
+          currentMemberId={currentMemberId}
+          onSwitchMember={switchCurrentMember}
+          onOpenImport={() => navigate('import')}
+        />
+      )}
 
       {(screen === 'home' || screen === 'categories') && (
         <button
@@ -940,7 +967,7 @@ function DetailScreen({ note, onBack }) {
   );
 }
 
-function SettingsScreen({ onOpenImport }) {
+function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport }) {
   const [nasOnline, setNasOnline] = useState(true);
   const [lastBackup, setLastBackup] = useState('今天 09:30');
   const [backupState, setBackupState] = useState('idle');
@@ -1027,6 +1054,32 @@ function SettingsScreen({ onOpenImport }) {
           <div className="absolute right-0 top-8 h-16 w-14 rounded-sm border-[6px] border-[#d6a979] bg-[#f7f0e2]" />
         </div>
       </header>
+      <SectionTitle>家庭成员</SectionTitle>
+      <section className="soft-card p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[22px] font-semibold">当前记录人</p>
+            <p className="mt-1 text-[15px] text-muted">新建记录会默认归到当前成员名下</p>
+          </div>
+          <UserRound className="text-teal-600" size={32} />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {members.map((member) => (
+            <button
+              className={`rounded-2xl border px-4 py-3 text-left ${currentMemberId === member.id ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}
+              key={member.id}
+              type="button"
+              onClick={() => onSwitchMember(member.id)}
+            >
+              <span className="inline-flex items-center gap-2 text-[17px] font-medium">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-teal-100 text-[13px] text-teal-700">{member.avatar}</span>
+                {member.name}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-[14px] leading-relaxed text-muted">MVP 阶段所有家庭成员默认可以查看全部记录，私密记录只预留字段，暂不启用复杂权限。</p>
+      </section>
       <SectionTitle>NAS 存储与备份</SectionTitle>
       <section className="soft-card p-5">
         <div className="flex items-start justify-between gap-4">
