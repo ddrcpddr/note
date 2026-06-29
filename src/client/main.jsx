@@ -579,14 +579,14 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
       <header className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-[42px] font-bold leading-none tracking-wide text-teal-600">家事记</h1>
-            <Home className="mt-1 text-teal-600" size={34} strokeWidth={2.2} />
+            <h1 className="text-[36px] font-bold leading-none text-teal-600">家事记</h1>
+            <Home className="mt-1 text-teal-600" size={30} strokeWidth={2.2} />
           </div>
-          <p className="mt-2 text-[17px] text-muted">记录家里的大小事</p>
+          <p className="mt-2 text-[16px] text-muted">记录家里的大小事</p>
         </div>
         <div className="flex gap-3 pt-2 text-teal-700">
-          <Clock3 size={28} />
-          <MoreHorizontal size={28} className="text-ink" />
+          <Clock3 size={26} />
+          <MoreHorizontal size={26} className="text-ink" />
         </div>
       </header>
       <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
@@ -629,8 +629,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
   return (
     <>
       <TopBar title="新记录" onBack={onBack} action="保存" onAction={save} />
-      <section className="soft-card mt-6 flex h-[58px] items-center gap-4 px-5 text-[20px] text-muted">
-        <span className="text-[30px]">T</span>
+      <section className="soft-card mt-5 flex h-[58px] items-center gap-4 px-5 text-[19px] text-muted">
+        <span className="text-[28px]">T</span>
         <input
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted"
           value={title}
@@ -638,8 +638,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
           placeholder="标题（可选）"
         />
       </section>
-      <section className="soft-card mt-4 min-h-[220px] p-5">
-        <div className="flex gap-4 text-[18px] text-muted">
+      <section className="soft-card mt-4 min-h-[214px] p-5">
+        <div className="flex gap-4 text-[17px] text-muted">
           <FileText className="mt-1 shrink-0" size={25} />
           <textarea
             className="min-h-[156px] min-w-0 flex-1 resize-none bg-transparent leading-relaxed outline-none placeholder:text-muted"
@@ -648,13 +648,13 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
             placeholder="写下家里的小事、账单、维修、临时备忘..."
           />
         </div>
-        <div className="mt-4 text-right text-[16px] text-muted">{body.length}/1000</div>
+        <div className="mt-4 text-right text-[15px] text-muted">{body.length}/1000</div>
       </section>
       <SectionTitle>当前成员</SectionTitle>
       <section className="soft-card p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-[19px] font-semibold">这条记录由 {currentMember.name} 创建</p>
+            <p className="text-[18px] font-semibold">这条记录由 {currentMember.name} 创建</p>
             <p className="mt-1 text-[14px] leading-relaxed text-muted">保存前可以临时切换成员，不影响家庭成员设置。</p>
           </div>
           <AvatarMark src={currentMember.avatarImage} label={currentMember.name} className={`h-12 w-12 shrink-0 border ${currentMember.colorClass}`} />
@@ -674,19 +674,19 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
         </div>
       </section>
       <SectionTitle>记录类型</SectionTitle>
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid grid-cols-4 gap-3">
         {recordTypes.map((recordType) => {
           const Icon = recordType.icon;
           return (
             <button
-              className={`soft-card flex h-[92px] flex-col items-center justify-center gap-2 text-[17px] ${
+              className={`soft-card flex h-[80px] flex-col items-center justify-center gap-2 px-1 text-[15px] ${
                 type === recordType.label ? 'border-teal-600 bg-teal-50 text-teal-700' : 'text-ink'
               }`}
               key={recordType.label}
               type="button"
               onClick={() => setType(recordType.label)}
             >
-              <Icon size={29} strokeWidth={2.1} />
+              <Icon size={25} strokeWidth={2.1} />
               {recordType.label}
             </button>
           );
@@ -704,22 +704,22 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
             {label} {tags.includes(label) && <X className="ml-1" size={14} />}
           </button>
         ))}
-        <span className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[16px] text-muted">
+        <span className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[15px] text-muted">
           <Plus size={17} /> 添加标签
         </span>
       </section>
       <SectionTitle>附件</SectionTitle>
       <button className="soft-card flex h-[72px] w-full items-center justify-between px-5 text-left" type="button" onClick={() => setHasAttachment((value) => !value)}>
-        <span className="inline-flex items-center gap-4 text-[18px] text-muted">
+        <span className="inline-flex items-center gap-4 text-[17px] text-muted">
           <Paperclip className="text-teal-600" size={28} /> {hasAttachment ? '已添加 1 个附件占位' : '添加照片 / 文件'}
         </span>
         {hasAttachment ? <CheckCircle2 className="text-teal-600" /> : <ChevronRight className="text-muted" />}
       </button>
       <div className="fixed bottom-0 left-1/2 z-30 flex h-[104px] w-full max-w-[430px] -translate-x-1/2 items-center gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
-        <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[18px] font-medium text-teal-600" type="button">
+        <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-medium text-teal-600" type="button">
           <FileText size={22} /> 存为模板
         </button>
-        <button className="flex h-14 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[19px] font-semibold text-white shadow-float" type="button" onClick={save}>
+        <button className="flex h-14 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={save}>
           <Check size={24} /> 保存记录
         </button>
       </div>
@@ -748,17 +748,17 @@ function SearchScreen({ notes, members, onOpenDetail }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[42px] font-bold leading-none tracking-wide text-[#093f3e]">搜索</h1>
-          <p className="mt-3 text-[18px] text-muted">快速找到你需要的记录</p>
+          <h1 className="text-[36px] font-bold leading-none text-[#093f3e]">搜索</h1>
+          <p className="mt-2 text-[16px] text-muted">快速找到你需要的记录</p>
         </div>
         <button className="chip mt-3 px-3">
           <Clock3 size={19} /> 历史
         </button>
       </header>
-      <section className="soft-card mt-6 flex h-[68px] items-center gap-4 px-5">
-        <Search size={31} className="text-muted" />
+      <section className="soft-card mt-5 flex h-[62px] items-center gap-4 px-5">
+        <Search size={29} className="text-muted" />
         <input
-          className="min-w-0 flex-1 bg-transparent text-[22px] font-medium outline-none placeholder:text-muted"
+          className="min-w-0 flex-1 bg-transparent text-[20px] font-medium outline-none placeholder:text-muted"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="输入关键词"
@@ -769,7 +769,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
           </button>
         )}
         <span className="h-8 w-px bg-line" />
-        <span className="text-[18px] font-medium text-teal-600">搜索</span>
+        <span className="text-[17px] font-medium text-teal-600">搜索</span>
       </section>
       <section className="soft-card mt-5 divide-y divide-line p-4">
         <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
@@ -806,15 +806,15 @@ function CategoriesScreen({ notes, onSelectCategory }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[42px] font-bold leading-none tracking-wide text-[#093f3e]">分类</h1>
-          <p className="mt-3 text-[18px] text-muted">按家里的事情慢慢整理</p>
+          <h1 className="text-[36px] font-bold leading-none text-[#093f3e]">分类</h1>
+          <p className="mt-2 text-[16px] text-muted">按家里的事情慢慢整理</p>
         </div>
-        <button className="grid h-14 w-14 place-items-center rounded-full bg-white text-teal-600 shadow-card">
-          <Grid2X2 size={28} />
+        <button className="grid h-12 w-12 place-items-center rounded-full bg-white text-teal-600 shadow-card">
+          <Grid2X2 size={25} />
         </button>
       </header>
-      <section className="soft-card mt-7 flex h-[64px] w-full items-center gap-4 rounded-[22px] bg-[#f1f2f0] px-5 text-left text-[22px] text-[#8b8e94] shadow-card">
-        <Search size={30} className="text-[#777b82]" />
+      <section className="soft-card mt-6 flex h-[58px] w-full items-center gap-4 rounded-[20px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card">
+        <Search size={28} className="text-[#777b82]" />
         <input
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#8b8e94]"
           value={query}
@@ -822,25 +822,25 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           placeholder="搜索分类"
         />
       </section>
-      <section className="mt-6 space-y-3">
+      <section className="mt-5 grid grid-cols-2 gap-3">
         {visibleCategories.map((category) => {
           const Icon = category.icon;
           return (
-            <button className="soft-card flex min-h-[104px] w-full items-center gap-4 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-16 w-16 bg-white ${category.tone}`}>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={category.name} className="h-12 w-12" iconSize={34} />
+            <button className="soft-card flex min-h-[106px] w-full items-center gap-2.5 p-3 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
+              <div className={`circle-icon h-12 w-12 bg-white ${category.tone}`}>
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={category.name} className="h-10 w-10" iconSize={27} />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-[20px] font-bold leading-tight">{category.name}</h2>
-                <p className="mt-2 text-[15px] font-medium text-teal-600">{category.count} 条记录</p>
-                <p className="mt-1 text-[13px] text-muted">{category.update}</p>
+                <h2 className="truncate text-[17px] font-bold leading-tight">{category.name}</h2>
+                <p className="mt-2 text-[13px] font-medium text-teal-600">{category.count} 条记录</p>
+                <p className="mt-1 text-[12px] text-muted">{category.update}</p>
                 {category.id === 'uncategorized' && importedToReviewCount > 0 && (
-                  <p className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700">
+                  <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
                     {importedToReviewCount} 条导入记录待整理
                   </p>
                 )}
               </div>
-              <ChevronRight className="shrink-0 text-muted" size={18} />
+              <ChevronRight className="shrink-0 text-muted" size={16} />
             </button>
           );
         })}
@@ -915,37 +915,27 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   return (
     <>
       <TopBar title="导入 Note Station" onBack={onBack} />
-      <section className="mt-5 rounded-[22px] bg-white/70 px-4 py-4 text-center shadow-card">
-        <IllustrationImage
-          src={stage === 4 ? illustrationAssets.importSuccess : illustrationAssets.importReviewNeeded}
-          alt={stage === 4 ? '导入完成' : '导入预览与检查'}
-          className="mx-auto h-32 w-full max-w-[240px]"
-        />
-        <p className="mt-2 text-[15px] leading-relaxed text-muted">
-          {stage === 4 ? '导入完成后可以继续整理分类和附件。' : '先预览、再确认，正式导入前会自动备份。'}
-        </p>
-      </section>
-      <section className="mt-7 flex items-start justify-between gap-1">
+      <section className="mt-6 flex items-start justify-between gap-1">
         {steps.map(([num, label], index) => (
           <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center" key={num}>
-            <div className={`grid h-12 w-12 place-items-center rounded-full border text-[20px] ${stage === index + 1 ? 'border-teal-600 bg-teal-600 text-white' : stage > index + 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}>
+            <div className={`grid h-11 w-11 place-items-center rounded-full border text-[18px] ${stage === index + 1 ? 'border-teal-600 bg-teal-600 text-white' : stage > index + 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}>
               {stage > index + 1 ? <Check size={20} /> : num}
             </div>
             <p className={stage >= index + 1 ? 'text-[13px] leading-tight text-teal-600' : 'text-[13px] leading-tight text-muted'}>{label}</p>
           </div>
         ))}
       </section>
-      <section className="soft-card mt-7 p-5">
+      <section className="soft-card mt-5 p-4">
         <div className="flex items-center gap-4">
-          <div className="grid h-20 w-16 shrink-0 place-items-center rounded-xl bg-teal-600 text-[22px] font-bold text-white">
+          <div className="grid h-[72px] w-14 shrink-0 place-items-center rounded-xl bg-teal-600 text-[20px] font-bold text-white">
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[22px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 导出文件'}</h2>
-            <p className="mt-1 text-[16px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '支持真实 .nsx 识别，先预览再写入'}</p>
+            <h2 className="truncate text-[20px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 导出文件'}</h2>
+            <p className="mt-1 text-[15px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '支持真实 .nsx 识别，先预览再写入'}</p>
           </div>
         </div>
-        <span className="mt-4 inline-flex items-center gap-2 text-[17px] font-medium text-teal-600">
+        <span className="mt-4 inline-flex items-center gap-2 text-[16px] font-medium text-teal-600">
           {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 从 dry-run 预览开始</>}
         </span>
       </section>
@@ -957,27 +947,27 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       {canPreview && preview && (
         <>
           <section className="soft-card mt-4 p-5">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               {[
                 ['记录', `${preview.totalCount} 条`, FileText, 'text-teal-600'],
                 ['分类', `${preview.originalCategoryCount} 个`, Folder, 'text-blue-600'],
                 ['附件', `${preview.attachmentCount} 个`, Paperclip, 'text-teal-600'],
                 ['失败项', `${preview.failedCount} 个`, AlertCircle, 'text-amber-500']
               ].map(([label, value, Icon, tone]) => (
-                <div className="rounded-2xl bg-soft p-3 text-center" key={label}>
+                <div className="rounded-2xl bg-soft px-2 py-3 text-center" key={label}>
                   <Icon className={`mx-auto ${tone}`} size={28} />
-                  <p className="mt-2 text-[15px] text-muted">{label}</p>
-                  <p className="mt-1 text-[18px] font-bold">{stage === 4 && label === '失败项' ? '已跳过' : value}</p>
+                  <p className="mt-2 text-[13px] text-muted">{label}</p>
+                  <p className="mt-1 text-[16px] font-bold">{stage === 4 && label === '失败项' ? '已跳过' : value}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[16px] text-teal-700">
+            <div className="mt-4 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
               <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>{stage === 4 ? '导入完成后可查看摘要；失败项会保留，不会静默丢失。' : '流程已支持 dry-run、sandbox、正式导入前自动备份'}</span>
             </div>
           </section>
           <section className="soft-card mt-4 p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-[20px] font-bold">预览记录（{preview.records.length} 条）</h2>
+              <h2 className="text-[19px] font-bold">预览记录（{preview.records.length} 条）</h2>
               <span className="text-[16px] text-teal-600">查看全部</span>
             </div>
             {preview.records.map((record) => (
@@ -986,8 +976,8 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
                   <FileText size={28} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-[18px] font-bold">{record.title}</h3>
-                  <p className="mt-1 text-[15px] leading-relaxed text-muted">{record.content}</p>
+                  <h3 className="text-[17px] font-bold">{record.title}</h3>
+                  <p className="mt-1 text-[14px] leading-relaxed text-muted">{record.content}</p>
                   <p className="mt-1 text-[13px] text-muted">{record.originalPath}</p>
                 </div>
                 <span className="tag h-fit shrink-0 bg-teal-50 text-teal-600">{record.originalCategory}</span>
@@ -996,7 +986,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </section>
           {preview.failures.length > 0 && (
             <section className="soft-card mt-4 p-5">
-              <h2 className="text-[20px] font-bold">失败项</h2>
+              <h2 className="text-[19px] font-bold">失败项</h2>
               {preview.failures.map((failure) => (
                 <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-[15px] text-amber-700" key={failure.id}>
                   <p className="font-semibold">{failure.originalTitle}</p>
@@ -1007,7 +997,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
             </section>
           )}
           <section className="soft-card mt-4 p-5">
-            <h2 className="text-[20px] font-bold">检测到的分类</h2>
+            <h2 className="text-[19px] font-bold">检测到的分类</h2>
             <div className="scroll-row mt-4 flex gap-2">
               {[...new Set(preview.records.map((record) => record.originalCategory))].map((label) => (
                 <span className="chip" key={label}>{label}</span>
@@ -1018,10 +1008,10 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
         </>
       )}
       <div className="fixed bottom-0 left-1/2 z-30 grid h-[96px] w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
-        <button className="rounded-2xl border border-teal-600 text-[18px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
+        <button className="rounded-2xl border border-teal-600 text-[17px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
           {canPreview ? '重新选择文件' : '取消'}
         </button>
-        <button className="rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
+        <button className="rounded-2xl bg-teal-600 text-[17px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
           {stage === 1 ? '开始预览' : stage === 2 ? '确认前检查' : stage === 3 ? '查看导入报告' : '已完成'}
         </button>
       </div>
@@ -1035,17 +1025,17 @@ function DetailScreen({ note, onBack }) {
   return (
     <>
       <TopBar title="记录详情" onBack={onBack} action="编辑" />
-      <section className="soft-card mt-7 p-5">
+      <section className="soft-card mt-5 p-4">
         <div className="flex gap-4">
-          <div className={`circle-icon h-20 w-20 bg-white ${note.iconTone}`}>
-            <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-16 w-16" iconSize={44} />
+          <div className={`circle-icon h-[72px] w-[72px] bg-white ${note.iconTone}`}>
+            <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-14 w-14" iconSize={38} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex justify-between gap-2">
-              <h2 className="min-w-0 text-[28px] font-bold leading-tight" style={{ overflowWrap: 'anywhere' }}>{note.title}</h2>
-              <span className="text-[28px] text-muted">☆</span>
+              <h2 className="min-w-0 text-[26px] font-bold leading-tight" style={{ overflowWrap: 'anywhere' }}>{note.title}</h2>
+              <span className="text-[25px] text-muted">☆</span>
             </div>
-            <div className={`mt-3 flex items-center gap-2 text-[18px] font-medium ${note.categoryColor}`}>
+            <div className={`mt-3 flex items-center gap-2 text-[17px] font-medium ${note.categoryColor}`}>
               <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-6 w-6" iconSize={23} /> {note.category} <ChevronRight size={18} />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -1055,7 +1045,7 @@ function DetailScreen({ note, onBack }) {
             </div>
           </div>
         </div>
-        <div className="mt-6 space-y-4 border-t border-line pt-5 text-[17px] text-muted">
+        <div className="mt-5 space-y-3.5 border-t border-line pt-5 text-[16px] text-muted">
           <MetaRow icon={CalendarDays} label="创建" value={note.createdAt} />
           <MetaRow icon={Clock3} label="更新" value={note.updatedAt} />
           <MetaRow icon={UserRound} label="创建人" value={note.member} />
@@ -1073,18 +1063,18 @@ function DetailScreen({ note, onBack }) {
         )}
       </section>
       <section className="soft-card mt-4 p-5">
-        <h2 className="flex items-center gap-3 text-[22px] font-bold text-teal-600"><Tags size={24} /> 内容</h2>
-        <p className="mt-5 text-[20px] leading-[1.85]">{note.content}</p>
+        <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Tags size={22} /> 内容</h2>
+        <p className="mt-4 text-[18px] leading-[1.8]">{note.content}</p>
       </section>
       <section className="soft-card mt-4 p-5">
-        <h2 className="flex items-center gap-3 text-[22px] font-bold text-teal-600"><Paperclip size={25} /> 附件（{note.attachments.length}）</h2>
+        <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Paperclip size={23} /> 附件（{note.attachments.length}）</h2>
         <div className="mt-4 space-y-3">
           {note.attachments.map((name) => (
             <div className="flex items-center justify-between rounded-2xl border border-line p-3" key={name}>
               <div className="flex items-center gap-3">
                 <div className="grid h-14 w-14 place-items-center rounded-xl bg-teal-50 text-teal-600"><FileText size={29} /></div>
                 <div>
-                  <p className="text-[17px] font-medium">{name}</p>
+                  <p className="text-[16px] font-medium">{name}</p>
                   <p className="mt-1 text-[14px] text-muted">保存在 NAS 附件目录</p>
                 </div>
               </div>
@@ -1094,13 +1084,13 @@ function DetailScreen({ note, onBack }) {
         </div>
       </section>
       <section className="soft-card mt-4 p-5">
-        <h2 className="text-[22px] font-bold text-teal-600">关联记录</h2>
+        <h2 className="text-[20px] font-bold text-teal-600">关联记录</h2>
         <RelatedRow title="去年卫生间防水维修" meta="维修 · 已完成" />
         <RelatedRow title="物业维修电话" meta="家庭事务 · 联系方式" />
       </section>
       <div className="fixed bottom-0 left-1/2 z-30 flex h-[86px] w-full max-w-[430px] -translate-x-1/2 items-center justify-between border-t border-line bg-white/95 px-9 pb-4 pt-3">
         <button className="flex flex-col items-center gap-1 text-muted" type="button"><MoreHorizontal size={28} /><span className="text-[13px]">更多</span></button>
-        <button className="inline-flex h-14 items-center gap-3 rounded-2xl bg-teal-600 px-8 text-[20px] font-semibold text-white shadow-float"><Share2 size={25} /> 分享记录</button>
+        <button className="inline-flex h-[52px] items-center gap-3 rounded-2xl bg-teal-600 px-7 py-3 text-[18px] font-semibold text-white shadow-float"><Share2 size={25} /> 分享记录</button>
       </div>
     </>
   );
@@ -1119,7 +1109,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
   return (
     <>
       <TopBar title="成员管理" onBack={onBack} />
-      <section className="soft-card mt-7 p-5">
+      <section className="soft-card mt-5 p-4">
         <div className="flex items-start gap-4">
           <div className="circle-icon bg-teal-50 text-teal-600"><UserRound size={34} /></div>
           <div className="min-w-0 flex-1">
@@ -1249,12 +1239,12 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
   return (
     <>
-      <header className="relative min-h-[160px]">
+      <header className="relative min-h-[142px]">
         <div>
-          <h1 className="text-[42px] font-bold leading-none tracking-wide text-[#093f3e]">设置</h1>
-          <p className="mt-3 text-[18px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
+          <h1 className="text-[36px] font-bold leading-none text-[#093f3e]">设置</h1>
+          <p className="mt-2 text-[16px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
         </div>
-        <div className="absolute right-0 top-0 h-28 w-36">
+        <div className="absolute right-0 top-0 h-24 w-32">
           <div className="absolute bottom-0 left-4 h-14 w-16 rounded-[50%] bg-[#e9dfcf]" />
           <div className="absolute bottom-9 left-12 h-16 w-1 rounded-full bg-[#9aaa76]" />
           <div className="absolute bottom-16 left-9 h-4 w-8 rotate-[-28deg] rounded-full bg-[#9aaa76]" />
@@ -1262,43 +1252,13 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
           <div className="absolute right-0 top-8 h-16 w-14 rounded-sm border-[6px] border-[#d6a979] bg-[#f7f0e2]" />
         </div>
       </header>
-      <SectionTitle>家庭成员</SectionTitle>
-      <section className="soft-card p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[22px] font-semibold">当前记录人</p>
-            <p className="mt-1 text-[15px] text-muted">新建记录会默认归到当前成员名下</p>
-          </div>
-          <UserRound className="text-teal-600" size={32} />
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {members.map((member) => (
-            <button
-              className={`rounded-2xl border px-4 py-3 text-left ${currentMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
-              key={member.id}
-              type="button"
-              onClick={() => onSwitchMember(member.id)}
-            >
-              <span className="inline-flex items-center gap-2 text-[17px] font-medium">
-                <AvatarMark src={member.avatarImage} label={member.name} className="h-7 w-7" />
-                {member.name}
-              </span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-4 text-[14px] leading-relaxed text-muted">当前默认成员固定为“我”和“爱人”；改名、头像和颜色编辑以后再做。</p>
-        <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[17px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
-          成员管理
-          <ChevronRight size={19} />
-        </button>
-      </section>
-      <SectionTitle>NAS 存储与备份</SectionTitle>
+      <SectionTitle>数据备份</SectionTitle>
       <section className="soft-card p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
             <div className={`circle-icon ${nasOnline ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-500'}`}><Cloud size={35} /></div>
             <div className="min-w-0">
-              <p className="text-[22px] font-semibold">上次备份：{lastBackup}</p>
+              <p className="text-[20px] font-semibold">上次备份：{lastBackup}</p>
               <p className="mt-1 flex items-center gap-2 text-[16px] text-muted">
                 {nasOnline ? 'NAS 在线，数据安全' : 'NAS 离线，无法备份'}
                 {nasOnline ? <CheckCircle2 size={18} className="text-teal-600" /> : <AlertCircle size={18} className="text-amber-500" />}
@@ -1306,7 +1266,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             </div>
           </div>
           <button
-            className={`shrink-0 rounded-2xl px-5 py-3 text-[18px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
+            className={`shrink-0 rounded-2xl px-4 py-3 text-[17px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
             type="button"
             onClick={runBackup}
           >
@@ -1354,6 +1314,36 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         <SettingsRow title="导出目录" desc={formatStoragePath(storageStatus?.dataPaths?.exportsDir, 'data/exports/')} icon={Folder} action=">" />
         <SettingsRow title="导入 Note Station" desc="导入旧记录并保留来源信息" icon={FileText} action=">" onClick={onOpenImport} />
       </section>
+      <SectionTitle>家庭成员</SectionTitle>
+      <section className="soft-card p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[20px] font-semibold">当前记录人</p>
+            <p className="mt-1 text-[15px] text-muted">新建记录会默认归到当前成员名下</p>
+          </div>
+          <UserRound className="text-teal-600" size={32} />
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {members.map((member) => (
+            <button
+              className={`rounded-2xl border px-4 py-3 text-left ${currentMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
+              key={member.id}
+              type="button"
+              onClick={() => onSwitchMember(member.id)}
+            >
+              <span className="inline-flex items-center gap-2 text-[17px] font-medium">
+                <AvatarMark src={member.avatarImage} label={member.name} className="h-7 w-7" />
+                {member.name}
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-[14px] leading-relaxed text-muted">当前默认成员固定为“我”和“爱人”；改名、头像和颜色编辑以后再做。</p>
+        <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[17px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
+          成员管理
+          <ChevronRight size={19} />
+        </button>
+      </section>
       <div className="mt-6 rounded-2xl border border-orange-200 bg-amber-50 px-4 py-3 text-[15px] leading-relaxed text-[#a35b00]">
         所有数据仅保存在家庭 NAS 或局域网服务器中，家事记不会上传任何内容。
       </div>
@@ -1363,8 +1353,8 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
 function SearchPill({ placeholder, onClick }) {
   return (
-    <button className="mt-7 flex h-[64px] w-full items-center gap-4 rounded-[22px] bg-[#f1f2f0] px-5 text-left text-[22px] text-[#8b8e94] shadow-card" type="button" onClick={onClick}>
-      <Search size={30} className="text-[#777b82]" />
+    <button className="mt-6 flex h-[58px] w-full items-center gap-4 rounded-[20px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card" type="button" onClick={onClick}>
+      <Search size={28} className="text-[#777b82]" />
       <span className="min-w-0 flex-1 truncate">{placeholder}</span>
     </button>
   );
@@ -1379,7 +1369,7 @@ function QuickFilters({ active, onChange }) {
   ];
 
   return (
-    <section className="scroll-row mt-6 flex gap-3 pb-1">
+    <section className="scroll-row mt-5 flex gap-2.5 pb-1">
       {filters.map((item) => {
         const Icon = item.icon;
         return (
@@ -1398,7 +1388,7 @@ function MemberFilters({ members, active, onChange }) {
   const options = [{ key: 'all', label: '全部成员', avatar: '全', avatarImage: null, colorClass: 'border-line bg-white text-muted' }, ...members.map((member) => ({ key: member.name, label: member.name, avatar: member.avatar, avatarImage: member.avatarImage, colorClass: member.colorClass }))];
 
   return (
-    <section className="scroll-row mt-4 flex gap-2 pb-1">
+    <section className="scroll-row mt-3 flex gap-2 pb-1">
       {options.map((member) => (
         <button
           key={member.key}
@@ -1420,7 +1410,7 @@ function CategoryFilters({ active, onChange }) {
   const options = [{ id: 'all', name: '全部分类' }, ...categories.slice(0, 5)];
 
   return (
-    <section className="scroll-row mt-4 flex gap-2 pb-1">
+    <section className="scroll-row mt-3 flex gap-2 pb-1">
       {options.map((category) => (
         <button
           className={`chip ${active === category.id ? 'border-teal-600 bg-teal-50 text-teal-700' : ''}`}
@@ -1437,16 +1427,16 @@ function CategoryFilters({ active, onChange }) {
 
 function TodayCard() {
   return (
-    <section className="soft-card mt-5 flex items-center justify-between bg-teal-50/60 p-5">
+    <section className="soft-card mt-4 flex items-center justify-between bg-teal-50/60 p-4">
       <div className="flex min-w-0 flex-1 items-center gap-4">
-        <CalendarDays className="text-teal-600" size={34} />
+        <CalendarDays className="text-teal-600" size={30} />
         <div className="min-w-0">
-          <h2 className="text-[23px] font-bold text-teal-600">今天要记</h2>
-          <p className="mt-1 truncate text-[16px] text-muted">随手记一条，闪念不丢失</p>
+          <h2 className="text-[21px] font-bold text-teal-600">今天要记</h2>
+          <p className="mt-1 truncate text-[15px] text-muted">随手记一条，闪念不丢失</p>
         </div>
       </div>
       <div className="h-12 w-px shrink-0 bg-line" />
-      <div className="flex shrink-0 items-center gap-2 text-[17px] font-semibold text-teal-600"><FileText size={24} /> 快速记录</div>
+      <div className="flex shrink-0 items-center gap-2 text-[16px] font-semibold text-teal-600"><FileText size={22} /> 快速记录</div>
     </section>
   );
 }
@@ -1460,22 +1450,18 @@ function RecordCard({ note, onClick }) {
         <div className={`circle-icon bg-white ${note.iconTone}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-11 w-11" iconSize={32} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 text-[23px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
+            <h3 className="min-w-0 text-[21px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
             <MoreHorizontal size={22} className="shrink-0 text-ink" />
           </div>
-          <p className="mt-2 text-[17px] leading-relaxed text-muted">{note.summary}</p>
+          <p className="mt-2 text-[16px] leading-relaxed text-muted">{note.summary}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {note.tags.map((tag) => <span className={`tag ${tag.tone}`} key={tag.label}>{tag.label}</span>)}
           </div>
-          <div className="mt-4 border-t border-line pt-3 text-[15px] text-muted">
+          <div className="mt-3 border-t border-line pt-3 text-[14px] text-muted">
             <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
               <span className="inline-flex items-center gap-1.5"><Clock3 size={17} /> {note.time}</span>
               <span className={`inline-flex min-w-0 items-center gap-1.5 font-medium ${note.categoryColor}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-[18px] w-[18px]" iconSize={18} /> <span className="truncate">{note.category}</span></span>
               <span className="inline-flex items-center gap-1.5"><Paperclip size={17} /> {note.attachmentCount}</span>
-            </div>
-            <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-3">
-              <span className="inline-flex min-w-0 items-center gap-1.5"><AvatarMark src={note.memberAvatarImage || memberAvatarAssets[note.memberId]} label={note.member} className="h-6 w-6 shrink-0" /><span className="truncate">{note.member}</span></span>
-              <span className="inline-flex min-w-0 items-center justify-end gap-1.5 text-teal-600"><CheckCircle2 className="shrink-0" size={16} /> <span className="truncate">{note.status}</span></span>
             </div>
           </div>
         </div>
@@ -1488,8 +1474,8 @@ function TopBar({ title, onBack, action, onAction }) {
   return (
     <header className="grid grid-cols-[44px_minmax(0,1fr)_64px] items-center">
       <button className="text-ink" onClick={onBack} type="button" aria-label="返回"><ArrowLeft size={34} /></button>
-      <h1 className="truncate text-center text-[23px] font-semibold">{title}</h1>
-      <button className="text-right text-[18px] font-medium text-teal-600" type="button" onClick={onAction}>{action}</button>
+      <h1 className="truncate text-center text-[22px] font-semibold">{title}</h1>
+      <button className="text-right text-[17px] font-medium text-teal-600" type="button" onClick={onAction}>{action}</button>
     </header>
   );
 }
@@ -1497,7 +1483,7 @@ function TopBar({ title, onBack, action, onAction }) {
 function FilterRow({ title, options, active, onChange, labels = {} }) {
   return (
     <div className="grid grid-cols-[76px_1fr] gap-3 py-3 first:pt-0 last:pb-0">
-      <span className="pt-2 text-[17px] font-medium">{title}</span>
+      <span className="pt-2 text-[16px] font-medium">{title}</span>
       <div className="scroll-row flex gap-2">
         {options.map((option) => (
           <button
@@ -1549,14 +1535,14 @@ function RelatedRow({ title, meta }) {
 function SectionHeader({ title, trailing }) {
   return (
     <section className="mt-8 flex items-center justify-between">
-      <h2 className="text-[19px] font-medium">{title}</h2>
+      <h2 className="text-[18px] font-medium">{title}</h2>
       <span className="inline-flex items-center gap-1 text-[15px] text-muted">{trailing}</span>
     </section>
   );
 }
 
 function SectionTitle({ children }) {
-  return <h2 className="mb-3 mt-7 text-[22px] font-semibold">{children}</h2>;
+  return <h2 className="mb-3 mt-6 text-[21px] font-semibold">{children}</h2>;
 }
 
 function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClick }) {
@@ -1569,7 +1555,7 @@ function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClic
       <div className="flex items-center gap-4">
         <div className="circle-icon bg-teal-50 text-teal-700"><Icon size={31} /></div>
         <div className="min-w-0">
-          <p className="text-[20px] font-semibold">{title}</p>
+          <p className="text-[18px] font-semibold">{title}</p>
           <p className="mt-1 break-all text-[15px] leading-relaxed text-muted">{desc}</p>
         </div>
       </div>

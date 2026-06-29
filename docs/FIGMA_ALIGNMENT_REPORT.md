@@ -97,3 +97,45 @@ This round is enough for a small prototype alignment pass. A later visual polish
 - Bottom navigation rules remain unchanged: Home, Categories, Search, Settings show bottom navigation; New Record, Detail, Note Station Import, Member Management use top back navigation.
 - Default members remain `我` and `爱人`; no old default labels are shown.
 - The earlier note that image2 assets were not final individual frontend assets is now outdated for first-batch assets: frontend uses runtime variants, while source assets remain for Figma and regeneration.
+
+## 8. V1 Typography And Layout Alignment Update（2026-06-29）
+
+Reference images used in this pass:
+
+- `design/home-records-prototype/page-1-home-selected.png`
+- `design/home-records-prototype/page-2-new-record.png`
+- `design/home-records-prototype/page-3-record-detail.png`
+- `design/home-records-prototype/page-4-search.png`
+- `design/home-records-prototype/page-5-categories.png`
+- `design/home-records-prototype/page-6-import-note-station.png`
+- `design/home-records-prototype/page-7-settings-backup.png`
+
+Observed V1 strengths:
+
+- Page titles are confident but not oversized; cards use a smaller, steadier title/body/meta hierarchy.
+- Cards feel light: warm white background, subtle border, small shadow, and consistent 20px-ish radius.
+- Category cards use a two-column mobile grid with compact icon/title/count/update rhythm.
+- Record cards emphasize title, short summary, tags, and one clean metadata row instead of too many competing status rows.
+- Secondary pages use top back navigation and fixed bottom actions without making the screen feel like an admin panel.
+- Settings prioritizes backup/export/data location before less frequent member-management actions.
+
+Frontend changes made:
+
+- Global card radius/shadow and chip density were softened to better match V1.
+- Main page titles were normalized to a 36px tier; section/card text was reduced into a 17-21px range where appropriate.
+- New Record type selection changed from large two-column cards to compact four-column cards like the V1 reference.
+- Categories changed to a two-column card grid; common category names now stay on one line at 390px.
+- Detail page title/body/attachment typography was reduced and spacing tightened.
+- Import page removed the oversized top illustration block and starts with the stepper, closer to V1.
+- Settings page now starts with Data Backup, with Member Management moved lower so the first screen stays close to V1.
+
+Validation:
+
+- Playwright mobile audit passed at 390px and 430px across 8 screens: `failed: 0`.
+- DOM metrics confirmed page title font size is 36px, card radius is 20px, body scroll width equals viewport width, and common category titles no longer wrap.
+
+Remaining differences:
+
+- Home still retains member/category filter functionality, so it has more filter rows than the original V1 static image.
+- Browser import page keeps the safer current implementation wording for dry-run / sandbox / backup flow, not the exact old static ZIP upload copy.
+- Settings still includes member management because it is part of the current product scope, but it is no longer the first settings section.
