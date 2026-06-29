@@ -30,9 +30,12 @@ importsRouter.post('/notestation/:importId/commit', (request, response) => {
   try {
     const memberId = request.body?.memberId || 'history';
     const result = commitNotestationImport(request.params.importId, memberId);
-    const notes = result.importedNoteIds?.length ? listNotes().filter((note) => result.importedNoteIds.includes(note.id)) : [];
+    const notes = result.importedNoteIds?.length
+      ? listNotes({ limit: 'all' }).filter((note) => result.importedNoteIds.includes(note.id))
+      : [];
     response.json({ ...result, notes });
   } catch (error) {
     response.status(400).json({ error: error.message });
   }
 });
+

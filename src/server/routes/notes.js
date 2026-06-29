@@ -121,6 +121,8 @@ export function listNotes(query = {}) {
     params.push(tag);
   }
 
+  const limitClause = query.limit === 'all' ? '' : 'LIMIT 200';
+
   return getDb()
     .prepare(
       `SELECT
@@ -170,7 +172,7 @@ export function listNotes(query = {}) {
        LEFT JOIN members m ON m.id = n.member_id
        WHERE ${where.join(' AND ')}
        ORDER BY COALESCE(n.occurred_at, n.created_at) DESC, n.created_at DESC
-       LIMIT 200`
+       ${limitClause}`
     )
     .all(...params)
     .map((row) => ({
@@ -184,3 +186,4 @@ function getCurrentMemberId() {
   const member = getDb().prepare('SELECT id FROM members WHERE is_current = 1 ORDER BY sort_order LIMIT 1').get();
   return member?.id || 'dad';
 }
+

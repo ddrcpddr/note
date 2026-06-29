@@ -47,7 +47,7 @@ storageRouter.post('/export-json', (_request, response) => {
   const exportPath = path.join(paths.exportsDir, `notes-${timestamp}.json`);
   const payload = {
     exportedAt: new Date().toISOString(),
-    notes: listNotes()
+    notes: listNotes({ limit: 'all' })
   };
   writeFileSync(exportPath, JSON.stringify(payload, null, 2), 'utf8');
   const fileSize = statSync(exportPath).size;
@@ -61,7 +61,7 @@ function getStorageStatus() {
     .prepare(
       `SELECT id, status, file_path AS filePath, file_size AS fileSize, error_message AS errorMessage, created_at AS createdAt
        FROM backups
-       ORDER BY created_at DESC
+       ORDER BY created_at DESC, id DESC
        LIMIT 1`
     )
     .get();
@@ -72,3 +72,4 @@ function getStorageStatus() {
     latestBackup: latestBackup || null
   };
 }
+

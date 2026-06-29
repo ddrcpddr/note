@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
@@ -29,6 +29,15 @@ async function requestJson(route, options = {}) {
   return data;
 }
 
+async function requestRaw(route, options = {}) {
+  const response = await fetch(`${baseUrl}${route}`, {
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : {};
+  return { response, data };
+}
 async function waitForHealth() {
   const startedAt = Date.now();
   let lastError;
@@ -153,6 +162,34 @@ describe('MVP API', () => {
     assert.ok(tag.notes.some((note) => note.id === created.note.id));
   });
 
+  test('switches current member and uses it for new notes by default', async () => {
+    const switched = await requestJson('/api/members/current', {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'mom' })
+    });
+
+    assert.equal(switched.currentMemberId, 'mom');
+    assert.ok(switched.members.some((member) => member.id === 'mom' && member.isCurrent));
+
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '当前成员测试记录',
+        content: '这条记录没有显式 memberId，应归属当前成员。',
+        categoryId: 'family'
+      })
+    });
+
+    assert.equal(created.note.memberId, 'mom');
+
+    const invalid = await requestRaw('/api/members/current', {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'missing-member' })
+    });
+
+    assert.equal(invalid.response.status, 404);
+    assert.equal(invalid.data.error, '成员不存在');
+  });
   test('backs up the database and exports JSON', async () => {
     const backup = await requestJson('/api/storage/backup', {
       method: 'POST',
@@ -168,6 +205,77 @@ describe('MVP API', () => {
     assert.ok(exported.export.fileSize > 0);
   });
 
+  test('reports failed backup when NAS is offline', async () => {
+    const offline = await requestRaw('/api/storage/backup', {
+      method: 'POST',
+      body: JSON.stringify({ nasOnline: false })
+    });
+
+    assert.equal(offline.response.status, 503);
+    assert.equal(offline.data.error, '当前无法连接家庭 NAS');
+    assert.equal(offline.data.latestBackup.status, 'failed');
+    assert.equal(offline.data.latestBackup.errorMessage, '当前无法连接家庭 NAS');
+  });
+  test('exports all notes instead of only the list page limit', async () => {
+    const createdIds = [];
+
+    for (let index = 0; index < 205; index += 1) {
+      const created = await requestJson('/api/notes', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: `全量导出测试 ${index}`,
+          content: `这是一条用于验证 JSON 全量导出的记录 ${index}`,
+          categoryId: 'family',
+          memberId: 'dad',
+          tags: ['导出测试']
+        })
+      });
+      createdIds.push(created.note.id);
+    }
+
+    const exported = await requestJson('/api/storage/export-json', { method: 'POST' });
+    const payload = JSON.parse(readFileSync(exported.export.filePath, 'utf8'));
+    const exportedIds = new Set(payload.notes.map((note) => note.id));
+
+    for (const id of createdIds) {
+      assert.ok(exportedIds.has(id), `Expected export to include ${id}`);
+    }
+  });
+  test('previews and commits the sample Note Station import flow', async () => {
+    const preview = await requestJson('/api/imports/notestation/sample-preview', {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'history' })
+    });
+
+    assert.equal(preview.status, 'previewed');
+    assert.ok(preview.importId);
+    assert.ok(preview.records.length >= 1);
+    assert.ok(preview.failures.length >= 1);
+
+    const fetchedPreview = await requestJson(`/api/imports/notestation/${preview.importId}`);
+    assert.equal(fetchedPreview.importId, preview.importId);
+    assert.equal(fetchedPreview.records.length, preview.records.length);
+
+    const committed = await requestJson(`/api/imports/notestation/${preview.importId}/commit`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'history' })
+    });
+
+    assert.equal(committed.status, 'completed');
+    assert.ok(committed.importedNoteIds.length >= 1);
+    assert.equal(committed.notes.length, committed.importedNoteIds.length);
+
+    const search = await requestJson(`/api/notes?search=${encodeURIComponent('宽带')}`);
+    assert.ok(search.notes.some((note) => committed.importedNoteIds.includes(note.id)));
+
+    const secondCommit = await requestJson(`/api/imports/notestation/${preview.importId}/commit`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'history' })
+    });
+
+    assert.equal(secondCommit.status, 'completed');
+    assert.equal(secondCommit.importedNoteIds.length, committed.importedNoteIds.length);
+  });
   test('prepares a real Note Station dry-run without writing notes', async () => {
     const before = await requestJson('/api/notes');
     const dryRun = await requestJson('/api/imports/notestation/dry-run', {
@@ -179,7 +287,9 @@ describe('MVP API', () => {
     assert.equal(dryRun.dryRun, true);
     assert.equal(dryRun.status, 'needs_real_sample');
     assert.equal(dryRun.records.length, 0);
+    assert.equal(dryRun.importId, null);
     assert.ok(dryRun.requiredSampleInfo.length >= 3);
     assert.equal(afterNotes.notes.length, before.notes.length);
   });
 });
+
