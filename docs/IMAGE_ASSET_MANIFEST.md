@@ -28,9 +28,9 @@ Rules:
 
 | Type | Count | Frontend readiness | Figma readiness | Notes |
 | --- | ---: | --- | --- | --- |
-| avatars | 7 files, 2 default roles | Yes, after integration decision | Yes | `avatar-self` and `avatar-partner` are defaults; other avatar files are optional future role presets |
-| categories | 11 | Yes, after icon mapping decision | Yes | Category icon candidates matching current category IDs |
-| illustrations | 6 | Yes, after size/performance review | Yes | Empty, import, backup, and app icon assets |
+| avatars | 9 files: 2 final PNG defaults + 7 optional SVG presets | PNG defaults are frontend-ready after integration decision | Yes | First-batch defaults are `avatar-self.png` and `avatar-partner.png`; other avatar SVG files are optional future role presets |
+| categories | 22 files: 11 final PNG icons + 11 SVG references | PNG icons are frontend-ready after icon mapping decision | Yes | Use PNG category icons as the first-batch final assets; SVG files remain references/placeholders |
+| illustrations | 7 PNG files | Yes, after size/performance review | Yes | Empty, import success/review, backup, and app icon assets |
 | image2-previews | 2 | No | Style reference only | Composite preview boards, not final single-purpose assets |
 
 ## 3. Detailed Registry
@@ -68,7 +68,7 @@ Rules:
 
 Recommended future integration work:
 
-- Map `avatars/*.svg` to member avatar presets.
+- Map `avatar-self` and `avatar-partner` to the default member avatar presets. Other avatar files are optional future role presets and should not be treated as first-batch defaults.
 - Map `categories/*.svg` to category IDs in `src/shared/defaults.js`.
 - Generate PWA icon sizes from `illustrations/app-icon-1024.png` before replacing current placeholder icon.
 - Optimize illustration PNGs before shipping in the app bundle.
@@ -95,3 +95,38 @@ Current manifest records generated visual assets only. It does not include:
 - Exports.
 - Attachments from imported notes.
 - Real NAS address, account, password, token, or API key.
+
+## 7. First-Batch Final PNG Assets
+
+These are the current first-batch single-file assets for Figma and frontend handoff. Preview boards in `image2-previews/` remain style references only.
+
+| File | Relative path | Type | Actual size | Figma recommended use | Direct frontend use | Style reference only | Missing / follow-up |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| avatar-self.png | `design/image-assets/v1/avatars/avatar-self.png` | avatar | 512 x 512 | Member management, creator display, member chips, current member selector | Yes, after member avatar mapping | No | None for first batch |
+| avatar-partner.png | `design/image-assets/v1/avatars/avatar-partner.png` | avatar | 512 x 512 | Member management, creator display, member chips, current member selector | Yes, after member avatar mapping | No | User requested a younger, lively partner style; current file is the replacement |
+| category-family.png | `design/image-assets/v1/categories/category-family.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-house.png | `design/image-assets/v1/categories/category-house.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-repair.png | `design/image-assets/v1/categories/category-repair.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-shopping.png | `design/image-assets/v1/categories/category-shopping.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-account.png | `design/image-assets/v1/categories/category-account.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-kids.png | `design/image-assets/v1/categories/category-kids.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-health.png | `design/image-assets/v1/categories/category-health.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-pet.png | `design/image-assets/v1/categories/category-pet.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-work.png | `design/image-assets/v1/categories/category-work.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-temporary.png | `design/image-assets/v1/categories/category-temporary.png` | category | 256 x 256 | Category page, filters, record cards | Yes, after category icon mapping | No | None |
+| category-uncategorized.png | `design/image-assets/v1/categories/category-uncategorized.png` | category | 256 x 256 | Category page, filters, imported records needing organization | Yes, after category icon mapping | No | None |
+| import-review-needed.png | `design/image-assets/v1/illustrations/import-review-needed.png` | illustration | 1200 x 900 | Note Station import failure / review-needed state | Yes, after image size optimization | No | None |
+
+## 8. Current Missing Items
+
+No first-batch required visual asset is currently missing for the agreed scope:
+
+- PWA / app icon: present as `illustrations/app-icon-1024.png`.
+- Empty home state: present as `illustrations/empty-home.png`.
+- Search no-result state: present as `illustrations/empty-search.png`.
+- Note Station import success and review-needed states: present as `illustrations/import-success.png` and `illustrations/import-review-needed.png`.
+- NAS backup success and unavailable states: present as `illustrations/backup-success.png` and `illustrations/backup-unavailable.png`.
+- Default member avatars for first batch: present as `avatars/avatar-self.png` and `avatars/avatar-partner.png`.
+- 11 default category icons: present as `categories/category-*.png`.
+
+Recommended frontend follow-up: generate compressed/runtime variants after the actual bundle and display strategy are chosen. Source PNGs should remain in `design/image-assets/v1/`.

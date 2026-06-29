@@ -136,12 +136,12 @@ design/image-assets/v1/
 | Asset | File | Purpose | Figma | Frontend |
 | --- | --- | --- | --- | --- |
 | Self avatar | `avatars/avatar-self.svg` | Default current-user avatar | Import directly as editable vector | Use directly as img/SVG component |
-| Partner avatar | `avatars/avatar-partner.svg` | Default partner avatar | Import directly as editable vector | Use directly as img/SVG component |
-| Child avatar | `avatars/avatar-child.svg` | Default child avatar | Import directly as editable vector | Use directly as img/SVG component |
-| Parents avatar | `avatars/avatar-parents.svg` | Default parents avatar | Import directly as editable vector | Use directly as img/SVG component |
-| Elders avatar | `avatars/avatar-elders.svg` | Default elder / in-law avatar | Import directly as editable vector | Use directly as img/SVG component |
-| Pet avatar | `avatars/avatar-pet.svg` | Default pet avatar | Import directly as editable vector | Use directly as img/SVG component |
-| Other avatar | `avatars/avatar-other.svg` | Default custom / other member avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Partner avatar | `avatars/avatar-partner.svg` | Default partner / 爱人 avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Child avatar | `avatars/avatar-child.svg` | Optional future child avatar, not required for first batch | Reference only unless user adds this member role | Not a first-batch frontend requirement |
+| Parents avatar | `avatars/avatar-parents.svg` | Optional future parents avatar, not required for first batch | Reference only unless user adds this member role | Not a first-batch frontend requirement |
+| Elders avatar | `avatars/avatar-elders.svg` | Optional future elder / in-law avatar, not required for first batch | Reference only unless user adds this member role | Not a first-batch frontend requirement |
+| Pet avatar | `avatars/avatar-pet.svg` | Optional future pet avatar, not required for first batch | Reference only unless user adds this member role | Not a first-batch frontend requirement |
+| Other avatar | `avatars/avatar-other.svg` | Optional future custom / other avatar, not required for first batch | Reference only unless user adds this member role | Not a first-batch frontend requirement |
 
 ### Generated SVG Category Icons
 
@@ -289,3 +289,19 @@ Design constraints:
 ### Follow-up Rule
 
 After Figma prototype pages, actual display sizes, and usage surfaces are confirmed, generate the final individual avatar files and individual category icon files using the accepted image2 preview direction. Until then, keep the two preview boards as style references only.
+## 10. 2026-06-29 Missing First-Batch Assets Completed
+
+The missing first-batch single-file PNG assets were generated and saved without creating full-page UI images.
+
+Completed outputs:
+
+- `design/image-assets/v1/avatars/avatar-self.png` at `512 x 512`.
+- `design/image-assets/v1/avatars/avatar-partner.png` at `512 x 512`; this is the replacement with a younger, more lively partner image.
+- `design/image-assets/v1/categories/category-family.png` through `category-uncategorized.png`, each at `256 x 256`.
+- `design/image-assets/v1/illustrations/import-review-needed.png` at `1200 x 900`.
+
+Scope note:
+
+- Do not treat optional future member avatars as first-batch requirements.
+- Do not treat `image2-previews/` as final frontend assets.
+- Runtime/frontend compressed variants are still a later integration task.
