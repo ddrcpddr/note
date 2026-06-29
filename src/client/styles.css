@@ -78,4 +78,8 @@
   .nav-active {
     @apply text-teal-600;
   }
+
+  .bottom-action-bar {
+    @apply fixed bottom-3 left-1/2 z-30 w-[calc(100%-24px)] max-w-[398px] -translate-x-1/2 rounded-[28px] border border-line/75 bg-white/95 shadow-[0_8px_26px_rgba(39,43,48,0.12)] backdrop-blur;
+  }
 }

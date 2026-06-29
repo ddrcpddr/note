@@ -403,12 +403,13 @@ function App() {
 
       {(screen === 'home' || screen === 'categories') && (
         <button
-          className="fixed bottom-[102px] right-[max(24px,calc((100vw-430px)/2+24px))] z-40 grid h-[74px] w-[74px] place-items-center rounded-full bg-teal-600 text-white shadow-float"
+          className={`fixed bottom-[104px] right-[max(24px,calc((100vw-430px)/2+24px))] z-40 grid place-items-center rounded-full bg-teal-600 text-white shadow-float ${screen === 'categories' ? 'h-[82px] w-[82px] content-center gap-0.5' : 'h-[74px] w-[74px]'}`}
           type="button"
           aria-label="新建记录"
           onClick={() => navigate('new')}
         >
-          <Plus size={36} strokeWidth={2.6} />
+          <Plus size={screen === 'categories' ? 34 : 36} strokeWidth={2.6} />
+          {screen === 'categories' && <span className="text-[12px] font-medium leading-none">记一件事</span>}
         </button>
       )}
 
@@ -720,7 +721,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
         </span>
         {hasAttachment ? <CheckCircle2 className="text-teal-600" /> : <ChevronRight className="text-muted" />}
       </button>
-      <div className="fixed bottom-0 left-1/2 z-30 flex h-[104px] w-full max-w-[430px] -translate-x-1/2 items-center gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
+      <div className="bottom-action-bar flex h-[92px] items-center gap-4 px-5 py-4">
         <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-medium text-teal-600" type="button">
           <FileText size={22} /> 存为模板
         </button>
@@ -1028,7 +1029,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </section>
         </>
       )}
-      <div className="fixed bottom-0 left-1/2 z-30 grid h-[96px] w-full max-w-[430px] -translate-x-1/2 grid-cols-2 gap-4 border-t border-line bg-white/95 px-5 pb-5 pt-4">
+      <div className="bottom-action-bar grid h-[88px] grid-cols-2 gap-4 px-4 py-4">
         <button className="rounded-2xl border border-teal-600 text-[17px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
           {canPreview ? '重新选择文件' : '取消'}
         </button>
@@ -1109,7 +1110,7 @@ function DetailScreen({ note, onBack }) {
         <RelatedRow title="去年卫生间防水维修" meta="维修 · 已完成" />
         <RelatedRow title="物业维修电话" meta="家庭事务 · 联系方式" />
       </section>
-      <div className="fixed bottom-0 left-1/2 z-30 flex h-[86px] w-full max-w-[430px] -translate-x-1/2 items-center justify-between border-t border-line bg-white/95 px-9 pb-4 pt-3">
+      <div className="bottom-action-bar flex h-[78px] items-center justify-between px-8 py-3">
         <button className="flex flex-col items-center gap-1 text-muted" type="button"><MoreHorizontal size={28} /><span className="text-[13px]">更多</span></button>
         <button className="inline-flex h-[52px] items-center gap-3 rounded-2xl bg-teal-600 px-7 py-3 text-[18px] font-semibold text-white shadow-float"><Share2 size={25} /> 分享记录</button>
       </div>

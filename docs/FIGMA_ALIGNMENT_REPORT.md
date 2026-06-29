@@ -184,3 +184,25 @@ Remaining differences:
 
 - Current MVP still exposes member and source filtering because those are real product requirements after Note Station import and member selection.
 - New Record still shows current member because it is an agreed product requirement, even though the original static V1 page did not include it.
+
+## 11. V1 Floating Actions And Secondary Bottom Bars（2026-06-29）
+
+This pass focuses on the mobile action controls that remain visible near the bottom of the screen.
+
+Frontend changes made:
+
+- Categories floating create button now includes the small `记一件事` label, matching the V1 category reference more closely.
+- Home keeps the simpler circular plus button, matching the V1 home reference.
+- New Record, Detail, and Note Station Import bottom action areas now use a shared inset rounded action bar instead of a hard full-width bottom strip.
+- The inset action bar keeps the existing actions and click behavior, but visually follows the softer rounded dock treatment used in V1.
+
+Validation:
+
+- `npm.cmd run build` passed after the frontend changes.
+- Playwright mobile audit passed at 390px and 430px across 8 screens: `failed: 0`.
+- DOM metrics confirmed page titles remain 36px, card radius remains 20px, and 390px pages do not exceed viewport width.
+
+Remaining differences:
+
+- Secondary action bars are still fixed for usability and to avoid hiding primary actions on long imported notes.
+- Current MVP keeps its real Note Station safety wording and member selector even where the older V1 static mock did not show those product additions.
