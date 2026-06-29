@@ -139,3 +139,25 @@ Remaining differences:
 - Home still retains member/category filter functionality, so it has more filter rows than the original V1 static image.
 - Browser import page keeps the safer current implementation wording for dry-run / sandbox / backup flow, not the exact old static ZIP upload copy.
 - Settings still includes member management because it is part of the current product scope, but it is no longer the first settings section.
+
+## 9. V1 Home Filter Rhythm Refinement（2026-06-29）
+
+This pass responds to the V1 reference where the home first screen keeps only one lightweight quick-filter row.
+
+Frontend changes made:
+
+- Home no longer shows member and category filters expanded by default.
+- The first screen keeps search, quick filters, and a `更多` chip, matching the lighter V1 rhythm more closely.
+- Member and category filters remain available inside a compact `更多筛选` panel, so existing MVP filtering functionality is preserved.
+- If an advanced member/category filter is active, the panel stays visible so users can see why the list is narrowed.
+
+Validation:
+
+- `npm.cmd run build` passed after the change.
+- Playwright mobile audit passed at 390px and 430px across 8 screens: `failed: 0`.
+- DOM metrics confirmed the home page remains 390px wide at a 390px viewport, page title remains 36px, and card radius remains 20px.
+
+Remaining differences:
+
+- Search still exposes more filter dimensions than the original static V1 image because current MVP requires keyword, category, tag, member, time, and source filtering.
+- Import and settings pages keep current real-flow safety wording instead of reverting to older static mock wording.

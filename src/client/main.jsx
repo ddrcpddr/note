@@ -572,6 +572,8 @@ function IllustrationImage({ src, alt, className = 'mx-auto h-32 w-full max-w-[2
 }
 
 function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const hasAdvancedFilter = member !== 'all' || category !== 'all';
   const visibleNotes = filterNotes(notes, { filter, member, category });
   const categoryName = categories.find((item) => item.id === category)?.name ?? '全部分类';
   return (
@@ -590,9 +592,14 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
         </div>
       </header>
       <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
-      <QuickFilters active={filter} onChange={onFilterChange} />
-      <MemberFilters members={members} active={member} onChange={onMemberChange} />
-      <CategoryFilters active={category} onChange={onCategoryChange} />
+      <QuickFilters active={filter} onChange={onFilterChange} showMore={showMoreFilters} onToggleMore={() => setShowMoreFilters((value) => !value)} />
+      {(showMoreFilters || hasAdvancedFilter) && (
+        <section className="mt-3 rounded-[20px] border border-line/70 bg-white/80 px-3 py-3 shadow-[0_6px_18px_rgba(39,43,48,0.045)]">
+          <p className="px-1 text-[13px] text-muted">更多筛选</p>
+          <MemberFilters members={members} active={member} onChange={onMemberChange} />
+          <CategoryFilters active={category} onChange={onCategoryChange} />
+        </section>
+      )}
       <TodayCard />
       <SectionHeader
         title={category === 'all' ? '最新记录' : categoryName}
@@ -1360,7 +1367,7 @@ function SearchPill({ placeholder, onClick }) {
   );
 }
 
-function QuickFilters({ active, onChange }) {
+function QuickFilters({ active, onChange, showMore = false, onToggleMore }) {
   const filters = [
     { key: 'all', label: '全部', icon: Tags },
     { key: 'todo', label: '待办', icon: Clock3, iconClass: 'text-amber-500' },
@@ -1380,6 +1387,9 @@ function QuickFilters({ active, onChange }) {
           </button>
         );
       })}
+      <button className={`chip ${showMore ? 'border-teal-600 bg-teal-50 text-teal-700' : ''}`} type="button" onClick={onToggleMore}>
+        更多 <MoreHorizontal size={18} />
+      </button>
     </section>
   );
 }
