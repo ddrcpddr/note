@@ -303,7 +303,7 @@ function App() {
       member: currentMember.name,
       memberId: currentMember.id,
       attachmentCount: draft.hasAttachment ? 1 : 0,
-      status: '保存中',
+      status: '仅当前页面可见',
       source: '手动创建',
       createdAt: '今天 刚刚',
       updatedAt: '刚刚',
@@ -313,11 +313,11 @@ function App() {
     setNotesData((current) => [note, ...current]);
     setSelectedId(note.id);
     setScreen('detail');
-    showToast('记录已模拟保存');
+    showToast('记录已临时保存在当前页面');
 
     window.setTimeout(() => {
       setNotesData((current) =>
-        current.map((item) => (item.id === note.id ? { ...item, status: '已保存到 NAS', updatedAt: '刚刚' } : item))
+        current.map((item) => (item.id === note.id ? { ...item, status: '等待家庭记录服务恢复', updatedAt: '刚刚' } : item))
       );
     }, 900);
   }
@@ -707,7 +707,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
       <SectionTitle>附件</SectionTitle>
       <button className="soft-card flex h-[72px] w-full items-center justify-between px-5 text-left" type="button" onClick={() => setHasAttachment((value) => !value)}>
         <span className="inline-flex items-center gap-4 text-[18px] text-muted">
-          <Paperclip className="text-teal-600" size={28} /> {hasAttachment ? '已添加 1 个模拟附件' : '添加照片 / 文件'}
+          <Paperclip className="text-teal-600" size={28} /> {hasAttachment ? '已添加 1 个附件占位' : '添加照片 / 文件'}
         </span>
         {hasAttachment ? <CheckCircle2 className="text-teal-600" /> : <ChevronRight className="text-muted" />}
       </button>
@@ -1176,7 +1176,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
           setLastBackup('尚未备份');
         }
       } catch {
-        setStorageMessage('还没有连上家庭记录服务，当前只显示本地模拟路径。');
+        setStorageMessage('还没有连上家庭记录服务，当前先显示默认本地路径。');
       }
     }
 
@@ -1299,13 +1299,13 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             NAS 在线
           </button>
           <button className={`rounded-2xl border px-4 py-3 text-[16px] font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
-            模拟离线
+            测试离线
           </button>
         </div>
         {backupState === 'done' && (
           <div className="mt-4 rounded-2xl bg-teal-50 px-4 py-4 text-center">
             <IllustrationImage src={illustrationAssets.backupSuccess} alt="备份成功" className="mx-auto h-28 w-full max-w-[200px]" />
-            <p className="mt-2 text-[15px] font-medium text-teal-600">已完成一次模拟备份。</p>
+            <p className="mt-2 text-[15px] font-medium text-teal-600">已完成一次备份。</p>
           </div>
         )}
         {backupState === 'failed' && (
@@ -1323,7 +1323,6 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       <SectionTitle>导出</SectionTitle>
       <section className="soft-card divide-y divide-line">
         <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action="导出" onClick={exportJson} />
-        <SettingsRow title="导出 Markdown" desc="导出所有记录为 Markdown 文件" icon={FileText} action="后续功能" disabled />
       </section>
       <SectionTitle>附件目录</SectionTitle>
       <section className="soft-card">
