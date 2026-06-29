@@ -878,10 +878,10 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const steps = [
-    ['1', '选择 .nsx'],
-    ['2', 'dry-run 预览'],
-    ['3', '备份确认'],
-    ['4', '完成报告']
+    ['1', '选择文件'],
+    ['2', '预览记录'],
+    ['3', '确认导入'],
+    ['4', '导入完成']
   ];
   const canPreview = stage >= 2;
 
@@ -955,11 +955,11 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-[20px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 导出文件'}</h2>
-            <p className="mt-1 text-[15px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '支持真实 .nsx 识别，先预览再写入'}</p>
+            <p className="mt-1 text-[15px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '先查看内容，再决定是否导入'}</p>
           </div>
         </div>
         <span className="mt-4 inline-flex items-center gap-2 text-[16px] font-medium text-teal-600">
-          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 从 dry-run 预览开始</>}
+          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 选择导出文件</>}
         </span>
       </section>
       {error && (
@@ -985,7 +985,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
               ))}
             </div>
             <div className="mt-4 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
-              <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>{stage === 4 ? '导入完成后可查看摘要；失败项会保留，不会静默丢失。' : '流程已支持 dry-run、sandbox、正式导入前自动备份'}</span>
+              <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>{stage === 4 ? '导入完成后可查看摘要；失败项会保留，不会静默丢失。' : '导入前会先预览并自动备份，现有记录不会被覆盖。'}</span>
             </div>
           </section>
           <section className="soft-card mt-4 p-5">
@@ -1035,7 +1035,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           {canPreview ? '重新选择文件' : '取消'}
         </button>
         <button className="rounded-2xl bg-teal-600 text-[17px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
-          {stage === 1 ? '开始预览' : stage === 2 ? '确认前检查' : stage === 3 ? '查看导入报告' : '已完成'}
+          {stage === 1 ? '预览记录' : stage === 2 ? '继续确认' : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>
     </>
@@ -1244,10 +1244,10 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       setStorageStatus(data);
       setLastBackup('刚刚');
       setBackupState('done');
-      setStorageMessage('备份完成，数据库已经复制到 data/backups/。');
+      setStorageMessage('备份完成，已保存到 data/backups/。');
     } catch {
       setBackupState('failed');
-      setStorageMessage('备份没有完成，请确认数据目录存在且可以写入。');
+      setStorageMessage('备份没有完成，请确认家庭记录服务可以写入数据目录。');
     }
   }
 
@@ -1285,7 +1285,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             <div className="min-w-0">
               <p className="text-[20px] font-semibold">上次备份：{lastBackup}</p>
               <p className="mt-1 flex items-center gap-2 text-[16px] text-muted">
-                {nasOnline ? 'NAS 在线，数据安全' : 'NAS 离线，无法备份'}
+                {nasOnline ? '备份成功，数据安全' : '暂时连不上家庭 NAS'}
                 {nasOnline ? <CheckCircle2 size={18} className="text-teal-600" /> : <AlertCircle size={18} className="text-amber-500" />}
               </p>
             </div>
@@ -1298,13 +1298,16 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             {backupState === 'running' ? '备份中' : '立即备份'}
           </button>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <button className={`rounded-2xl border px-4 py-3 text-[16px] font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
-            NAS 在线
-          </button>
-          <button className={`rounded-2xl border px-4 py-3 text-[16px] font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
-            测试离线
-          </button>
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-soft/80 px-4 py-3 text-[14px] text-muted">
+          <span>备份状态测试</span>
+          <div className="flex gap-2">
+            <button className={`rounded-full border px-3 py-1.5 font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
+              正常
+            </button>
+            <button className={`rounded-full border px-3 py-1.5 font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
+              离线
+            </button>
+          </div>
         </div>
         {backupState === 'done' && (
           <div className="mt-4 rounded-2xl bg-teal-50 px-4 py-4 text-center">
@@ -1321,7 +1324,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         {storageMessage && <p className="mt-4 break-all text-[14px] leading-relaxed text-muted">{storageMessage}</p>}
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
           <ShieldCheck size={20} className="shrink-0" />
-          <span>所有记录集中保存在家庭 NAS，建议每天或每周备份一次。</span>
+          <span>定期备份可以防止意外丢失，建议每天或每周备份一次。</span>
         </div>
       </section>
       <SectionTitle>导出</SectionTitle>

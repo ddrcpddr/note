@@ -228,3 +228,26 @@ Remaining differences:
 
 - Detail page still preserves creator/status and Note Station import metadata because they are real current MVP information.
 - Long detail content remains fully readable in the detail page; only timeline summaries are visually clamped.
+
+## 13. V1 Settings And Import Copy Refinement（2026-06-29）
+
+This pass reduces technical wording on Settings and Note Station Import while preserving the real MVP behavior.
+
+Frontend changes made:
+
+- Import step labels now use family-user wording: `选择文件`, `预览记录`, `确认导入`, `导入完成`.
+- Import status copy no longer surfaces `dry-run` and `sandbox` terms in the main card; the page still keeps the safe preview/backup/import flow underneath.
+- Import primary actions now read as `预览记录`, `继续确认`, and `开始导入`.
+- Settings backup status now speaks in user-facing terms such as `备份成功，数据安全` and `暂时连不上家庭 NAS`.
+- The NAS online/offline testing controls were reduced from two prominent large buttons to a smaller status-test row, so the first backup card is closer to the V1 reference.
+
+Validation:
+
+- `npm.cmd run build` passed after the frontend changes.
+- Playwright mobile audit passed at 390px and 430px across 8 screens: `failed: 0`.
+- DOM metrics confirmed page titles remain 36px, card radius remains 20px, and 390px pages do not exceed viewport width.
+
+Remaining differences:
+
+- Settings still exposes storage paths because current MVP needs NAS/deployment transparency.
+- Import still references `.nsx` because it is the actual Note Station file type, but the main flow avoids unnecessary implementation jargon.
