@@ -33,10 +33,14 @@ Scope: compare current frontend implementation against the 7 V1 reference PNGs u
 ## Verification Summary
 
 - Automated mobile audit covers 8 screens at 390px and 430px.
-- DOM metrics confirm 390px page width, 36px main titles, and 20px card radius.
+- DOM metrics confirm 390px page width, 32px home/search titles, 30px categories/settings titles, 15px subtitles, and 20px card radius.
 - No page-level horizontal overflow was found in the latest audit.
 - Sensitive runtime data remains ignored and outside commits.
 
 ## Conclusion
 
 The current frontend is now close enough to V1 for the mobile MVP trial stage while preserving the real family NAS note workflow. Further changes should be treated as minor visual polish after user phone testing rather than core V1 alignment work.
+
+## Title Size Correction
+
+After direct comparison with the V1 PNGs, the previous 36px main-page title tier was still too loud. Current implementation uses 32px for Home/Search, 30px for Categories/Settings, and 15px subtitles. This is the current visual baseline for future V1 polish.

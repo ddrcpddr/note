@@ -583,10 +583,10 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
       <header className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-[36px] font-bold leading-none text-teal-600">家事记</h1>
+            <h1 className="text-[32px] font-bold leading-none text-teal-600">家事记</h1>
             <Home className="mt-1 text-teal-600" size={30} strokeWidth={2.2} />
           </div>
-          <p className="mt-2 text-[16px] text-muted">记录家里的大小事</p>
+          <p className="mt-2 text-[15px] text-muted">记录家里的大小事</p>
         </div>
         <div className="flex gap-3 pt-2 text-teal-700">
           <Clock3 size={26} />
@@ -757,8 +757,8 @@ function SearchScreen({ notes, members, onOpenDetail }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[36px] font-bold leading-none text-[#093f3e]">搜索</h1>
-          <p className="mt-2 text-[16px] text-muted">快速找到你需要的记录</p>
+          <h1 className="text-[32px] font-bold leading-none text-[#093f3e]">搜索</h1>
+          <p className="mt-2 text-[15px] text-muted">快速找到你需要的记录</p>
         </div>
         <button className="chip mt-3 px-3">
           <Clock3 size={19} /> 历史
@@ -829,8 +829,8 @@ function CategoriesScreen({ notes, onSelectCategory }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[36px] font-bold leading-none text-[#093f3e]">分类</h1>
-          <p className="mt-2 text-[16px] text-muted">按家里的事情慢慢整理</p>
+          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">分类</h1>
+          <p className="mt-2 text-[15px] text-muted">按家里的事情慢慢整理</p>
         </div>
         <button className="grid h-12 w-12 place-items-center rounded-full bg-white text-teal-600 shadow-card">
           <Grid2X2 size={25} />
@@ -1266,8 +1266,8 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
     <>
       <header className="relative min-h-[142px]">
         <div>
-          <h1 className="text-[36px] font-bold leading-none text-[#093f3e]">设置</h1>
-          <p className="mt-2 text-[16px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
+          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">设置</h1>
+          <p className="mt-2 text-[15px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
         </div>
         <div className="absolute right-0 top-0 h-24 w-32">
           <div className="absolute bottom-0 left-4 h-14 w-16 rounded-[50%] bg-[#e9dfcf]" />

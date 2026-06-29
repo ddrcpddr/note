@@ -251,3 +251,11 @@ Remaining differences:
 
 - Settings still exposes storage paths because current MVP needs NAS/deployment transparency.
 - Import still references `.nsx` because it is the actual Note Station file type, but the main flow avoids unnecessary implementation jargon.
+
+## 14. V1 Main Title Size Correction（2026-06-29）
+
+- Re-measured the V1 PNG title rhythm and reduced main-page title sizes from the earlier 36px tier.
+- Home and Search now use 32px titles; Categories and Settings use 30px titles.
+- Main-page subtitles use 15px.
+- This corrects the earlier over-unified title scale while preserving the existing V1 card, navigation, and workflow alignment.
+- Playwright mobile audit passed at 390px and 430px across 8 screens: failed 0.
