@@ -161,3 +161,26 @@ Remaining differences:
 
 - Search still exposes more filter dimensions than the original static V1 image because current MVP requires keyword, category, tag, member, time, and source filtering.
 - Import and settings pages keep current real-flow safety wording instead of reverting to older static mock wording.
+
+## 10. V1 Navigation And Filter Refinement（2026-06-29）
+
+This pass focuses on areas that still felt more like a web dashboard than the V1 mobile app references.
+
+Frontend changes made:
+
+- Bottom navigation changed from a full-width hard bottom bar to an inset rounded dock, closer to the V1 Settings/Categories navigation treatment.
+- Mobile shell bottom padding increased so the inset dock does not cover page content.
+- Search keeps the V1-visible filter rhythm of category, tag, and time range first.
+- Search member/source filters are preserved but moved behind a lightweight `成员 / 来源` advanced row; active advanced filters remain visible.
+- New Record keeps the required current-member selector but changes it from a full settings-like card into a compact member strip, reducing form weight and moving closer to the V1 new-record page.
+
+Validation:
+
+- `npm.cmd run build` passed after the frontend changes.
+- Playwright mobile audit passed at 390px and 430px across 8 screens: `failed: 0`.
+- DOM metrics confirmed page titles remain 36px, cards remain 20px radius, and 390px pages do not exceed viewport width.
+
+Remaining differences:
+
+- Current MVP still exposes member and source filtering because those are real product requirements after Note Station import and member selection.
+- New Record still shows current member because it is an agreed product requirement, even though the original static V1 page did not include it.

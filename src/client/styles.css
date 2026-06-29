@@ -35,7 +35,7 @@
 
 @layer components {
   .mobile-shell {
-    @apply relative mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-paper px-5 pb-28 pt-6 text-ink;
+    @apply relative mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-paper px-5 pb-32 pt-6 text-ink;
   }
 
   .soft-card {
@@ -68,11 +68,11 @@
   }
 
   .bottom-nav {
-    @apply fixed bottom-0 left-1/2 z-30 grid h-[82px] w-full max-w-[430px] -translate-x-1/2 grid-cols-4 border-t border-line/70 bg-white/95 px-4 pb-3 pt-2 shadow-[0_-6px_18px_rgba(39,43,48,0.045)] backdrop-blur;
+    @apply fixed bottom-3 left-1/2 z-30 grid h-[76px] w-[calc(100%-24px)] max-w-[398px] -translate-x-1/2 grid-cols-4 rounded-[28px] border border-line/75 bg-white/95 px-4 py-2 shadow-[0_8px_26px_rgba(39,43,48,0.12)] backdrop-blur;
   }
 
   .nav-item {
-    @apply flex flex-col items-center justify-center gap-1 text-[13px] text-muted;
+    @apply flex flex-col items-center justify-center gap-1 text-[13px] font-medium text-muted;
   }
 
   .nav-active {

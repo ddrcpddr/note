@@ -657,24 +657,22 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
         </div>
         <div className="mt-4 text-right text-[15px] text-muted">{body.length}/1000</div>
       </section>
-      <SectionTitle>当前成员</SectionTitle>
-      <section className="soft-card p-4">
-        <div className="flex items-center justify-between gap-4">
+      <section className="mt-5 flex items-center justify-between gap-3 rounded-[20px] border border-line/70 bg-white/80 px-4 py-3 shadow-[0_6px_18px_rgba(39,43,48,0.045)]">
+        <div className="flex min-w-0 items-center gap-3">
+          <AvatarMark src={currentMember.avatarImage} label={currentMember.name} className={`h-9 w-9 shrink-0 border ${currentMember.colorClass}`} />
           <div className="min-w-0">
-            <p className="text-[18px] font-semibold">这条记录由 {currentMember.name} 创建</p>
-            <p className="mt-1 text-[14px] leading-relaxed text-muted">保存前可以临时切换成员，不影响家庭成员设置。</p>
+            <p className="truncate text-[15px] text-muted">当前成员</p>
+            <p className="truncate text-[17px] font-semibold text-ink">{currentMember.name}</p>
           </div>
-          <AvatarMark src={currentMember.avatarImage} label={currentMember.name} className={`h-12 w-12 shrink-0 border ${currentMember.colorClass}`} />
         </div>
-        <div className="scroll-row mt-4 flex gap-2 pb-1">
+        <div className="scroll-row flex max-w-[190px] gap-2 pb-1">
           {members.map((member) => (
             <button
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[14px] ${selectedMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
+              className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-[14px] ${selectedMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
               key={member.id}
               type="button"
               onClick={() => setSelectedMemberId(member.id)}
             >
-              <AvatarMark src={member.avatarImage} label={member.name} className="h-6 w-6" />
               {member.name}
             </button>
           ))}
@@ -741,6 +739,8 @@ function SearchScreen({ notes, members, onOpenDetail }) {
   const [member, setMember] = useState('all');
   const [range, setRange] = useState('全部时间');
   const [source, setSource] = useState('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const hasAdvancedSearch = member !== 'all' || source !== 'all';
   const results = filterNotes(notes, { query, category, tag, member, source });
   const clearFilters = () => {
     setQuery('');
@@ -781,9 +781,23 @@ function SearchScreen({ notes, members, onOpenDetail }) {
       <section className="soft-card mt-5 divide-y divide-line p-4">
         <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
         <FilterRow title="标签" options={['all', '待办', '重要', '维修', '购物']} labels={{ all: '全部' }} active={tag} onChange={setTag} />
-        <FilterRow title="成员" options={['all', ...members.map((item) => item.name)]} labels={{ all: '全部成员' }} active={member} onChange={setMember} />
-        <FilterRow title="来源" options={['all', 'manual', 'notestation_import']} labels={{ all: '全部', manual: '手动创建', notestation_import: 'Note Station 导入' }} active={source} onChange={setSource} />
         <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active={range} onChange={setRange} />
+        <div className="flex items-center justify-between gap-3 py-3">
+          <span className="text-[16px] font-medium">更多</span>
+          <button
+            className={`chip ${showAdvancedFilters ? 'border-teal-600 bg-teal-50 text-teal-700' : ''}`}
+            type="button"
+            onClick={() => setShowAdvancedFilters((value) => !value)}
+          >
+            成员 / 来源 <MoreHorizontal size={18} />
+          </button>
+        </div>
+        {(showAdvancedFilters || hasAdvancedSearch) && (
+          <div className="space-y-1 pt-3">
+            <FilterRow title="成员" options={['all', ...members.map((item) => item.name)]} labels={{ all: '全部成员' }} active={member} onChange={setMember} />
+            <FilterRow title="来源" options={['all', 'manual', 'notestation_import']} labels={{ all: '全部', manual: '手动创建', notestation_import: 'Note Station 导入' }} active={source} onChange={setSource} />
+          </div>
+        )}
       </section>
       <SectionHeader
         title={`找到 ${results.length} 条相关记录`}
