@@ -37,6 +37,7 @@ import {
   Wrench,
   X
 } from 'lucide-react';
+import { categoryImageAssets, illustrationAssets, memberAvatarAssets } from './assetMap.js';
 import './styles.css';
 
 const tagTones = {
@@ -49,17 +50,17 @@ const tagTones = {
 };
 
 const categories = [
-  { id: 'family', name: '家庭事务', count: 128, update: '今天 10:42 更新', icon: Home, tone: 'bg-teal-50 text-teal-700' },
-  { id: 'house', name: '房屋 / 设备', count: 86, update: '昨天 18:35 更新', icon: Home, tone: 'bg-blue-50 text-blue-700' },
-  { id: 'repair', name: '维修 / 售后', count: 64, update: '昨天 09:21 更新', icon: Wrench, tone: 'bg-amber-50 text-amber-500' },
-  { id: 'shopping', name: '购物 / 消费', count: 102, update: '今天 08:20 更新', icon: ShoppingBag, tone: 'bg-green-50 text-green-700' },
-  { id: 'account', name: '证件 / 账号', count: 57, update: '5月18日 16:30 更新', icon: KeyRound, tone: 'bg-purple-50 text-purple-700' },
-  { id: 'kids', name: '孩子 / 教育', count: 41, update: '5月17日 21:10 更新', icon: Star, tone: 'bg-amber-50 text-amber-600' },
-  { id: 'health', name: '老人 / 健康', count: 33, update: '5月16日 19:05 更新', icon: HeartPulse, tone: 'bg-rose-50 text-rose-500' },
-  { id: 'pet', name: '宠物', count: 28, update: '5月15日 17:20 更新', icon: PawPrint, tone: 'bg-green-50 text-green-700' },
-  { id: 'work', name: '工作 / 杂事', count: 25, update: '5月14日 14:12 更新', icon: Briefcase, tone: 'bg-blue-50 text-blue-700' },
-  { id: 'temporary', name: '临时记录', count: 19, update: '今天 09:15 更新', icon: FileText, tone: 'bg-purple-50 text-purple-600' },
-  { id: 'uncategorized', name: '未分类 / 待整理', count: 14, update: '5月12日 11:02 更新', icon: Inbox, tone: 'bg-neutral-100 text-neutral-600' }
+  { id: 'family', name: '家庭事务', count: 128, update: '今天 10:42 更新', icon: Home, imageSrc: categoryImageAssets.family, tone: 'bg-teal-50 text-teal-700' },
+  { id: 'house', name: '房屋 / 设备', count: 86, update: '昨天 18:35 更新', icon: Home, imageSrc: categoryImageAssets.house, tone: 'bg-blue-50 text-blue-700' },
+  { id: 'repair', name: '维修 / 售后', count: 64, update: '昨天 09:21 更新', icon: Wrench, imageSrc: categoryImageAssets.repair, tone: 'bg-amber-50 text-amber-500' },
+  { id: 'shopping', name: '购物 / 消费', count: 102, update: '今天 08:20 更新', icon: ShoppingBag, imageSrc: categoryImageAssets.shopping, tone: 'bg-green-50 text-green-700' },
+  { id: 'account', name: '证件 / 账号', count: 57, update: '5月18日 16:30 更新', icon: KeyRound, imageSrc: categoryImageAssets.account, tone: 'bg-purple-50 text-purple-700' },
+  { id: 'kids', name: '孩子 / 教育', count: 41, update: '5月17日 21:10 更新', icon: Star, imageSrc: categoryImageAssets.kids, tone: 'bg-amber-50 text-amber-600' },
+  { id: 'health', name: '老人 / 健康', count: 33, update: '5月16日 19:05 更新', icon: HeartPulse, imageSrc: categoryImageAssets.health, tone: 'bg-rose-50 text-rose-500' },
+  { id: 'pet', name: '宠物', count: 28, update: '5月15日 17:20 更新', icon: PawPrint, imageSrc: categoryImageAssets.pet, tone: 'bg-green-50 text-green-700' },
+  { id: 'work', name: '工作 / 杂事', count: 25, update: '5月14日 14:12 更新', icon: Briefcase, imageSrc: categoryImageAssets.work, tone: 'bg-blue-50 text-blue-700' },
+  { id: 'temporary', name: '临时记录', count: 19, update: '今天 09:15 更新', icon: FileText, imageSrc: categoryImageAssets.temporary, tone: 'bg-purple-50 text-purple-600' },
+  { id: 'uncategorized', name: '未分类 / 待整理', count: 14, update: '5月12日 11:02 更新', icon: Inbox, imageSrc: categoryImageAssets.uncategorized, tone: 'bg-neutral-100 text-neutral-600' }
 ];
 
 const memberToneClasses = [
@@ -84,8 +85,8 @@ const legacyMemberNames = {
 };
 
 const fallbackMembers = [
-  { id: 'self', name: '我', avatar: '我', colorClass: memberToneClasses[0], isCurrent: true },
-  { id: 'partner', name: '爱人', avatar: '爱', colorClass: memberToneClasses[1] }
+  { id: 'self', name: '我', avatar: '我', avatarImage: memberAvatarAssets.self, colorClass: memberToneClasses[0], isCurrent: true },
+  { id: 'partner', name: '爱人', avatar: '爱', avatarImage: memberAvatarAssets.partner, colorClass: memberToneClasses[1] }
 ];
 
 const initialNotes = [
@@ -438,6 +439,7 @@ function normalizeMember(member, index = 0) {
     editableName: displayName,
     originalName: member.name,
     avatar: member.avatar || displayName.slice(0, 1) || '家',
+    avatarImage: member.avatarImage || memberAvatarAssets[member.id] || memberAvatarAssets[displayName === '爱人' ? 'partner' : 'self'],
     colorClass: member.colorClass || memberToneClasses[index % memberToneClasses.length],
     isCurrent: Boolean(member.isCurrent)
   };
@@ -457,6 +459,7 @@ function normalizeNote(note) {
     category: displayCategoryName(note.categoryName || category.name, category.id),
     categoryId: note.categoryId || category.id,
     categoryIcon: category.icon,
+    categoryImageSrc: category.imageSrc,
     categoryColor: 'text-teal-600',
     icon: category.icon,
     iconTone: category.tone,
@@ -465,6 +468,7 @@ function normalizeNote(note) {
     member: displayMemberName(note.memberName || note.member || '我', note.memberId),
     memberId: note.memberId || 'self',
     memberAvatar: note.memberAvatar || displayMemberName(note.memberName || note.member || '我', note.memberId).slice(0, 1),
+    memberAvatarImage: note.memberAvatarImage || memberAvatarAssets[note.memberId] || null,
     attachmentCount: attachments.length,
     status: note.saveStatus === 'saved' ? '已保存到 NAS' : '保存中',
     source: sourceType === 'notestation_import' ? 'Note Station 导入' : '手动创建',
@@ -544,6 +548,25 @@ function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', 
   });
 }
 
+function AvatarMark({ src, label, className = 'h-6 w-6', imageClassName = '' }) {
+  if (src) {
+    return <img className={`${className} rounded-full object-cover ${imageClassName}`} src={src} alt={`${label}头像`} loading="lazy" />;
+  }
+  return <span className={`grid shrink-0 place-items-center rounded-full bg-white/70 text-[12px] ${className}`}>{label?.slice(0, 1) || '家'}</span>;
+}
+
+function CategoryMark({ src, fallback: Fallback, label, className = 'h-6 w-6', iconSize = 18 }) {
+  if (src) {
+    return <img className={`${className} shrink-0 rounded-full object-cover`} src={src} alt={`${label}图标`} loading="lazy" />;
+  }
+  return <Fallback className="shrink-0" size={iconSize} />;
+}
+
+function IllustrationImage({ src, alt, className = 'mx-auto h-32 w-full max-w-[220px]' }) {
+  if (!src) return null;
+  return <img className={`${className} object-contain`} src={src} alt={alt} loading="lazy" />;
+}
+
 function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {
   const visibleNotes = filterNotes(notes, { filter, member, category });
   const categoryName = categories.find((item) => item.id === category)?.name ?? '全部分类';
@@ -575,7 +598,7 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
         {visibleNotes.map((note) => (
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
-        {visibleNotes.length === 0 && <EmptyState title="这里暂时没有记录" desc="换个分类、成员或筛选条件看看，也可以先新建一条。" />}
+        {visibleNotes.length === 0 && <EmptyState title="这里暂时没有记录" desc="换个分类、成员或筛选条件看看，也可以先新建一条。" image={illustrationAssets.emptyHome} />}
       </section>
     </>
   );
@@ -630,7 +653,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
             <p className="text-[19px] font-semibold">这条记录由 {currentMember.name} 创建</p>
             <p className="mt-1 text-[14px] leading-relaxed text-muted">保存前可以临时切换成员，不影响家庭成员设置。</p>
           </div>
-          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-full border text-[17px] font-semibold ${currentMember.colorClass}`}>{currentMember.avatar}</span>
+          <AvatarMark src={currentMember.avatarImage} label={currentMember.name} className={`h-12 w-12 shrink-0 border ${currentMember.colorClass}`} />
         </div>
         <div className="scroll-row mt-4 flex gap-2 pb-1">
           {members.map((member) => (
@@ -640,7 +663,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
               type="button"
               onClick={() => setSelectedMemberId(member.id)}
             >
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-white/70 text-[12px]">{member.avatar}</span>
+              <AvatarMark src={member.avatarImage} label={member.name} className="h-6 w-6" />
               {member.name}
             </button>
           ))}
@@ -760,7 +783,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
       </section>
-      {results.length === 0 && <EmptyState title="没有找到匹配记录" desc="可以换个关键词，或少选一些分类、标签和成员条件。" />}
+      {results.length === 0 && <EmptyState title="没有找到匹配记录" desc="可以换个关键词，或少选一些分类、标签和成员条件。" image={illustrationAssets.emptySearch} />}
     </>
   );
 }
@@ -799,8 +822,8 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           const Icon = category.icon;
           return (
             <button className="soft-card flex min-h-[104px] w-full items-center gap-4 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-16 w-16 ${category.tone}`}>
-                <Icon size={34} strokeWidth={2.1} />
+              <div className={`circle-icon h-16 w-16 bg-white ${category.tone}`}>
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={category.name} className="h-12 w-12" iconSize={34} />
               </div>
               <div className="min-w-0 flex-1">
                 <h2 className="text-[20px] font-bold leading-tight">{category.name}</h2>
@@ -811,7 +834,7 @@ function CategoriesScreen({ notes, onSelectCategory }) {
             </button>
           );
         })}
-        {visibleCategories.length === 0 && <EmptyState title="暂时没有这个分类" desc="后续可以在分类管理中添加新的家庭分类。" />}
+        {visibleCategories.length === 0 && <EmptyState title="暂时没有这个分类" desc="后续可以在分类管理中添加新的家庭分类。" image={illustrationAssets.emptyHome} />}
       </section>
     </>
   );
@@ -882,6 +905,16 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   return (
     <>
       <TopBar title="导入 Note Station" onBack={onBack} />
+      <section className="mt-5 rounded-[22px] bg-white/70 px-4 py-4 text-center shadow-card">
+        <IllustrationImage
+          src={stage === 4 ? illustrationAssets.importSuccess : illustrationAssets.importReviewNeeded}
+          alt={stage === 4 ? '导入完成' : '导入预览与检查'}
+          className="mx-auto h-32 w-full max-w-[240px]"
+        />
+        <p className="mt-2 text-[15px] leading-relaxed text-muted">
+          {stage === 4 ? '导入完成后可以继续整理分类和附件。' : '先预览、再确认，正式导入前会自动备份。'}
+        </p>
+      </section>
       <section className="mt-7 flex items-start justify-between gap-1">
         {steps.map(([num, label], index) => (
           <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center" key={num}>
@@ -994,8 +1027,8 @@ function DetailScreen({ note, onBack }) {
       <TopBar title="记录详情" onBack={onBack} action="编辑" />
       <section className="soft-card mt-7 p-5">
         <div className="flex gap-4">
-          <div className={`circle-icon h-20 w-20 ${note.iconTone}`}>
-            <Icon size={44} strokeWidth={2.1} />
+          <div className={`circle-icon h-20 w-20 bg-white ${note.iconTone}`}>
+            <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-16 w-16" iconSize={44} />
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex justify-between gap-2">
@@ -1003,7 +1036,7 @@ function DetailScreen({ note, onBack }) {
               <span className="text-[28px] text-muted">☆</span>
             </div>
             <div className={`mt-3 flex items-center gap-2 text-[18px] font-medium ${note.categoryColor}`}>
-              <CategoryIcon size={23} /> {note.category} <ChevronRight size={18} />
+              <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-6 w-6" iconSize={23} /> {note.category} <ChevronRight size={18} />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {note.tags.map((tag) => (
@@ -1080,7 +1113,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
       <section className="soft-card p-4">
         {members.filter((member) => member.id === currentMemberId).map((member) => (
           <div className="flex items-center gap-4" key={member.id}>
-            <span className={`grid h-16 w-16 shrink-0 place-items-center rounded-full border text-[22px] font-semibold ${member.colorClass}`}>{member.avatar}</span>
+            <AvatarMark src={member.avatarImage} label={member.name} className={`h-16 w-16 shrink-0 border ${member.colorClass}`} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[22px] font-bold">{member.name}</p>
               <p className="mt-1 text-[15px] text-muted">新建记录会默认归到这个成员名下</p>
@@ -1096,7 +1129,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
           return (
             <article className="soft-card p-4" key={member.id}>
               <div className="flex items-center gap-4">
-                <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full border text-[18px] font-semibold ${member.colorClass}`}>{member.avatar}</span>
+                <AvatarMark src={member.avatarImage} label={member.name} className={`h-14 w-14 shrink-0 border ${member.colorClass}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-2">
                     <h2 className="truncate text-[20px] font-bold">{member.name}</h2>
@@ -1228,7 +1261,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
               onClick={() => onSwitchMember(member.id)}
             >
               <span className="inline-flex items-center gap-2 text-[17px] font-medium">
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-white/70 text-[13px]">{member.avatar}</span>
+                <AvatarMark src={member.avatarImage} label={member.name} className="h-7 w-7" />
                 {member.name}
               </span>
             </button>
@@ -1269,8 +1302,18 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             模拟离线
           </button>
         </div>
-        {backupState === 'done' && <p className="mt-4 text-[15px] font-medium text-teal-600">已完成一次模拟备份。</p>}
-        {backupState === 'failed' && <p className="mt-4 text-[15px] font-medium text-amber-600">当前没有连上家庭 NAS，请恢复局域网连接后再试。</p>}
+        {backupState === 'done' && (
+          <div className="mt-4 rounded-2xl bg-teal-50 px-4 py-4 text-center">
+            <IllustrationImage src={illustrationAssets.backupSuccess} alt="备份成功" className="mx-auto h-28 w-full max-w-[200px]" />
+            <p className="mt-2 text-[15px] font-medium text-teal-600">已完成一次模拟备份。</p>
+          </div>
+        )}
+        {backupState === 'failed' && (
+          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-4 text-center">
+            <IllustrationImage src={illustrationAssets.backupUnavailable} alt="备份不可用" className="mx-auto h-28 w-full max-w-[200px]" />
+            <p className="mt-2 text-[15px] font-medium text-amber-600">当前没有连上家庭 NAS，请恢复局域网连接后再试。</p>
+          </div>
+        )}
         {storageMessage && <p className="mt-4 break-all text-[14px] leading-relaxed text-muted">{storageMessage}</p>}
         <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
           <ShieldCheck size={20} className="shrink-0" />
@@ -1334,7 +1377,7 @@ function QuickFilters({ active, onChange }) {
 }
 
 function MemberFilters({ members, active, onChange }) {
-  const options = [{ key: 'all', label: '全部成员', avatar: '全', colorClass: 'border-line bg-white text-muted' }, ...members.map((member) => ({ key: member.name, label: member.name, avatar: member.avatar, colorClass: member.colorClass }))];
+  const options = [{ key: 'all', label: '全部成员', avatar: '全', avatarImage: null, colorClass: 'border-line bg-white text-muted' }, ...members.map((member) => ({ key: member.name, label: member.name, avatar: member.avatar, avatarImage: member.avatarImage, colorClass: member.colorClass }))];
 
   return (
     <section className="scroll-row mt-4 flex gap-2 pb-1">
@@ -1347,7 +1390,7 @@ function MemberFilters({ members, active, onChange }) {
             active === member.key ? member.colorClass : 'border-line bg-white text-muted'
           }`}
         >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-white/70 text-[12px]">{member.avatar || member.label.slice(0, 1)}</span>
+          <AvatarMark src={member.avatarImage} label={member.label} className="h-6 w-6" />
           {member.label}
         </button>
       ))}
@@ -1396,7 +1439,7 @@ function RecordCard({ note, onClick }) {
   return (
     <article className="soft-card p-4" onClick={onClick}>
       <div className="flex gap-4">
-        <div className={`circle-icon ${note.iconTone}`}><Icon size={32} strokeWidth={2.2} /></div>
+        <div className={`circle-icon bg-white ${note.iconTone}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-11 w-11" iconSize={32} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-[23px] font-bold leading-snug">{note.title}</h3>
@@ -1409,11 +1452,11 @@ function RecordCard({ note, onClick }) {
           <div className="mt-4 border-t border-line pt-3 text-[15px] text-muted">
             <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
               <span className="inline-flex items-center gap-1.5"><Clock3 size={17} /> {note.time}</span>
-              <span className={`inline-flex min-w-0 items-center gap-1.5 font-medium ${note.categoryColor}`}><CategoryIcon className="shrink-0" size={18} /> <span className="truncate">{note.category}</span></span>
+              <span className={`inline-flex min-w-0 items-center gap-1.5 font-medium ${note.categoryColor}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-[18px] w-[18px]" iconSize={18} /> <span className="truncate">{note.category}</span></span>
               <span className="inline-flex items-center gap-1.5"><Paperclip size={17} /> {note.attachmentCount}</span>
             </div>
             <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-3">
-              <span className="inline-flex min-w-0 items-center gap-1.5"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-teal-50 text-[12px] font-medium text-teal-700">{note.memberAvatar}</span><span className="truncate">{note.member}</span></span>
+              <span className="inline-flex min-w-0 items-center gap-1.5"><AvatarMark src={note.memberAvatarImage || memberAvatarAssets[note.memberId]} label={note.member} className="h-6 w-6 shrink-0" /><span className="truncate">{note.member}</span></span>
               <span className="inline-flex min-w-0 items-center justify-end gap-1.5 text-teal-600"><CheckCircle2 className="shrink-0" size={16} /> <span className="truncate">{note.status}</span></span>
             </div>
           </div>
@@ -1453,10 +1496,10 @@ function FilterRow({ title, options, active, onChange, labels = {} }) {
   );
 }
 
-function EmptyState({ title, desc }) {
+function EmptyState({ title, desc, image }) {
   return (
     <section className="mt-5 rounded-[22px] border border-dashed border-line bg-white/70 p-5 text-center">
-      <Search className="mx-auto text-muted" size={42} />
+      {image ? <IllustrationImage src={image} alt={title} /> : <Search className="mx-auto text-muted" size={42} />}
       <p className="mt-3 text-[17px] font-medium">{title}</p>
       <p className="mt-1 text-[15px] leading-relaxed text-muted">{desc}</p>
     </section>

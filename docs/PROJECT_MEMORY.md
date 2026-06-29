@@ -544,3 +544,10 @@ MVP 需要覆盖：
 - `avatar-partner.png` 已根据用户反馈替换为更年轻、有活力的小女生 / 爱人形象，避免显老气。
 - 头像源尺寸为 `512 x 512 px`；分类图标源尺寸为 `256 x 256 px`；导入待处理插画为 `1200 x 900 px`。
 - 当前首批必需视觉素材已无缺失；后续只需根据前端实际加载策略生成压缩/runtime 版本，不要再扩大默认成员头像范围。
+### 首批视觉素材前端接入（2026-06-29）
+
+- 已将视觉素材线程提交 `50357b9 Add first batch image assets` 推送到 `origin/main`，推送前确认 Git 只跟踪 `data/` 下 `.gitkeep` 占位文件，未跟踪真实 `.nsx`、数据库、备份、导出、附件或日志。
+- 新增 `src/client/assetMap.js`，集中映射首批 PNG 素材：`avatar-self.png`、`avatar-partner.png`、11 个 `category-*.png`，以及空状态、导入、备份相关插画。
+- 前端页面开始接入真实素材：成员筛选、新建记录当前成员、成员管理、设置页当前成员使用头像 PNG；分类页、记录卡片、详情页使用分类 PNG；首页/搜索/分类空状态、导入页、备份状态使用 illustrations PNG。
+- 默认成员仍只内置“我”和“爱人”；其他成员头像不作为默认首批展示。真实 Note Station 导入内容、数据库和附件未修改。
+- 本轮验证：`npm.cmd run check` 通过（正式库 111 条记录），`npm.cmd run test` 通过（13 项），`npm.cmd run build` 通过。构建产物显示 1200x900 插画体积约 1.1MB-1.35MB，后续建议单独生成压缩/runtime 版本。
