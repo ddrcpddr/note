@@ -568,3 +568,11 @@ MVP 需要覆盖：
 - PWA 图标已从 `design/image-assets/v1/runtime/pwa/` 复制到 `public/icons/`，`public/manifest.webmanifest` 改用 `app-icon-192.png`、`app-icon-512.png`、`app-icon-maskable-512.png`，`index.html` 改用 PNG favicon 和 apple-touch-icon。
 - source 原图继续保留给 Figma 和后续再生成使用；`image2-previews/` 仍仅作为风格参考。
 - 默认成员仍只内置“我 / 爱人”，本轮未修改真实 Note Station 导入数据、数据库、备份、导出或附件运行数据。
+
+### 阶段 1：runtime 素材移动端视觉验收（2026-06-29）
+
+- 已完成 runtime 素材接入后的 390px / 430px 移动端视觉验收，覆盖首页、详情、新建、搜索、分类、设置、导入 Note Station、成员管理 8 个 screen。
+- 初次审计发现真实记录里长 URL 标题会在首页记录卡片中横向溢出；这是由连续长字符串不换行导致，非数据问题。
+- 已做最小 UI 修复：记录卡片标题和详情页标题增加 `overflow-wrap: anywhere`，保留真实标题内容，不截断或修改数据。
+- 复测 16 个页面宽度组合全部通过：底部导航规则正确、无旧默认成员称呼残留、无页面级横向溢出，runtime 图片加载正常。
+- 本轮未新增成员功能，默认成员仍只保留“我 / 爱人”；未修改真实 Note Station 导入数据、数据库、备份、导出或附件。

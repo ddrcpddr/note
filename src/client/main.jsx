@@ -1032,7 +1032,7 @@ function DetailScreen({ note, onBack }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex justify-between gap-2">
-              <h2 className="text-[28px] font-bold leading-tight">{note.title}</h2>
+              <h2 className="min-w-0 text-[28px] font-bold leading-tight" style={{ overflowWrap: 'anywhere' }}>{note.title}</h2>
               <span className="text-[28px] text-muted">☆</span>
             </div>
             <div className={`mt-3 flex items-center gap-2 text-[18px] font-medium ${note.categoryColor}`}>
@@ -1442,7 +1442,7 @@ function RecordCard({ note, onClick }) {
         <div className={`circle-icon bg-white ${note.iconTone}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-11 w-11" iconSize={32} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-[23px] font-bold leading-snug">{note.title}</h3>
+            <h3 className="min-w-0 text-[23px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
             <MoreHorizontal size={22} className="shrink-0 text-ink" />
           </div>
           <p className="mt-2 text-[17px] leading-relaxed text-muted">{note.summary}</p>

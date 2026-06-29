@@ -88,3 +88,12 @@ Browser check status:
 ## 6. Recommendation
 
 This round is enough for a small prototype alignment pass. A later visual polish round can focus on screenshot-based 390px/430px spacing, exact copy tuning, and replacing initials/icons with final image2 assets after those assets are generated as individual files.
+
+## 7. Runtime Asset Mobile QA Update
+
+- Time: 2026-06-29.
+- Runtime WebP assets have been integrated into the frontend and checked at 390px and 430px widths across 8 screens.
+- The only real UI issue found in this pass was long URL-like record titles overflowing the home record card. Record card titles and detail titles now use `overflow-wrap: anywhere` so real imported titles are preserved while still fitting mobile screens.
+- Bottom navigation rules remain unchanged: Home, Categories, Search, Settings show bottom navigation; New Record, Detail, Note Station Import, Member Management use top back navigation.
+- Default members remain `我` and `爱人`; no old default labels are shown.
+- The earlier note that image2 assets were not final individual frontend assets is now outdated for first-batch assets: frontend uses runtime variants, while source assets remain for Figma and regeneration.
