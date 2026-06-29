@@ -33,6 +33,11 @@ export function analyzeNsxFile(filePath) {
   };
 }
 
+export function readNsxEntryBuffer(filePath, entryName) {
+  const archive = openZipArchive(filePath);
+  return readEntryBuffer(archive, entryName);
+}
+
 export function dryRunNsxFile(filePath, options = {}) {
   const archive = openZipArchive(filePath);
   const config = readJsonEntry(archive, 'config.json');
@@ -98,7 +103,10 @@ export function dryRunNsxFile(filePath, options = {}) {
           parentId: note.parent_id || null,
           encrypted: Boolean(note.encrypt),
           hasLocation: Boolean(note.location || note.latitude || note.longitude),
-          contentLength: content.length
+          contentLength: content.length,
+          originalContentFormat: looksLikeHtml(content) ? 'html' : 'text',
+          originalNotebookPath: originalPath,
+          ...(options.includeRawContent ? { originalContent: content } : {})
         }
       });
     } catch (error) {
@@ -332,6 +340,10 @@ function makeSummary(value) {
 
 function stripHtml(value) {
   return value.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+}
+
+function looksLikeHtml(value) {
+  return /<[^>]+>/.test(value);
 }
 
 function isAttachmentEntry(name) {

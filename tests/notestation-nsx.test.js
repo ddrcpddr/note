@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, test } from 'node:test';
 import { analyzeNsxFile, dryRunNsxFile } from '../src/server/importers/notestation/nsx.js';
 
@@ -138,3 +140,122 @@ describe('Note Station NSX dry-run parser', () => {
     }
   });
 });
+describe('Note Station formal import preparation', () => {
+  test('requires explicit confirmation before writing the database', () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'note-formal-preflight-'));
+    try {
+      const nsxPath = path.join(tempDir, 'sample.nsx');
+      const dbPath = path.join(tempDir, 'database', 'sandbox-formal.db');
+      writeFileSync(nsxPath, createImportableNsx());
+
+      const result = runFormalImport(nsxPath, tempDir, dbPath);
+
+      assert.equal(result.status, 0, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.equal(report.confirmed, false);
+      assert.equal(report.willWriteFormalDatabase, false);
+      assert.equal(report.requiresConfirmation, true);
+      assert.equal(report.totalCount, 1);
+      assert.equal(report.successCount, 1);
+      assert.equal(report.attachmentCount, 1);
+      assert.equal(existsSync(dbPath), false);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test('backs up the target database and copies attachments only after confirmation', () => {
+    const tempDir = mkdtempSync(path.join(tmpdir(), 'note-formal-confirm-'));
+    try {
+      const nsxPath = path.join(tempDir, 'sample.nsx');
+      const dbPath = path.join(tempDir, 'database', 'sandbox-formal.db');
+      writeFileSync(nsxPath, createImportableNsx());
+
+      const result = runFormalImport(nsxPath, tempDir, dbPath, '--confirm');
+
+      assert.equal(result.status, 0, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.equal(report.confirmed, true);
+      assert.match(report.backupPath, /app-before-notestation-import-/);
+      assert.equal(existsSync(report.backupPath), true);
+      assert.equal(report.importedCount, 1);
+      assert.equal(report.failedCount, 0);
+      assert.equal(report.attachmentCopiedCount, 1);
+      assert.equal(report.attachmentFailureCount, 0);
+
+      const db = new DatabaseSync(dbPath, { readOnly: true });
+      try {
+        const importedNote = db.prepare("SELECT title, content, category_id, source_type, original_path, raw_metadata FROM notes WHERE source_id = ?").get(report.importId);
+        assert.equal(importedNote.title, '宽带续费');
+        assert.equal(importedNote.content, '宽带费用提醒，包含附件。');
+        assert.equal(importedNote.category_id, 'uncategorized');
+        assert.equal(importedNote.source_type, 'notestation_import');
+        assert.equal(importedNote.original_path, '/家庭资料/宽带续费');
+
+        const metadata = JSON.parse(importedNote.raw_metadata);
+        assert.equal(metadata.originalContentFormat, 'html');
+        assert.match(metadata.originalContent, /<div>/);
+        assert.equal(metadata.originalNotebookPath, '/家庭资料/宽带续费');
+
+        const attachment = db.prepare("SELECT original_name, storage_path, source_type FROM attachments WHERE note_id = (SELECT id FROM notes WHERE source_id = ?)").get(report.importId);
+        assert.equal(attachment.original_name, 'invoice.png');
+        assert.match(attachment.storage_path, /^attachments[\\/]notestation[\\/]/);
+        assert.equal(existsSync(path.join(tempDir, attachment.storage_path)), true);
+
+        const failures = db.prepare('SELECT COUNT(*) AS count FROM import_failures WHERE import_id = ?').get(report.importId);
+        assert.equal(failures.count, 0);
+      } finally {
+        db.close();
+      }
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+function createImportableNsx() {
+  const notebookId = '1026_NOTEBOOK000000000000000000';
+  const noteId = '1026_NOTE000000000000000000001';
+  const attachmentId = 'file_1234567890abcdef';
+
+  return createStoredZip([
+    {
+      name: 'config.json',
+      data: JSON.stringify({ note: [noteId], notebook: [notebookId], shortcut: null, todo: [] })
+    },
+    {
+      name: notebookId,
+      data: JSON.stringify({ category: 'notebook', title: '家庭资料', ctime: '2026-01-01T08:00:00Z', mtime: '2026-01-01T08:30:00Z', stack: '' })
+    },
+    {
+      name: noteId,
+      data: JSON.stringify({
+        title: '宽带续费',
+        brief: '宽带费用提醒',
+        content: '<div>宽带费用提醒，包含附件。</div>',
+        ctime: '2026-01-02T09:00:00Z',
+        mtime: '2026-01-02T09:30:00Z',
+        parent_id: notebookId,
+        attachment: [{ id: attachmentId, name: 'invoice.png' }]
+      })
+    },
+    { name: attachmentId, data: Buffer.from('invoice-binary') }
+  ]);
+}
+
+function runFormalImport(nsxPath, dataDir, dbPath, ...args) {
+  return spawnSync(
+    process.execPath,
+    ['src/server/scripts/notestation-formal-import.js', nsxPath, ...args],
+    {
+      cwd: path.resolve('.'),
+      env: {
+        ...process.env,
+        NOTE_DATA_DIR: dataDir,
+        NOTE_DB_PATH: dbPath,
+        NO_COLOR: '1'
+      },
+      encoding: 'utf8'
+    }
+  );
+}

@@ -181,3 +181,49 @@ node src\server\scripts\notestation-sandbox-import.js data\imports\notestation\n
 | 标签 | 0 |
 
 分类策略：本阶段将记录落入当前已有 `uncategorized` 分类，同时保留 `originalCategory` 和 `originalPath`。正式导入前建议由用户确认是否需要建立 Note Station 笔记本到现有分类的映射表。
+
+## 正式导入前保护流程（2026-06-29 13:19:53 +08:00）
+
+已新增正式导入前确认命令：
+
+```bash
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+```
+
+默认模式只做 preflight，不写正式数据库。当前真实样例预检结果：
+
+| 项目 | 结果 |
+| --- | ---: |
+| 总记录数 | 93 |
+| 可导入记录 | 93 |
+| 已知失败项 | 0 |
+| 附件引用 | 4 |
+| 原始分类/笔记本数量 | 4 |
+| 标签数量 | 0 |
+
+只有用户确认后，才允许执行带 `--confirm` 的正式写入命令：
+
+```bash
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx --confirm
+```
+
+正式写入策略：
+
+- 分类统一落入当前已有 `uncategorized`，避免误建分类；`originalCategory`、`originalPath` 和 `raw_metadata.originalNotebookPath` 会保留原始笔记本路径，便于后续人工整理。
+- `notes.content` 保存纯文本正文，用于当前页面展示和搜索。
+- 如果 `.nsx` 中存在 HTML / 富文本正文，原始字符串保存在 `notes.raw_metadata.originalContent`，并用 `raw_metadata.originalContentFormat` 标记格式。
+- 附件文件复制到 `data/attachments/notestation/<importId>/<noteId>/` 下。
+- 数据库只保存附件元数据、大小、MIME 猜测值和相对 `storage_path`，不把附件二进制写入数据库。
+- 附件复制失败不会回滚整条笔记，会写入 `import_failures` 并在命令报告里输出 `attachmentFailures` 统计。
+
+正式数据库保护：
+
+- `--confirm` 执行前会先备份当前配置的数据库。
+- 默认正式数据库为 `data/database/app.db`。
+- 备份文件放在 `data/backups/app-before-notestation-import-<timestamp>.db`。
+- 如果导入失败，脚本会回滚本次事务；如需手动恢复，可停止服务后用对应备份文件替换当前数据库，再重启服务。
+
+安全边界：
+
+- 本阶段没有对正式 `data/database/app.db` 执行 `--confirm`。
+- `.nsx`、dry-run JSON、sandbox DB、正式 DB、备份和附件均在 `.gitignore` 保护范围内，不允许提交。

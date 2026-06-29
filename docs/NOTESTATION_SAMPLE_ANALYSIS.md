@@ -179,3 +179,32 @@ data/imports/notestation/notestation-dry-run-preview.json
 - 4 条记录带附件引用，sandbox 阶段只写入附件元数据，不复制真实附件文件。
 - 0 条解析失败。
 - 已使用 `data/database/sandbox-notestation-import.db` 完成 sandbox 导入验证，正式数据库未写入。
+
+## 正式导入前预检（2026-06-29 13:19:53 +08:00）
+
+已对真实 `.nsx` 执行无确认预检命令：
+
+```bash
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+```
+
+命令返回 `confirmed: false`、`requiresConfirmation: true`、`willWriteFormalDatabase: false`，说明本次只展示统计，不写正式数据库。
+
+| 项目 | 结果 |
+| --- | ---: |
+| 总记录数 | 93 |
+| 可导入记录 | 93 |
+| 失败项 | 0 |
+| 附件引用 | 4 |
+| 原始分类/笔记本数量 | 4 |
+| 标签数量 | 0 |
+
+正式导入准备已补充：
+
+- 纯文本正文写入 `notes.content`。
+- 原始 HTML / 富文本正文保留到 `notes.raw_metadata.originalContent`。
+- 分类先落到 `uncategorized`，原始分类和路径继续保留到 metadata。
+- 附件正式导入时复制到 `data/attachments/`，数据库仅保存相对路径和元数据。
+- 正式写库必须带 `--confirm`，且写入前自动备份数据库到 `data/backups/`。
+
+本阶段仍未执行正式导入。

@@ -442,3 +442,13 @@ MVP 需要覆盖：
 - 本次 sandbox 导入 importId 为 `import_nsx_sandbox_mqyqp5tj_fep9yu`，写入 93 条记录、0 条失败、4 条附件元数据；正式 `data/database/app.db` 未写入。
 - API 验证通过：首页数据、搜索、分类筛选、详情标题/正文/来源/时间/分类/附件元数据均可读取；本样例标签数为 0。
 - 新增 `docs/NOTESTATION_DRY_RUN_REVIEW.md`，只记录统计和字段质量，不包含真实正文。
+
+### Note Station 正式导入前保护流程
+
+- 用户已确认 dry-run 和 sandbox 导入结果，可以进入正式导入前准备阶段，但要求不得直接写入正式数据库。
+- 新增 `src/server/scripts/notestation-formal-import.js`：默认只做 preflight，输出记录数、附件数、分类数、失败数；只有显式传入 `--confirm` 才会写入配置的数据库。
+- 正式确认导入前会自动备份数据库到 `data/backups/app-before-notestation-import-<timestamp>.db`，导入事务失败时回滚并在错误中给出备份恢复说明。
+- 正式导入策略：所有记录先进入 `uncategorized`，保留 `originalCategory`、`originalPath` 和 `raw_metadata.originalNotebookPath`；`notes.content` 保存纯文本，`raw_metadata.originalContent` 保存原始 HTML / 富文本内容。
+- 附件正式导入时复制到 `data/attachments/notestation/<importId>/<noteId>/`，数据库只保存附件元数据和相对路径；附件失败会进入 `import_failures`，不影响笔记记录本身导入。
+- 新增自动化测试覆盖：无 `--confirm` 不创建 DB；有 `--confirm` 时在临时测试库中备份、导入、复制附件、保留原始正文。
+- 已对真实 `.nsx` 执行无确认预检：93 条记录、93 条可导入、0 失败、4 个附件引用、4 个原始分类、0 标签；正式数据库未写入。
