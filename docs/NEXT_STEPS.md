@@ -57,3 +57,17 @@ adef873 Improve user-facing status messages
 8912a2c Add developer handover notes
 2eb30f3 Add MVP user manual
 ```
+## 最终收口后的下一步
+
+本轮最终收口已完成，详见 `docs/RUN_RESULT_HANDOFF.md`。
+
+下一步不要继续扩展新功能，建议先由用户人工验收：
+
+1. 手机打开首页，检查记录列表和底部导航。
+2. 新建记录，刷新后搜索该记录。
+3. 设置页切换成员后再新建记录。
+4. 设置页执行备份和 JSON 导出。
+5. 导入 Note Station 样例并搜索导入记录。
+
+人工验收通过后，再进入下一轮开发：真实 NAS 部署验证、真实 Note Station 样例解析、真实附件上传、简单访问口令。
+

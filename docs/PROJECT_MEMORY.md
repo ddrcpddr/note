@@ -392,4 +392,15 @@ MVP 需要覆盖：
 - 自动化测试从 5 项扩展到 9 项，新增覆盖：当前成员切换、无效成员 404、默认当前成员新建记录、NAS 离线备份失败、JSON 全量导出超过 200 条记录、Note Station 样例预览 / 确认 / 幂等、dry-run `importId: null`。
 - 已刷新 `docs/QA_REPORT_CURRENT.md`、`docs/BUG_LIST.md`、`docs/NEXT_STEPS.md`、`docs/NAS_DEPLOYMENT.md`、`docs/NOTESTATION_IMPORT.md`、`docs/NOTESTATION_REAL_IMPORT_PLAN.md`、`docs/USER_MANUAL_MVP.md` 和 `docs/DEV_HANDOVER.md`。
 - 当前仍不实现真实附件上传、真实 Note Station 解析、真实 NAS 连接、登录权限和复杂离线同步；这些需要用户提供真实样例或部署环境后再推进。
+### 最终收口验收与交接报告
+
+- 用户要求停止继续开发新功能、不再开新 Agent，只对刚才工作做最终收口和验收报告。
+- 已执行 Git 检查：`git status` 干净，`HEAD` 与 `origin/main` 在收口开始时均为 `ccd99929de8938286097099c1d6207c6e57c7435`。
+- 依赖检查显示 `node_modules/.bin/vite` 和 `vite@6.4.3` 已存在，因此未重复运行 `npm install`，避免无意义锁文件噪音。
+- 已运行并通过：`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`。
+- 已启动 `npm.cmd run dev`，确认前端 `http://localhost:5173`、后端 `http://localhost:3300`，健康接口返回 `ok: true`。
+- 已用 API 验收首页数据、新建记录、详情读取、搜索、分类筛选、成员筛选、分类计数、存储目录、备份、JSON 导出、Note Station 样例预览/确认导入、导入后搜索。
+- 已用 Playwright CLI 在 390x844 手机宽度检查首页、详情、新建、搜索、分类、设置、Note Station 导入页，未发现横向溢出，浏览器控制台无 error/warning。
+- 已确认运行数据均被 `.gitignore` 忽略，Git 只跟踪 `data/**/.gitkeep`；未发现 password/token/secret 或真实 NAS 地址写入跟踪文件。
+- 新增 `docs/RUN_RESULT_HANDOFF.md` 作为本轮交接报告。
 
