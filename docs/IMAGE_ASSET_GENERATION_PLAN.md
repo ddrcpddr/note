@@ -305,3 +305,27 @@ Scope note:
 - Do not treat optional future member avatars as first-batch requirements.
 - Do not treat `image2-previews/` as final frontend assets.
 - Runtime/frontend compressed variants are still a later integration task.
+
+## 11. 2026-06-29 Runtime Optimization Pass
+
+Generated runtime/optimized assets from the existing source files. No source PNG was overwritten.
+
+Strategy:
+
+- Avatars: `512 x 512` source -> `128 x 128` WebP runtime files under `runtime/avatars/`.
+- Categories: `256 x 256` source -> `96 x 96` WebP runtime files under `runtime/categories/`.
+- Illustrations: `1200 x 900` source -> `640 x 480` WebP runtime files under `runtime/illustrations/`.
+- PWA: `app-icon-1024.png` source -> PNG manifest/favicon files under `runtime/pwa/`.
+- Maskable PWA icon keeps extra padding on a warm off-white background.
+
+Compression result:
+
+- Avatar runtime files are about `1.7-2.1 KB` each, under the `30 KB` target.
+- Category runtime files are about `0.7-1.2 KB` each, under the `20 KB` target.
+- Illustration runtime files are about `6.2-9.2 KB` each, under the `120 KB` WebP target.
+- PWA PNGs are about `84.4 KB` for 512, `65.7 KB` for maskable 512, and `14.0 KB` for 192, under the requested targets.
+
+Frontend recommendation:
+
+- Switch app UI image references to `design/image-assets/v1/runtime/...` or the copied public/runtime equivalent when wiring runtime assets.
+- Keep source assets for Figma and future regeneration.

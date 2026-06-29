@@ -130,3 +130,42 @@ No first-batch required visual asset is currently missing for the agreed scope:
 - 11 default category icons: present as `categories/category-*.png`.
 
 Recommended frontend follow-up: generate compressed/runtime variants after the actual bundle and display strategy are chosen. Source PNGs should remain in `design/image-assets/v1/`.
+
+## 9. Runtime Optimized Assets
+
+Runtime assets are generated from existing source images. Source files in `avatars/`, `categories/`, and `illustrations/` remain unchanged and should stay as high-quality design sources.
+
+| File | Relative path | Type | Actual size | Actual size KB | Recommended use | Frontend recommendation |
+| --- | --- | --- | --- | ---: | --- | --- |
+| avatar-partner-128.webp | `design/image-assets/v1/runtime/avatars/avatar-partner-128.webp` | runtime avatar | 128x128 | 2.1 | Member chips, creator avatar, member management | Switch frontend to this runtime asset where possible |
+| avatar-self-128.webp | `design/image-assets/v1/runtime/avatars/avatar-self-128.webp` | runtime avatar | 128x128 | 1.7 | Member chips, creator avatar, member management | Switch frontend to this runtime asset where possible |
+| category-account-96.webp | `design/image-assets/v1/runtime/categories/category-account-96.webp` | runtime category | 96x96 | 0.8 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-family-96.webp | `design/image-assets/v1/runtime/categories/category-family-96.webp` | runtime category | 96x96 | 1.2 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-health-96.webp | `design/image-assets/v1/runtime/categories/category-health-96.webp` | runtime category | 96x96 | 1.0 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-house-96.webp | `design/image-assets/v1/runtime/categories/category-house-96.webp` | runtime category | 96x96 | 1.0 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-kids-96.webp | `design/image-assets/v1/runtime/categories/category-kids-96.webp` | runtime category | 96x96 | 0.9 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-pet-96.webp | `design/image-assets/v1/runtime/categories/category-pet-96.webp` | runtime category | 96x96 | 1.0 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-repair-96.webp | `design/image-assets/v1/runtime/categories/category-repair-96.webp` | runtime category | 96x96 | 0.9 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-shopping-96.webp | `design/image-assets/v1/runtime/categories/category-shopping-96.webp` | runtime category | 96x96 | 1.1 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-temporary-96.webp | `design/image-assets/v1/runtime/categories/category-temporary-96.webp` | runtime category | 96x96 | 0.7 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-uncategorized-96.webp | `design/image-assets/v1/runtime/categories/category-uncategorized-96.webp` | runtime category | 96x96 | 0.8 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| category-work-96.webp | `design/image-assets/v1/runtime/categories/category-work-96.webp` | runtime category | 96x96 | 0.8 | Category cards, filters, record/detail category marks | Switch frontend to this runtime asset where possible |
+| backup-success-640.webp | `design/image-assets/v1/runtime/illustrations/backup-success-640.webp` | runtime illustration | 640x480 | 8.1 | Mobile empty/import/backup states | Switch frontend to this runtime asset where possible |
+| backup-unavailable-640.webp | `design/image-assets/v1/runtime/illustrations/backup-unavailable-640.webp` | runtime illustration | 640x480 | 8.0 | Mobile empty/import/backup states | Switch frontend to this runtime asset where possible |
+| empty-home-640.webp | `design/image-assets/v1/runtime/illustrations/empty-home-640.webp` | runtime illustration | 640x480 | 7.7 | Mobile empty/import/backup states | Switch frontend to this runtime asset where possible |
+| empty-search-640.webp | `design/image-assets/v1/runtime/illustrations/empty-search-640.webp` | runtime illustration | 640x480 | 9.2 | Mobile empty/import/backup states | Switch frontend to this runtime asset where possible |
+| import-review-needed-640.webp | `design/image-assets/v1/runtime/illustrations/import-review-needed-640.webp` | runtime illustration | 640x480 | 6.2 | Mobile empty/import/backup states | Switch frontend to this runtime asset where possible |
+| import-success-640.webp | `design/image-assets/v1/runtime/illustrations/import-success-640.webp` | runtime illustration | 640x480 | 7.0 | Mobile empty/import/backup states | Switch frontend to this runtime asset where possible |
+| app-icon-192.png | `design/image-assets/v1/runtime/pwa/app-icon-192.png` | runtime pwa | 192x192 | 14.0 | Manifest, install icon, favicon | Use for manifest icon |
+| app-icon-512.png | `design/image-assets/v1/runtime/pwa/app-icon-512.png` | runtime pwa | 512x512 | 84.4 | Manifest, install icon | Use for manifest icon |
+| app-icon-maskable-512.png | `design/image-assets/v1/runtime/pwa/app-icon-maskable-512.png` | runtime pwa | 512x512 | 65.7 | Maskable PWA icon | Use for maskable manifest icon |
+| favicon-16.png | `design/image-assets/v1/runtime/pwa/favicon-16.png` | runtime pwa | 16x16 | 0.7 | Browser favicon | Use for favicon where needed |
+| favicon-32.png | `design/image-assets/v1/runtime/pwa/favicon-32.png` | runtime pwa | 32x32 | 1.8 | Browser favicon | Use for favicon where needed |
+
+Runtime guidance:
+
+- Prefer `runtime/avatars/*-128.webp` for member chips, creator avatars, and member management thumbnails.
+- Prefer `runtime/categories/*-96.webp` for category cards, filters, record cards, and detail category marks.
+- Prefer `runtime/illustrations/*-640.webp` for mobile empty states, import states, and backup states.
+- Prefer `runtime/pwa/*.png` for manifest icons and favicons.
+- All generated runtime files are below the current target size budgets.

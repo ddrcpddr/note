@@ -551,3 +551,12 @@ MVP 需要覆盖：
 - 前端页面开始接入真实素材：成员筛选、新建记录当前成员、成员管理、设置页当前成员使用头像 PNG；分类页、记录卡片、详情页使用分类 PNG；首页/搜索/分类空状态、导入页、备份状态使用 illustrations PNG。
 - 默认成员仍只内置“我”和“爱人”；其他成员头像不作为默认首批展示。真实 Note Station 导入内容、数据库和附件未修改。
 - 本轮验证：`npm.cmd run check` 通过（正式库 111 条记录），`npm.cmd run test` 通过（13 项），`npm.cmd run build` 通过。构建产物显示 1200x900 插画体积约 1.1MB-1.35MB，后续建议单独生成压缩/runtime 版本。
+
+### Image2 runtime 小图生成（2026-06-29）
+
+- 已基于现有首批 source 素材生成 runtime 小图，未覆盖源图：`design/image-assets/v1/runtime/avatars/`、`runtime/categories/`、`runtime/illustrations/`、`runtime/pwa/`。
+- 头像 runtime：`avatar-self-128.webp`、`avatar-partner-128.webp`，均为 `128 x 128`，约 `1.7-2.1 KB`。
+- 分类 runtime：11 个 `category-*-96.webp`，均为 `96 x 96`，约 `0.7-1.2 KB`。
+- 插画 runtime：6 个 `*-640.webp`，均为 `640 x 480`，约 `6.2-9.2 KB`。
+- PWA runtime：`app-icon-512.png`、`app-icon-192.png`、`app-icon-maskable-512.png`、`favicon-32.png`、`favicon-16.png`；512 图标约 `84.4 KB`，maskable 约 `65.7 KB`，192 约 `14.0 KB`。
+- 建议主开发线程前端接入时优先切换到 runtime 路径，source 原图继续供 Figma 和后续再生成使用。
