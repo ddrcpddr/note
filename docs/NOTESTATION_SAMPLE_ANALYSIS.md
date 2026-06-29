@@ -167,3 +167,15 @@ data/imports/notestation/notestation-dry-run-preview.json
 4. 笔记本先保留为 `originalCategory` 和 `originalPath`；正式分类映射需用户确认。
 5. 附件先写元数据，真实复制附件文件需单独确认目标附件目录和命名规则。
 6. 遇到空正文、加密记录或无法解析 JSON 的条目，进入失败列表，不静默丢弃。
+
+## dry-run 字段质量复核（2026-06-29 12:54:14 +08:00）
+
+详见 `docs/NOTESTATION_DRY_RUN_REVIEW.md`。
+
+复核结论：
+
+- 93 条记录全部有标题、正文、创建时间、更新时间和原始路径 / 笔记本信息。
+- 本样例未发现有效标签，因此正式导入标签为空。
+- 4 条记录带附件引用，sandbox 阶段只写入附件元数据，不复制真实附件文件。
+- 0 条解析失败。
+- 已使用 `data/database/sandbox-notestation-import.db` 完成 sandbox 导入验证，正式数据库未写入。

@@ -3,13 +3,15 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { defaultCategories, defaultMembers, defaultTags, seedNotes } from '../../shared/defaults.js';
 
-const dataDir = path.resolve(process.env.NOTE_DATA_DIR || path.join(process.cwd(), 'data'));
-const databaseDir = path.join(dataDir, 'database');
+const explicitDbPath = process.env.NOTE_DB_PATH ? path.resolve(process.env.NOTE_DB_PATH) : null;
+const defaultDataDir = path.join(process.cwd(), 'data');
+const databaseDir = explicitDbPath ? path.dirname(explicitDbPath) : path.join(path.resolve(process.env.NOTE_DATA_DIR || defaultDataDir), 'database');
+const dataDir = path.resolve(process.env.NOTE_DATA_DIR || (explicitDbPath ? path.dirname(databaseDir) : defaultDataDir));
 const attachmentsDir = path.join(dataDir, 'attachments');
 const backupsDir = path.join(dataDir, 'backups');
 const importsDir = path.join(dataDir, 'imports', 'notestation');
 const exportsDir = path.join(dataDir, 'exports');
-const dbPath = path.join(databaseDir, 'app.db');
+const dbPath = explicitDbPath || path.join(databaseDir, 'app.db');
 
 let db;
 

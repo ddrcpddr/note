@@ -432,3 +432,13 @@ MVP 需要覆盖：
 - 真实样例 dry-run 结果：93 条记录全部解析成功，失败 0，记录附件 4，归档内附件/缩略图资源 25，实际引用分类 4，标签 0。
 - 已用 sandbox 数据库验证导入：本次 importId `import_nsx_sandbox_mqyoos5g_opxd42` 写入 93 条记录、0 条失败、4 条附件元数据；正式数据库未写入。
 - 已创建 `docs/NOTESTATION_SAMPLE_ANALYSIS.md`，记录脱敏结构分析和后续策略；仍禁止提交 `.nsx`、dry-run JSON、sandbox 数据库、附件和解压内容。
+
+### Note Station sandbox 导入测试
+
+- 用户确认 dry-run JSON 内容正确后，进入 sandbox 导入测试阶段。
+- 新增 `NOTE_DB_PATH` 支持，可将服务和导入脚本指向单独 sandbox DB 文件，例如 `data/database/sandbox-notestation-import.db`。
+- `notestation-dry-run.js` 新增 `--include-content` 参数，仅用于生成被 Git 忽略的本地 JSON，供 sandbox 导入保留正文。
+- `notestation-sandbox-import.js` 现在可读取 dry-run JSON 或 `.nsx`；写入前要求 `NOTE_DB_PATH` 或 `NOTE_DATA_DIR` 包含 sandbox/test/temp，防止污染正式数据库。
+- 本次 sandbox 导入 importId 为 `import_nsx_sandbox_mqyqp5tj_fep9yu`，写入 93 条记录、0 条失败、4 条附件元数据；正式 `data/database/app.db` 未写入。
+- API 验证通过：首页数据、搜索、分类筛选、详情标题/正文/来源/时间/分类/附件元数据均可读取；本样例标签数为 0。
+- 新增 `docs/NOTESTATION_DRY_RUN_REVIEW.md`，只记录统计和字段质量，不包含真实正文。

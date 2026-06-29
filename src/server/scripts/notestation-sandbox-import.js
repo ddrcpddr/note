@@ -1,19 +1,22 @@
+import { readFileSync } from 'node:fs';
 import { getDb, createId, slugifyTag } from '../db/database.js';
 import { dryRunNsxFile } from '../importers/notestation/nsx.js';
 
 const filePath = process.argv[2];
 if (!filePath) {
-  console.error('Usage: NOTE_DATA_DIR=<sandbox-dir> node src/server/scripts/notestation-sandbox-import.js <path-to-export.nsx>');
+  console.error('Usage: NOTE_DATA_DIR=<sandbox-dir> or NOTE_DB_PATH=<sandbox-db> node src/server/scripts/notestation-sandbox-import.js <path-to-dry-run.json-or-export.nsx>');
   process.exit(1);
 }
 
-const dataDir = process.env.NOTE_DATA_DIR || '';
-if (!dataDir || !/sandbox|temp|test/i.test(dataDir)) {
-  console.error('Refusing to import: NOTE_DATA_DIR must point to a sandbox/test/temp directory.');
+const sandboxTarget = process.env.NOTE_DB_PATH || process.env.NOTE_DATA_DIR || '';
+if (!sandboxTarget || !/sandbox|temp|test/i.test(sandboxTarget)) {
+  console.error('Refusing to import: NOTE_DB_PATH or NOTE_DATA_DIR must point to a sandbox/test/temp target.');
   process.exit(2);
 }
 
-const preview = dryRunNsxFile(filePath, { includeContent: true });
+const preview = filePath.toLowerCase().endsWith('.json')
+  ? JSON.parse(readFileSync(filePath, 'utf8')).preview
+  : dryRunNsxFile(filePath, { includeContent: true });
 const db = getDb();
 const importId = createId('import_nsx_sandbox');
 
@@ -130,5 +133,6 @@ console.log(JSON.stringify({
   attachmentCount: preview.attachmentCount,
   originalCategoryCount: preview.originalCategoryCount,
   tagCount: preview.tagCount,
-  dataDir
+  dataDir: process.env.NOTE_DATA_DIR || null,
+  dbPath: process.env.NOTE_DB_PATH || null
 }, null, 2));

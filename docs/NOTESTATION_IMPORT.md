@@ -155,3 +155,29 @@ NOTE_DATA_DIR=data/imports/notestation/sandbox-db node src/server/scripts/notest
 | 标签数量 | 0 |
 
 正式导入前仍建议先由用户检查 `data/imports/notestation/notestation-dry-run-preview.json` 中的标题、摘要、分类和附件数量是否合理。
+
+## Sandbox dry-run JSON 导入验证（2026-06-29 12:54:14 +08:00）
+
+本阶段从被 Git 忽略的 dry-run JSON 写入单独 sandbox 数据库：
+
+```powershell
+$env:NOTE_DB_PATH = "D:\工作文件夹\XYZL\领航未来\GitHub项目\note\data\database\sandbox-notestation-import.db"
+node src\server\scripts\notestation-sandbox-import.js data\imports\notestation\notestation-dry-run-preview-with-content.json
+```
+
+安全约束：
+
+- 脚本要求 `NOTE_DB_PATH` 或 `NOTE_DATA_DIR` 包含 `sandbox`、`test` 或 `temp`，否则拒绝写入。
+- 本阶段不写入正式 `data/database/app.db`。
+- `.nsx`、dry-run JSON、sandbox DB、附件和运行数据均位于 `.gitignore` 保护范围。
+
+结果：
+
+| 项目 | 结果 |
+| --- | ---: |
+| 写入记录 | 93 |
+| 写入失败项 | 0 |
+| 写入附件元数据 | 4 |
+| 标签 | 0 |
+
+分类策略：本阶段将记录落入当前已有 `uncategorized` 分类，同时保留 `originalCategory` 和 `originalPath`。正式导入前建议由用户确认是否需要建立 Note Station 笔记本到现有分类的映射表。
