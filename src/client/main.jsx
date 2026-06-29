@@ -1105,7 +1105,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
           <div className="circle-icon bg-teal-50 text-teal-600"><UserRound size={34} /></div>
           <div className="min-w-0 flex-1">
             <h1 className="text-[26px] font-bold leading-tight">家庭成员身份</h1>
-            <p className="mt-2 text-[16px] leading-relaxed text-muted">成员名、头像和颜色都会作为可自定义信息保留；当前版本先支持切换当前成员。</p>
+            <p className="mt-2 text-[16px] leading-relaxed text-muted">当前版本先固定“我”和“爱人”两个成员，并支持切换当前记录人。</p>
           </div>
         </div>
       </section>
@@ -1135,23 +1135,23 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
                     <h2 className="truncate text-[20px] font-bold">{member.name}</h2>
                     {isCurrent && <span className="tag bg-teal-50 text-teal-600">当前</span>}
                   </div>
-                  <p className="mt-1 text-[14px] leading-relaxed text-muted">可改名、换头像、换颜色；这些入口先作为编辑能力占位。</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-muted">当前先支持切换记录人；改名、头像和颜色稍后再开放。</p>
                 </div>
                 <button className="shrink-0 text-teal-600" type="button" onClick={() => onSwitchMember(member.id)} aria-label={`切换到${member.name}`}>
                   {isCurrent ? <CheckCircle2 size={25} /> : <ChevronRight size={24} />}
                 </button>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2">
-                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button">改名</button>
-                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button">头像</button>
-                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button">颜色</button>
+                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted opacity-60" type="button" disabled>改名</button>
+                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted opacity-60" type="button" disabled>头像</button>
+                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted opacity-60" type="button" disabled>颜色</button>
               </div>
             </article>
           );
         })}
       </section>
       <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-4 text-[15px] leading-relaxed text-muted">
-        后续可以在这里添加新的家庭成员，或把不常用成员归档；V1 不做复杂权限和危险删除。
+        当前版本先固定使用“我”和“爱人”；新增成员、改名和头像颜色编辑以后再做。
       </section>
     </>
   );
@@ -1267,7 +1267,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             </button>
           ))}
         </div>
-        <p className="mt-4 text-[14px] leading-relaxed text-muted">成员名称、头像和颜色按可自定义体系展示；MVP 暂不启用复杂权限。</p>
+        <p className="mt-4 text-[14px] leading-relaxed text-muted">当前默认成员固定为“我”和“爱人”；改名、头像和颜色编辑以后再做。</p>
         <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[17px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
           成员管理
           <ChevronRight size={19} />
