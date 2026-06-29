@@ -616,3 +616,9 @@ MVP 需要覆盖：
 - MVP API 测试新增 `NOTE_DATA_DIR` 路径断言，确认测试 / 容器 / NAS 部署时数据目录会落到指定根目录，而不是误写工作目录。
 - 新增 `tests/pwa-config.test.js`，覆盖 PWA manifest、runtime 图标文件、移动端安装 meta，以及 `.dockerignore` 对 `data/`、`*.nsx`、数据库、备份、导出、附件和日志的忽略规则。
 - `npm.cmd run test` 当前为 16 项测试通过，覆盖 MVP API、Note Station NSX dry-run、正式导入保护、PWA/NAS 配置安全。
+
+### 阶段 7：最终交接包（2026-06-29）
+
+- 已更新 `docs/RUN_RESULT_HANDOFF.md`，记录移动端 MVP 进入家庭 NAS 稳定试用阶段的当前分支、阶段提交、真实可用功能、仍模拟项、启动方式、测试方式、数据目录、NAS 部署准备和人工验收流程。
+- 当前阶段目标已收束：runtime 素材接入、移动端视觉验收、MVP 文案和成员体系收口、Note Station 导入后整理体验、PWA/NAS 部署准备、自动化 QA 回归均已完成小步提交并推送。
+- 仍需用户在真实手机和 NAS / Docker 环境做人工验收；当前机器无 `docker` 命令，无法完成 Docker 实机启动验证。

@@ -271,3 +271,107 @@ npm.cmd run build
 ### 下一阶段建议
 
 可以在用户确认后进入 Figma 原型设计文档阶段，但建议只做文档和流程整理，不重做 UI、不调用 Product Design、不生成新 PNG、不改变 V1 风格。进入前需要确认是否允许使用当前真实导入后的页面状态做脱敏参考，以及 image2 图片素材说明文档的目标格式。
+
+## 移动端 MVP 家庭 NAS 试用阶段交接（2026-06-29）
+
+### 当前分支与提交
+
+- 当前分支：`main`
+- 本段编写前最新提交：`02da316 Expand automated MVP QA coverage`
+- 本轮阶段提交列表：
+  - `1cd10a8` Polish runtime asset mobile UI
+  - `326088c` Refine MVP trial experience copy
+  - `33ea842` Clarify MVP member scope
+  - `d4a8fd5` Improve Note Station import review display
+  - `cfe5fba` Tighten NAS deployment readiness
+  - `02da316` Expand automated MVP QA coverage
+
+### 两端状态
+
+- 前端：Vite / React 移动端页面，runtime 图片素材已接入，PWA manifest 和图标已接入。
+- 后端：Express + Node 内置 SQLite，生产服务可同时提供 API 和 `dist/` 静态前端。
+- 数据目录：默认 `data/`；容器 / NAS 可通过 `NOTE_DATA_DIR=/data` 统一写入 `/data/database`、`/data/attachments`、`/data/backups`、`/data/imports/notestation`、`/data/exports`。
+
+### 当前真实可用功能
+
+- 首页记录列表、记录详情、新建记录、搜索、分类筛选、成员筛选、来源筛选。
+- 默认成员只保留“我 / 爱人”，可切换当前记录人；不新增真实成员。
+- 分类页使用 11 个默认分类，`uncategorized` 统一表达为“未分类 / 待整理”。
+- Note Station 真实 `.nsx` 已完成 dry-run、sandbox、正式导入和导入后查看；详情页可显示来源信息、原始分类和原始路径。
+- 设置页可查看数据目录、附件目录、备份目录、导出目录。
+- 手动备份和 JSON 全量导出可用。
+- PWA manifest 和 runtime 图标可用于手机添加到桌面。
+- Docker / NAS 配置已准备，`.dockerignore` 已增强保护运行数据。
+
+### 当前仍模拟或待确认
+
+- NAS 在线 / 离线状态仍是应用内测试状态，不探测真实 NAS。
+- 真实附件上传未实现；当前新建记录附件仍是元数据 / 占位。
+- 登录、PIN、权限系统未实现。
+- 其他 Note Station 导出变体仍需先 dry-run 验证，不硬猜格式。
+- Docker 实机启动未在当前机器验证，因为当前环境没有 `docker` 命令；需要在 NAS / Docker daemon 可用环境验证。
+
+### 启动方式
+
+开发模式：
+
+```bash
+npm.cmd run dev
+```
+
+默认地址：
+
+```text
+http://localhost:5173
+http://localhost:3300/api/health
+```
+
+生产构建和本机服务：
+
+```bash
+npm.cmd run build
+npm.cmd run server
+```
+
+Docker / NAS 试用：
+
+```bash
+docker compose up -d --build
+```
+
+部署时只修改数据卷挂载为自己的 NAS 数据目录，不要把真实 NAS 地址、账号、密码或 token 写进仓库。
+
+### 测试方式
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+当前自动化测试覆盖 16 项：MVP API、`NOTE_DATA_DIR`、新建/详情/搜索/分类/成员/标签/来源筛选、成员切换、备份、JSON 全量导出、Note Station dry-run / 正式导入保护、PWA manifest 和 Docker ignore 安全规则。
+
+### 数据位置
+
+- 数据库：`data/database/app.db`
+- 附件：`data/attachments/`
+- 备份：`data/backups/`
+- Note Station 导入文件：`data/imports/notestation/`
+- JSON 导出：`data/exports/`
+
+以上均为运行数据，除 `.gitkeep` 外不提交 GitHub。
+
+### 建议人工验收的 5 个流程
+
+1. 手机在同一局域网打开首页，检查记录列表、底部导航、runtime 图标和 PWA 添加到桌面。
+2. 新建一条“我 / 爱人”记录，刷新后确认不丢失，并能在搜索中找到。
+3. 搜索页分别测试成员、分类、来源为 “Note Station 导入” 的筛选。
+4. 分类页打开“未分类 / 待整理”，再进入一条导入记录详情，检查来源信息和附件元数据。
+5. 设置页执行“立即备份”和“导出 JSON”，确认文件落在 NAS / 本地数据目录且没有进入 Git。
+
+### 下一步需要用户确认
+
+- NAS 上最终使用 Docker Compose、群晖 Container Manager，还是普通 Node 服务。
+- NAS 数据目录的真实挂载路径；只在本机 / NAS 配置中使用，不写入仓库。
+- 是否需要简单访问口令 / PIN。
+- 是否优先做真实附件上传，还是先做导入后分类整理。
