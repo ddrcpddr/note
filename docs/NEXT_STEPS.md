@@ -19,40 +19,41 @@
 
 | 优先级 | 任务 | 原因 |
 | --- | --- | --- |
+| P0 | 真实手机 / NAS 环境试用 | 当前本地 MVP 已通过自动化验证，需要确认家庭局域网实际访问体验 |
 | P0 | 真实 Note Station 样例分析 | 这是替代旧系统的关键入口 |
 | P0 | NAS 上跑通 Docker / Node 部署 | 让家人可以真实试用 |
 | P1 | 附件真实上传 | 家庭维修、发票、保修记录会大量依赖附件 |
 | P1 | 简单访问口令 | 局域网内多成员使用时需要基础保护 |
 | P2 | Markdown 导出 | 方便长期归档，但不是试用首要条件 |
 
-## 最后总验收记录
+## 最近验证记录
 
-最近一次总验收结果：
+最近一次自动化验证结果：
 
 | 检查项 | 结果 |
 | --- | --- |
 | `npm.cmd run check` | 通过 |
-| `npm.cmd run test` | 通过，5 项测试通过 |
+| `npm.cmd run test` | 通过，9 项 API 集成测试通过 |
 | `npm.cmd run build` | 通过 |
-| `git status --short --branch` | `main...origin/main`，工作区干净 |
+| `git status --short --branch` | 本轮文档更新前，功能提交为 `ca08d70 Strengthen-MVP-API-coverage` |
 
-当前最新提交：
+本轮新增重点：
 
-```text
-325e66b Document sample data
-```
+- 新增 `docs/AGENT_WORKPLAN.md`，明确 Lead / Dev / QA / Docs / Import / UI Polish 的职责边界。
+- 修复 JSON 导出只导出 200 条列表窗口的问题。
+- 修复最近备份状态在同秒写入时可能取错记录的问题。
+- 修复 Note Station 样例导入确认响应在大量记录后可能返回空 `notes` 的问题。
+- 自动化测试扩展到成员切换、NAS 离线备份失败、JSON 全量导出和样例导入闭环。
 
 最近提交：
 
 ```text
+ca08d70 Strengthen-MVP-API-coverage
+8916685 Document-agent-workplan
+4add048 Record final validation results
 325e66b Document sample data
 adef873 Improve user-facing status messages
 59d3916 Add known bug list
 8912a2c Add developer handover notes
 2eb30f3 Add MVP user manual
-8b3caba Clarify current QA report
-27ee531 Harden README guidance
-ff26b42 Finalize MVP documentation
-940c2e4 Prepare real Note Station import workflow
-e550d00 Prepare Docker NAS deployment
 ```

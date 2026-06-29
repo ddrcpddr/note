@@ -382,3 +382,14 @@ MVP 需要覆盖：
   - build 通过
   - `main...origin/main`，工作区干净
 - `docs/NEXT_STEPS.md` 已补充最后总验收记录和最近提交列表。
+### 主控 Agent 阶段：QA 加固与计划治理
+
+- 新增 `docs/AGENT_WORKPLAN.md`，明确 Lead Agent、主开发 Agent、QA Agent、Docs / Deploy Agent、Import Agent、UI Polish Agent 的职责边界、允许修改范围、禁止事项、验收标准和 commit 策略。
+- 使用子 Agent 做了只读审计：QA 发现 JSON 导出复用 200 条列表窗口的真实数据风险；Docs / Deploy 发现 README 和 NEXT_STEPS 中部分待办已过期；Import 确认当前 dry-run 策略守住了“不硬猜真实格式”的边界。
+- 修复 JSON 导出只导出列表页 200 条记录的问题：普通列表仍默认限制 200 条，JSON 导出改用 `listNotes({ limit: 'all' })` 导出全量记录。
+- 修复最近备份状态在同一秒内插入多条记录时可能取错上一条记录的问题，最近备份查询增加 `id DESC` 兜底排序。
+- 修复 Note Station 样例导入确认响应在大量记录后可能因为列表窗口限制而返回空 `notes` 的问题。
+- 自动化测试从 5 项扩展到 9 项，新增覆盖：当前成员切换、无效成员 404、默认当前成员新建记录、NAS 离线备份失败、JSON 全量导出超过 200 条记录、Note Station 样例预览 / 确认 / 幂等、dry-run `importId: null`。
+- 已刷新 `docs/QA_REPORT_CURRENT.md`、`docs/BUG_LIST.md`、`docs/NEXT_STEPS.md`、`docs/NAS_DEPLOYMENT.md`、`docs/NOTESTATION_IMPORT.md`、`docs/NOTESTATION_REAL_IMPORT_PLAN.md`、`docs/USER_MANUAL_MVP.md` 和 `docs/DEV_HANDOVER.md`。
+- 当前仍不实现真实附件上传、真实 Note Station 解析、真实 NAS 连接、登录权限和复杂离线同步；这些需要用户提供真实样例或部署环境后再推进。
+

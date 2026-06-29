@@ -161,3 +161,15 @@ volumes:
 ```
 
 当前 compose 不包含账号、密码、Token 或真实 NAS 地址。
+## 实机部署前检查清单
+
+在 Docker Desktop、群晖 Container Manager 或其他 NAS Docker 环境中试运行前，先确认：
+
+- 数据目录挂载到容器内 `/data`。
+- `/data/database`、`/data/attachments`、`/data/backups`、`/data/imports/notestation`、`/data/exports` 对容器进程可写。
+- 不把真实 NAS 账号、密码、Token、内网穿透密钥写进仓库。
+- 首次启动后访问 `/api/health`，确认返回的 `dataPaths` 都指向 `/data/...`。
+- 试用前先运行一次“立即备份”和“导出 JSON”，确认文件落在 NAS 挂载目录中。
+
+当前自动化已覆盖 JSON 全量导出和备份失败提示，但 Docker 镜像构建仍需要在可用 Docker daemon 或 NAS 环境中实机验证。
+

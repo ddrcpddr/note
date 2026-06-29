@@ -139,9 +139,9 @@ NOTE_DATA_DIR=/your/nas/path/note-data
 - 搜索与筛选
 - 成员切换
 - 手动备份数据库
-- JSON 导出
+- JSON 全量导出
 - Note Station 样例导入
-- Note Station dry-run 准备
+- Note Station dry-run 准备，不生成可提交导入批次
 - PWA manifest
 - Docker Compose 配置
 
@@ -155,8 +155,9 @@ NOTE_DATA_DIR=/your/nas/path/note-data
 
 ## 后续注意事项
 
-- 真实 Note Station 导入必须等用户提供脱敏样例后再实现。
+- 真实 Note Station 导入必须等用户提供脱敏样例后再实现；当前 `sample-preview/commit` 只代表样例演示流程。
 - 不要硬猜导出格式。
 - 不要接真实 NAS 地址，除非用户明确提供。
 - 不要提交数据库、备份、导出、附件和真实导入文件。
-- UI 改动前先确认手机端 390px 左右宽度没有横向溢出。
+- UI 改动前先确认手机端 390px 左右宽度没有横向溢出。`r`n- 当前自动化测试覆盖成员切换、备份成功/失败、JSON 全量导出、样例导入闭环和真实导入 dry-run。
+

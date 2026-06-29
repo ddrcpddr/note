@@ -54,7 +54,7 @@ POST /api/imports/notestation/dry-run
 }
 ```
 
-当前 dry-run 不会写入正式数据库；在没有真实样例文件前，它会返回需要用户补充的文件信息和 `needs_real_sample` 状态。
+当前 dry-run 不会写入正式数据库，也不会生成可提交的 `importId`；在没有真实样例文件前，它会返回需要用户补充的文件信息和 `needs_real_sample` 状态。
 
 ### 查询预览
 
@@ -68,7 +68,7 @@ GET /api/imports/notestation/:importId
 POST /api/imports/notestation/:importId/commit
 ```
 
-确认后会写入 `notes`、`note_tags` 和必要的 `tags`。
+确认后会写入 `notes`、`note_tags` 和必要的 `tags`。当前该确认流程只适用于 `sample-preview` 生成的样例批次，不代表真实 Note Station 文件格式。
 
 ## 当前限制
 
@@ -104,3 +104,4 @@ src/server/importers/notestation/
 ```
 
 任何失败项都必须进入失败列表，由导入页展示给用户确认。
+

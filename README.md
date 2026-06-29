@@ -89,7 +89,7 @@ Windows PowerShell 可使用：
 npm.cmd run test
 ```
 
-当前测试会临时启动一个独立 Express 服务，并使用临时 `NOTE_DATA_DIR`，不会污染项目下的正式 `data/` 目录。覆盖范围包括读取记录列表、新建记录、读取详情、关键词搜索、分类筛选、成员筛选、标签筛选、数据库备份和 JSON 导出。
+当前测试会临时启动一个独立 Express 服务，并使用临时 `NOTE_DATA_DIR`，不会污染项目下的正式 `data/` 目录。覆盖范围包括读取记录列表、新建记录、读取详情、关键词搜索、分类筛选、成员筛选、标签筛选、成员切换、数据库备份、NAS 离线备份失败、JSON 全量导出、Note Station 样例导入和真实导入 dry-run。
 
 ## 初始化数据
 
@@ -225,7 +225,7 @@ POST /api/storage/export-json
 - 新建记录会写入 SQLite，刷新后不丢失。
 - 分类、成员、标签和关键词筛选可用。
 - 手动备份会复制 SQLite 数据库到备份目录。
-- JSON 导出会写入导出目录。
+- JSON 导出会写入导出目录，并已用超过 200 条记录的自动化测试确认会导出全量记录。
 - Docker / NAS 部署配置已准备。
 - PWA manifest 已准备，可添加到手机桌面。
 
@@ -338,6 +338,7 @@ npm.cmd run build
 
 - 根据真实 Note Station 导出样例实现解析器。
 - 实现真实附件上传和附件目录管理。
-- 增加 PWA manifest 和离线提示。
-- 补充 Docker / NAS 部署脚本。
-- 增加更多自动化测试。
+- 验证手机端添加到桌面流程，并补充清晰的离线提示。
+- 在 Docker Desktop 或 NAS Container Manager 环境实机验证 `docker compose up -d --build`。
+- 持续补充真实附件上传、访问口令和真实导入解析器的自动化测试。
+

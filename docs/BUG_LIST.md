@@ -8,7 +8,7 @@
 
 | 问题 | 证据 | 影响 | 建议 |
 | --- | --- | --- | --- |
-| Docker 实际构建未验证 | 本机 Docker CLI 可用，但 Docker Desktop Linux daemon 未运行，`docker build` 无法连接 `dockerDesktopLinuxEngine` | Dockerfile 和 compose 已做静态检查，但还未在真实 daemon 上完成镜像构建 | 在 Docker Desktop 或 NAS Docker 环境可用后运行 `docker compose up -d --build` |
+| Docker 实际构建未验证 | 本机 Docker CLI 可用，但 Docker Desktop Linux daemon 未运行，历史验证中 `docker build` 无法连接 `dockerDesktopLinuxEngine` | Dockerfile 和 compose 已做静态检查，但还未在真实 daemon 上完成镜像构建 | 在 Docker Desktop 或 NAS Docker 环境可用后运行 `docker compose up -d --build` |
 | 附件上传仍是元数据 | 当前新建记录和 API 只保存附件文件名、路径等元数据 | 真实家庭发票、维修照片暂不能上传保存 | 下一阶段实现真实附件上传到 `data/attachments/` |
 | Note Station 真实导入未实现 | 尚未提供真实导出样例 | 无法迁移真实历史数据 | 用户提供脱敏样例后实现解析器 |
 
@@ -26,5 +26,8 @@
 
 | 问题 | 处理 |
 | --- | --- |
+| JSON 导出受列表 200 条限制 | 已改为导出全量记录，并用超过 200 条记录的自动化测试覆盖 |
+| 备份状态同秒排序不稳定 | 最近备份查询增加 `id DESC` 作为同秒兜底 |
+| Note Station 样例导入确认响应受列表 200 条限制 | 导入确认响应改为全量列表过滤导入记录 |
 | Windows 测试临时目录删除失败 | 自动化测试等待服务进程退出，并重试清理临时 `NOTE_DATA_DIR` |
 | 自动化测试定位文案过旧 | 测试改为 API 集成测试，避免依赖易变的 UI 文案定位 |
