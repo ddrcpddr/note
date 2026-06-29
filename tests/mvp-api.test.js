@@ -276,6 +276,13 @@ describe('MVP API', () => {
     assert.equal(secondCommit.status, 'completed');
     assert.equal(secondCommit.importedNoteIds.length, committed.importedNoteIds.length);
   });
+  test('reports missing Note Station import preview with a stable error', async () => {
+    const missing = await requestRaw('/api/imports/notestation/missing-import-id');
+
+    assert.equal(missing.response.status, 404);
+    assert.equal(missing.data.error, '导入批次不存在');
+  });
+
   test('prepares a real Note Station dry-run without writing notes', async () => {
     const before = await requestJson('/api/notes');
     const dryRun = await requestJson('/api/imports/notestation/dry-run', {
@@ -292,4 +299,3 @@ describe('MVP API', () => {
     assert.equal(afterNotes.notes.length, before.notes.length);
   });
 });
-

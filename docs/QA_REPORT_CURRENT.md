@@ -176,3 +176,33 @@
 | password/token/secret 字符串 | `git grep` 未发现 |
 | 真实 NAS 地址 / 私有 IP | 未发现跟踪内容中写死 |
 
+## Bug sweep：缺失 Note Station 导入批次错误收敛（2026-06-29 11:40:58 +08:00）
+
+| 项目 | 内容 |
+| --- | --- |
+| 当前 commit | 修复前基线 `65b980f Add mvp bugfix QA skill`；本节随 `Fix:` 提交入库 |
+| 测试时间 | `2026-06-29 11:40:58 +08:00` |
+| 复现步骤 | 请求 `GET /api/imports/notestation/missing-import-id` |
+| 问题原因 | `getImportPreview(importId)` 没有检查数据库查询结果是否为空，直接读取 `batch.file_name`，导致返回 JS 内部 TypeError 文本 |
+| 修复内容 | 在 `getImportPreview` 中对缺失批次抛出稳定业务错误 `导入批次不存在`；新增回归测试覆盖 404 响应体 |
+| 运行命令 | `npm.cmd run test` 先失败复现；修复后 `npm.cmd run build`、`npm.cmd run check`、`npm.cmd run test` 通过；浏览器打开首页、设置页和导入入口通过；API 冒烟通过 |
+| 测试结果 | 新增测试后先红灯：实际错误为 `Cannot read properties of undefined (reading 'file_name')`；修复后 10 项 API 测试全部通过 |
+| 仍然存在的问题 | 真实 Note Station 导出解析仍需要用户提供脱敏样例；本次不猜真实格式、不新增导入功能 |
+| 下一步建议 | 后续若继续导入模块，优先在真实样例到位后补解析器测试；缺失资源类错误保持稳定业务文案 |
+
+### 本次 bug sweep 验收结果
+
+| 检查项 | 结果 |
+| --- | --- |
+| 首页记录数据 | 通过，`/api/app-data` 返回记录列表，浏览器首页可显示记录 |
+| 详情读取 | 通过，按新建记录 ID 可读取详情 |
+| 新建记录 | 通过，API 新建 `Bug sweep 冒烟记录` 成功 |
+| 新建后读取 | 通过，重新查询仍可读取该记录 |
+| 搜索 | 通过，关键词 `Bug sweep` 可找到新建记录 |
+| 分类筛选 | 通过，`category=family` 可找到新建记录 |
+| 成员筛选 | 通过，`member=dad` 可找到新建记录 |
+| 设置页 | 通过，Playwright 手机宽度打开设置页 |
+| 手动备份 | 通过，生成本地 `.db` 备份文件，运行数据未提交 |
+| JSON 导出 | 通过，生成本地 `.json` 导出文件，运行数据未提交 |
+| 导入页面 | 通过，设置页导入入口可打开；缺失导入批次返回稳定 404 JSON |
+| 移动端 UI | 本次非 UI 修复；手机宽度下首页和设置页基础冒烟通过，未改 V1 风格 |

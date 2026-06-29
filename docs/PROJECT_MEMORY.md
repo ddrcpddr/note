@@ -412,3 +412,12 @@ MVP 需要覆盖：
 - Skill 明确要求每次修 bug 按顺序执行：读取项目记忆和 QA 文档、检查 git 状态、复现问题、定位最小原因、小步修复、运行 `npm run build` / `npm run check` / `npm run test`、更新 QA 报告和项目记忆、输出修改文件清单，并使用 `Fix:` 开头的 commit message。
 - Skill 明确保持 V1 为唯一视觉参考，不调用 Product Design，不生成新 PNG，不重做 UI，不把页面改成后台管理风格。
 - Skill 明确禁止提交数据库、`data/` 运行数据、备份、导出、附件、真实导入文件、日志、密码、token 和真实 NAS 地址。
+
+### Bug sweep：Note Station 缺失导入批次错误收敛
+
+- 使用 `mvp-bugfix-qa` 项目专用 skill 执行 bug sweep，没有新增功能，没有调用 Product Design，没有改 UI 风格。
+- 真实发现的小 bug：请求不存在的 Note Station 导入批次时，`getImportPreview(importId)` 会读取空 `batch.file_name`，向前端返回内部 TypeError 文本。
+- 已先新增回归测试 `reports missing Note Station import preview with a stable error`，确认测试红灯后再修复。
+- 最小修复：`getImportPreview` 在缺失批次时抛出业务错误 `导入批次不存在`，路由继续返回 404 JSON。
+- 修复后 API 测试从 9 项扩展到 10 项，并通过；API 冒烟覆盖首页数据、新建、详情、搜索、分类筛选、成员筛选、设置存储状态、备份、JSON 导出、样例导入预览和缺失导入批次错误。
+- 本次仍不实现真实 Note Station 导出解析，不接真实 NAS，不提交运行数据。

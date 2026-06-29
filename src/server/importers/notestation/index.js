@@ -157,6 +157,10 @@ export function commitNotestationImport(importId, memberId = 'history') {
 export function getImportPreview(importId) {
   const db = getDb();
   const batch = db.prepare('SELECT * FROM imports WHERE id = ?').get(importId);
+  if (!batch) {
+    throw new Error('导入批次不存在');
+  }
+
   const failures = db
     .prepare(
       `SELECT id, original_title AS originalTitle, original_path AS originalPath, error_message AS errorMessage
