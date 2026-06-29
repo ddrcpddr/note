@@ -59,15 +59,38 @@ const categories = [
   { id: 'pet', name: '宠物', count: 28, update: '5月15日 17:20 更新', icon: PawPrint, tone: 'bg-green-50 text-green-700' },
   { id: 'work', name: '工作 / 杂事', count: 25, update: '5月14日 14:12 更新', icon: Briefcase, tone: 'bg-blue-50 text-blue-700' },
   { id: 'temporary', name: '临时记录', count: 19, update: '今天 09:15 更新', icon: FileText, tone: 'bg-purple-50 text-purple-600' },
-  { id: 'uncategorized', name: '未分类', count: 14, update: '5月12日 11:02 更新', icon: Inbox, tone: 'bg-neutral-100 text-neutral-600' }
+  { id: 'uncategorized', name: '未分类 / 待整理', count: 14, update: '5月12日 11:02 更新', icon: Inbox, tone: 'bg-neutral-100 text-neutral-600' }
 ];
 
+const memberToneClasses = [
+  'bg-teal-50 text-teal-700 border-teal-100',
+  'bg-rose-50 text-rose-600 border-rose-100',
+  'bg-amber-50 text-amber-600 border-amber-100',
+  'bg-blue-50 text-blue-600 border-blue-100',
+  'bg-green-50 text-green-700 border-green-100',
+  'bg-purple-50 text-purple-600 border-purple-100',
+  'bg-neutral-100 text-neutral-600 border-neutral-200'
+];
+
+const legacyMemberNames = {
+  dad: '我',
+  mom: '老婆',
+  elder: '父母',
+  history: '其他',
+  老人: '父母',
+  历史导入: '其他',
+  爸爸: '我',
+  妈妈: '老婆'
+};
+
 const fallbackMembers = [
-  { id: 'dad', name: '爸爸', avatar: '爸' },
-  { id: 'mom', name: '妈妈', avatar: '妈' },
-  { id: 'child', name: '孩子', avatar: '孩' },
-  { id: 'elder', name: '老人', avatar: '老' },
-  { id: 'history', name: '历史导入', avatar: '历' }
+  { id: 'self', name: '我', avatar: '我', colorClass: memberToneClasses[0], isCurrent: true },
+  { id: 'wife', name: '老婆', avatar: '伴', colorClass: memberToneClasses[1] },
+  { id: 'child', name: '孩子', avatar: '孩', colorClass: memberToneClasses[2] },
+  { id: 'parents', name: '父母', avatar: '父', colorClass: memberToneClasses[3] },
+  { id: 'elders', name: '老人 / 岳父母', avatar: '老', colorClass: memberToneClasses[4] },
+  { id: 'pet', name: '宠物', avatar: '宠', colorClass: memberToneClasses[5] },
+  { id: 'other', name: '其他', avatar: '其', colorClass: memberToneClasses[6] }
 ];
 
 const initialNotes = [
@@ -89,7 +112,7 @@ const initialNotes = [
       { label: '维修', tone: tagTones.repair }
     ],
     time: '今天 10:42',
-    member: '爸爸',
+    member: '我',
     attachmentCount: 2,
     status: '已保存到 NAS',
     source: '手动创建',
@@ -113,7 +136,7 @@ const initialNotes = [
       { label: '重要', tone: tagTones.important }
     ],
     time: '昨天 18:35',
-    member: '妈妈',
+    member: '老婆',
     attachmentCount: 1,
     status: '已保存到 NAS',
     source: '手动创建',
@@ -134,7 +157,7 @@ const initialNotes = [
     iconTone: 'bg-purple-50 text-purple-600',
     tags: [{ label: '待办', tone: tagTones.todo }],
     time: '昨天 09:21',
-    member: '历史导入',
+    member: '其他',
     attachmentCount: 3,
     status: '已保存到 NAS',
     source: 'Note Station 导入',
@@ -157,7 +180,7 @@ const recordTypes = [
 function App() {
   const [notesData, setNotesData] = useState(initialNotes);
   const [members, setMembers] = useState(fallbackMembers);
-  const [currentMemberId, setCurrentMemberId] = useState('dad');
+  const [currentMemberId, setCurrentMemberId] = useState('self');
   const [dataMode, setDataMode] = useState('mock');
   const [screen, setScreen] = useState('home');
   const [selectedId, setSelectedId] = useState('leak');
@@ -180,7 +203,7 @@ function App() {
         const data = await response.json();
         if (!isMounted) return;
 
-        const nextMembers = data.members?.length ? data.members.map(normalizeMember) : fallbackMembers;
+        const nextMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
         const nextNotes = data.notes?.length ? data.notes.map(normalizeNote) : initialNotes;
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
@@ -232,7 +255,8 @@ function App() {
     const category = findCategoryForType(draft.type);
     const body = draft.body.trim() || '刚刚新建的一条家庭记录，稍后可以继续补充细节。';
     const title = draft.title.trim() || body.slice(0, 24);
-    const currentMember = members.find((member) => member.id === currentMemberId) ?? members[0] ?? fallbackMembers[0];
+    const selectedMemberId = draft.memberId || currentMemberId;
+    const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
 
     if (dataMode === 'sqlite') {
       try {
@@ -337,7 +361,14 @@ function App() {
           members={members}
         />
       )}
-      {screen === 'new' && <NewRecordScreen onBack={() => navigate('home')} onSave={createMockNote} />}
+      {screen === 'new' && (
+        <NewRecordScreen
+          members={members}
+          currentMemberId={currentMemberId}
+          onBack={() => navigate('home')}
+          onSave={createMockNote}
+        />
+      )}
       {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} />}
       {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
       {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} />}
@@ -351,7 +382,7 @@ function App() {
               const existingIds = new Set(current.map((note) => note.id));
               return [...normalized.filter((note) => !existingIds.has(note.id)), ...current];
             });
-            showToast('Note Station 样例导入完成');
+            showToast('导入摘要已更新');
           }}
         />
       )}
@@ -361,6 +392,15 @@ function App() {
           currentMemberId={currentMemberId}
           onSwitchMember={switchCurrentMember}
           onOpenImport={() => navigate('import')}
+          onOpenMembers={() => navigate('members')}
+        />
+      )}
+      {screen === 'members' && (
+        <MemberManagementScreen
+          members={members}
+          currentMemberId={currentMemberId}
+          onBack={() => navigate('settings')}
+          onSwitchMember={switchCurrentMember}
         />
       )}
 
@@ -375,7 +415,7 @@ function App() {
         </button>
       )}
 
-      {!['detail', 'new', 'import'].includes(screen) && <BottomNav active={screen} onChange={navigate} />}
+      {!['detail', 'new', 'import', 'members'].includes(screen) && <BottomNav active={screen} onChange={navigate} />}
       {toast && (
         <div className="fixed bottom-[96px] left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#173f3b] px-5 py-3 text-[15px] font-medium text-white shadow-float">
           {toast}
@@ -394,11 +434,15 @@ function findTagTone(label) {
   return 'done';
 }
 
-function normalizeMember(member) {
+function normalizeMember(member, index = 0) {
+  const displayName = legacyMemberNames[member.id] || legacyMemberNames[member.name] || member.name || '家庭成员';
   return {
     id: member.id,
-    name: member.name,
-    avatar: member.avatar || member.name?.slice(0, 1) || '家',
+    name: displayName,
+    editableName: displayName,
+    originalName: member.name,
+    avatar: member.avatar || displayName.slice(0, 1) || '家',
+    colorClass: member.colorClass || memberToneClasses[index % memberToneClasses.length],
     isCurrent: Boolean(member.isCurrent)
   };
 }
@@ -414,7 +458,7 @@ function normalizeNote(note) {
     title: note.title,
     summary: note.summary || note.content?.slice(0, 42) || note.title,
     content: note.content || note.summary || note.title,
-    category: note.categoryName || category.name,
+    category: displayCategoryName(note.categoryName || category.name, category.id),
     categoryId: note.categoryId || category.id,
     categoryIcon: category.icon,
     categoryColor: 'text-teal-600',
@@ -422,8 +466,9 @@ function normalizeNote(note) {
     iconTone: category.tone,
     tags: tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
     time: formatShortTime(note.occurredAt || note.createdAt),
-    member: note.memberName || '爸爸',
+    member: displayMemberName(note.memberName || note.member || '我', note.memberId),
     memberId: note.memberId || 'dad',
+    memberAvatar: note.memberAvatar || displayMemberName(note.memberName || note.member || '我', note.memberId).slice(0, 1),
     attachmentCount: attachments.length,
     status: note.saveStatus === 'saved' ? '已保存到 NAS' : '保存中',
     source: sourceType === 'notestation_import' ? 'Note Station 导入' : '手动创建',
@@ -432,6 +477,15 @@ function normalizeNote(note) {
     updatedAt: formatShortTime(note.updatedAt),
     attachments: attachments.map((attachment) => attachment.originalName || attachment.fileName || attachment)
   };
+}
+
+function displayMemberName(name, memberId) {
+  return legacyMemberNames[memberId] || legacyMemberNames[name] || name || '我';
+}
+
+function displayCategoryName(name, categoryId) {
+  if (categoryId === 'uncategorized' || name === '未分类') return '未分类 / 待整理';
+  return name;
 }
 
 function formatShortTime(value) {
@@ -456,7 +510,7 @@ function findCategoryForType(type) {
   return categories.find((item) => item.name === type) ?? categories[0];
 }
 
-function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', query = '', tag = 'all' }) {
+function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', query = '', tag = 'all', source = 'all' }) {
   const keyword = query.trim().toLowerCase();
   const categoryItem = categories.find((item) => item.id === category);
 
@@ -474,14 +528,15 @@ function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', 
       note.category === category ||
       (categoryItem && tags.some((tagLabel) => categoryItem.name.includes(tagLabel)));
     const matchesTag = tag === 'all' || tags.includes(tag);
+    const matchesSource = source === 'all' || note.sourceType === source;
     const matchesQuery =
       !keyword ||
-      [note.title, note.summary, note.content, note.category, note.member, ...tags]
+      [note.title, note.summary, note.content, note.category, note.member, note.source, ...tags]
         .join(' ')
         .toLowerCase()
         .includes(keyword);
 
-    return matchesQuick && matchesMember && matchesCategory && matchesTag && matchesQuery;
+    return matchesQuick && matchesMember && matchesCategory && matchesTag && matchesSource && matchesQuery;
   });
 }
 
@@ -522,12 +577,14 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
   );
 }
 
-function NewRecordScreen({ onBack, onSave }) {
+function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [type, setType] = useState('家庭事务');
   const [tags, setTags] = useState(['待办', '重要']);
   const [hasAttachment, setHasAttachment] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState(currentMemberId);
+  const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
   const tagOptions = ['待办', '重要', '维修', '购物', '账单'];
 
   function toggleTag(label) {
@@ -535,7 +592,7 @@ function NewRecordScreen({ onBack, onSave }) {
   }
 
   function save() {
-    onSave({ title, body, type, tags: tags.length ? tags : ['待办'], hasAttachment });
+    onSave({ title, body, type, memberId: currentMember.id, tags: tags.length ? tags : ['待办'], hasAttachment });
   }
 
   return (
@@ -561,6 +618,29 @@ function NewRecordScreen({ onBack, onSave }) {
           />
         </div>
         <div className="mt-4 text-right text-[16px] text-muted">{body.length}/1000</div>
+      </section>
+      <SectionTitle>当前成员</SectionTitle>
+      <section className="soft-card p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[19px] font-semibold">这条记录由 {currentMember.name} 创建</p>
+            <p className="mt-1 text-[14px] leading-relaxed text-muted">保存前可以临时切换成员，不影响家庭成员设置。</p>
+          </div>
+          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-full border text-[17px] font-semibold ${currentMember.colorClass}`}>{currentMember.avatar}</span>
+        </div>
+        <div className="scroll-row mt-4 flex gap-2 pb-1">
+          {members.map((member) => (
+            <button
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[14px] ${selectedMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
+              key={member.id}
+              type="button"
+              onClick={() => setSelectedMemberId(member.id)}
+            >
+              <span className="grid h-6 w-6 place-items-center rounded-full bg-white/70 text-[12px]">{member.avatar}</span>
+              {member.name}
+            </button>
+          ))}
+        </div>
       </section>
       <SectionTitle>记录类型</SectionTitle>
       <section className="grid grid-cols-2 gap-3">
@@ -622,12 +702,14 @@ function SearchScreen({ notes, members, onOpenDetail }) {
   const [tag, setTag] = useState('待办');
   const [member, setMember] = useState('all');
   const [range, setRange] = useState('全部时间');
-  const results = filterNotes(notes, { query, category, tag, member });
+  const [source, setSource] = useState('all');
+  const results = filterNotes(notes, { query, category, tag, member, source });
   const clearFilters = () => {
     setQuery('');
     setCategory('all');
     setTag('all');
     setMember('all');
+    setSource('all');
     setRange('全部时间');
   };
 
@@ -662,6 +744,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
         <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
         <FilterRow title="标签" options={['all', '待办', '重要', '维修', '购物']} labels={{ all: '全部' }} active={tag} onChange={setTag} />
         <FilterRow title="成员" options={['all', ...members.map((item) => item.name)]} labels={{ all: '全部成员' }} active={member} onChange={setMember} />
+        <FilterRow title="来源" options={['all', 'manual', 'notestation_import']} labels={{ all: '全部', manual: '手动创建', notestation_import: 'Note Station 导入' }} active={source} onChange={setSource} />
         <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active={range} onChange={setRange} />
       </section>
       <SectionHeader
@@ -735,10 +818,10 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const steps = [
-    ['1', '上传导出文件'],
-    ['2', '解析预览'],
-    ['3', '确认导入'],
-    ['4', '导入完成']
+    ['1', '选择 .nsx'],
+    ['2', 'dry-run 预览'],
+    ['3', '备份确认'],
+    ['4', '完成报告']
   ];
   const canPreview = stage >= 2;
 
@@ -811,12 +894,12 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[22px] font-bold">{canPreview ? preview?.fileName || 'notestation_sample.json' : '等待选择导出文件'}</h2>
-            <p className="mt-1 text-[16px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '模拟上传，不读取真实文件'}</p>
+            <h2 className="truncate text-[22px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 导出文件'}</h2>
+            <p className="mt-1 text-[16px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '支持真实 .nsx 识别，先预览再写入'}</p>
           </div>
         </div>
         <span className="mt-4 inline-flex items-center gap-2 text-[17px] font-medium text-teal-600">
-          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 点击下方按钮选择文件</>}
+          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 从 dry-run 预览开始</>}
         </span>
       </section>
       {error && (
@@ -842,7 +925,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
               ))}
             </div>
             <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[16px] text-teal-700">
-              <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>{stage === 4 ? '导入已模拟完成，原始来源信息会被保留。' : '导入前不会修改现有记录，可先预览再确认'}</span>
+              <ShieldCheck className="mt-0.5 shrink-0" size={21} /> <span>{stage === 4 ? '导入完成后可查看摘要；失败项会保留，不会静默丢失。' : '流程已支持 dry-run、sandbox、正式导入前自动备份'}</span>
             </div>
           </section>
           <section className="soft-card mt-4 p-5">
@@ -883,7 +966,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
                 <span className="chip" key={label}>{label}</span>
               ))}
             </div>
-            <p className="mt-4 text-[15px] text-muted">分类将自动合并到现有同名分类中，不会创建重复分类。</p>
+            <p className="mt-4 text-[15px] text-muted">无法准确映射的记录会先放入未分类 / 待整理，并保留原始路径方便之后整理。</p>
           </section>
         </>
       )}
@@ -892,7 +975,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           {canPreview ? '重新选择文件' : '取消'}
         </button>
         <button className="rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
-          {stage === 1 ? '选择文件' : stage === 2 ? '确认导入' : stage === 3 ? '开始导入' : '已完成'}
+          {stage === 1 ? '开始预览' : stage === 2 ? '确认前检查' : stage === 3 ? '查看导入报告' : '已完成'}
         </button>
       </div>
     </>
@@ -967,7 +1050,76 @@ function DetailScreen({ note, onBack }) {
   );
 }
 
-function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport }) {
+function formatStoragePath(value, fallback) {
+  if (!value) return fallback;
+  const normalized = String(value).replace(/\\/g, '/');
+  const dataIndex = normalized.lastIndexOf('/data/');
+  if (dataIndex >= 0) return normalized.slice(dataIndex + 1);
+  if (normalized.startsWith('data/')) return normalized;
+  return fallback;
+}
+
+function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMember }) {
+  return (
+    <>
+      <TopBar title="成员管理" onBack={onBack} />
+      <section className="soft-card mt-7 p-5">
+        <div className="flex items-start gap-4">
+          <div className="circle-icon bg-teal-50 text-teal-600"><UserRound size={34} /></div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[26px] font-bold leading-tight">家庭成员身份</h1>
+            <p className="mt-2 text-[16px] leading-relaxed text-muted">成员名、头像和颜色都会作为可自定义信息保留；当前版本先支持切换当前成员。</p>
+          </div>
+        </div>
+      </section>
+      <SectionTitle>当前成员</SectionTitle>
+      <section className="soft-card p-4">
+        {members.filter((member) => member.id === currentMemberId).map((member) => (
+          <div className="flex items-center gap-4" key={member.id}>
+            <span className={`grid h-16 w-16 shrink-0 place-items-center rounded-full border text-[22px] font-semibold ${member.colorClass}`}>{member.avatar}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[22px] font-bold">{member.name}</p>
+              <p className="mt-1 text-[15px] text-muted">新建记录会默认归到这个成员名下</p>
+            </div>
+            <CheckCircle2 className="shrink-0 text-teal-600" size={26} />
+          </div>
+        ))}
+      </section>
+      <SectionTitle>家庭成员列表</SectionTitle>
+      <section className="space-y-3">
+        {members.map((member) => {
+          const isCurrent = member.id === currentMemberId;
+          return (
+            <article className="soft-card p-4" key={member.id}>
+              <div className="flex items-center gap-4">
+                <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full border text-[18px] font-semibold ${member.colorClass}`}>{member.avatar}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h2 className="truncate text-[20px] font-bold">{member.name}</h2>
+                    {isCurrent && <span className="tag bg-teal-50 text-teal-600">当前</span>}
+                  </div>
+                  <p className="mt-1 text-[14px] leading-relaxed text-muted">可改名、换头像、换颜色；这些入口先作为编辑能力占位。</p>
+                </div>
+                <button className="shrink-0 text-teal-600" type="button" onClick={() => onSwitchMember(member.id)} aria-label={`切换到${member.name}`}>
+                  {isCurrent ? <CheckCircle2 size={25} /> : <ChevronRight size={24} />}
+                </button>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button">改名</button>
+                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button">头像</button>
+                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button">颜色</button>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+      <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-4 text-[15px] leading-relaxed text-muted">
+        后续可以在这里添加新的家庭成员，或把不常用成员归档；V1 不做复杂权限和危险删除。
+      </section>
+    </>
+  );
+}
+function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport, onOpenMembers }) {
   const [nasOnline, setNasOnline] = useState(true);
   const [lastBackup, setLastBackup] = useState('今天 09:30');
   const [backupState, setBackupState] = useState('idle');
@@ -1021,7 +1173,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       setStorageStatus(data);
       setLastBackup('刚刚');
       setBackupState('done');
-      setStorageMessage(`备份已保存：${data.backup.filePath}`);
+      setStorageMessage('备份完成，数据库已经复制到 data/backups/。');
     } catch {
       setBackupState('failed');
       setStorageMessage('备份没有完成，请确认数据目录存在且可以写入。');
@@ -1033,7 +1185,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       const response = await fetch('/api/storage/export-json', { method: 'POST' });
       if (!response.ok) throw new Error('export failed');
       const data = await response.json();
-      setStorageMessage(`JSON 已导出：${data.export.filePath}`);
+      setStorageMessage('导出完成，JSON 文件已保存到 data/exports/。');
     } catch {
       setStorageMessage('JSON 没有导出成功，请确认服务端正在运行后再试。');
     }
@@ -1066,19 +1218,23 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         <div className="mt-4 grid grid-cols-2 gap-3">
           {members.map((member) => (
             <button
-              className={`rounded-2xl border px-4 py-3 text-left ${currentMemberId === member.id ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}
+              className={`rounded-2xl border px-4 py-3 text-left ${currentMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
               key={member.id}
               type="button"
               onClick={() => onSwitchMember(member.id)}
             >
               <span className="inline-flex items-center gap-2 text-[17px] font-medium">
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-teal-100 text-[13px] text-teal-700">{member.avatar}</span>
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-white/70 text-[13px]">{member.avatar}</span>
                 {member.name}
               </span>
             </button>
           ))}
         </div>
-        <p className="mt-4 text-[14px] leading-relaxed text-muted">MVP 阶段所有家庭成员默认可以查看全部记录，私密记录只预留字段，暂不启用复杂权限。</p>
+        <p className="mt-4 text-[14px] leading-relaxed text-muted">成员名称、头像和颜色按可自定义体系展示；MVP 暂不启用复杂权限。</p>
+        <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[17px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
+          成员管理
+          <ChevronRight size={19} />
+        </button>
       </section>
       <SectionTitle>NAS 存储与备份</SectionTitle>
       <section className="soft-card p-5">
@@ -1124,13 +1280,13 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       </section>
       <SectionTitle>附件目录</SectionTitle>
       <section className="soft-card">
-        <SettingsRow title="附件目录" desc={storageStatus?.dataPaths?.attachmentsDir || 'data/attachments/'} icon={Folder} action=">" />
+        <SettingsRow title="附件目录" desc={formatStoragePath(storageStatus?.dataPaths?.attachmentsDir, 'data/attachments/')} icon={Folder} action=">" />
       </section>
       <SectionTitle>数据库位置</SectionTitle>
       <section className="soft-card divide-y divide-line">
-        <SettingsRow title="数据库位置" desc={storageStatus?.dataPaths?.dbPath || 'data/database/app.db'} icon={Database} action=">" />
-        <SettingsRow title="备份目录" desc={storageStatus?.dataPaths?.backupsDir || 'data/backups/'} icon={Database} action=">" />
-        <SettingsRow title="导出目录" desc={storageStatus?.dataPaths?.exportsDir || 'data/exports/'} icon={Folder} action=">" />
+        <SettingsRow title="数据库位置" desc={formatStoragePath(storageStatus?.dataPaths?.dbPath, 'data/database/app.db')} icon={Database} action=">" />
+        <SettingsRow title="备份目录" desc={formatStoragePath(storageStatus?.dataPaths?.backupsDir, 'data/backups/')} icon={Database} action=">" />
+        <SettingsRow title="导出目录" desc={formatStoragePath(storageStatus?.dataPaths?.exportsDir, 'data/exports/')} icon={Folder} action=">" />
         <SettingsRow title="导入 Note Station" desc="导入旧记录并保留来源信息" icon={FileText} action=">" onClick={onOpenImport} />
       </section>
       <div className="mt-6 rounded-2xl border border-orange-200 bg-amber-50 px-4 py-3 text-[15px] leading-relaxed text-[#a35b00]">
@@ -1174,7 +1330,7 @@ function QuickFilters({ active, onChange }) {
 }
 
 function MemberFilters({ members, active, onChange }) {
-  const options = [{ key: 'all', label: '全部成员', avatar: '全' }, ...members.map((member) => ({ key: member.name, label: member.name, avatar: member.avatar }))];
+  const options = [{ key: 'all', label: '全部成员', avatar: '全', colorClass: 'border-line bg-white text-muted' }, ...members.map((member) => ({ key: member.name, label: member.name, avatar: member.avatar, colorClass: member.colorClass }))];
 
   return (
     <section className="scroll-row mt-4 flex gap-2 pb-1">
@@ -1184,10 +1340,10 @@ function MemberFilters({ members, active, onChange }) {
           type="button"
           onClick={() => onChange(member.key)}
           className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-[14px] ${
-            active === member.key ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'
+            active === member.key ? member.colorClass : 'border-line bg-white text-muted'
           }`}
         >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-teal-100 text-[12px] text-teal-700">{member.avatar || member.label.slice(0, 1)}</span>
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-white/70 text-[12px]">{member.avatar || member.label.slice(0, 1)}</span>
           {member.label}
         </button>
       ))}
@@ -1253,7 +1409,7 @@ function RecordCard({ note, onClick }) {
               <span className="inline-flex items-center gap-1.5"><Paperclip size={17} /> {note.attachmentCount}</span>
             </div>
             <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-3">
-              <span className="inline-flex items-center gap-1.5"><UserRound size={16} /> {note.member}</span>
+              <span className="inline-flex min-w-0 items-center gap-1.5"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-teal-50 text-[12px] font-medium text-teal-700">{note.memberAvatar}</span><span className="truncate">{note.member}</span></span>
               <span className="inline-flex min-w-0 items-center justify-end gap-1.5 text-teal-600"><CheckCircle2 className="shrink-0" size={16} /> <span className="truncate">{note.status}</span></span>
             </div>
           </div>
