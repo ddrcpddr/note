@@ -74,7 +74,8 @@ describe('Note Station NSX dry-run parser', () => {
       const notebookId = '1026_NOTEBOOK000000000000000000';
       const firstNoteId = '1026_NOTE000000000000000000001';
       const secondNoteId = '1026_NOTE000000000000000000002';
-      const attachmentId = 'file_1234567890abcdef';
+      const attachmentHash = '1234567890abcdef';
+  const attachmentId = 'file_' + attachmentHash;
 
       const zip = createStoredZip([
         {
@@ -95,7 +96,15 @@ describe('Note Station NSX dry-run parser', () => {
             mtime: '2026-01-02T09:30:00Z',
             parent_id: notebookId,
             tag: ['账单'],
-            attachment: [{ id: attachmentId, name: 'invoice.png' }],
+            attachment: {
+          _attachmentKey: {
+            ext: 'png',
+            md5: attachmentHash,
+            name: 'invoice.png',
+            size: 14,
+            type: 'image'
+          }
+        },
             thumb: null
           })
         },
@@ -216,7 +225,8 @@ describe('Note Station formal import preparation', () => {
 function createImportableNsx() {
   const notebookId = '1026_NOTEBOOK000000000000000000';
   const noteId = '1026_NOTE000000000000000000001';
-  const attachmentId = 'file_1234567890abcdef';
+  const attachmentHash = '1234567890abcdef';
+  const attachmentId = 'file_' + attachmentHash;
 
   return createStoredZip([
     {
@@ -236,7 +246,15 @@ function createImportableNsx() {
         ctime: '2026-01-02T09:00:00Z',
         mtime: '2026-01-02T09:30:00Z',
         parent_id: notebookId,
-        attachment: [{ id: attachmentId, name: 'invoice.png' }]
+        attachment: {
+          _attachmentKey: {
+            ext: 'png',
+            md5: attachmentHash,
+            name: 'invoice.png',
+            size: 14,
+            type: 'image'
+          }
+        }
       })
     },
     { name: attachmentId, data: Buffer.from('invoice-binary') }

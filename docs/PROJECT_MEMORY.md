@@ -452,3 +452,15 @@ MVP 需要覆盖：
 - 附件正式导入时复制到 `data/attachments/notestation/<importId>/<noteId>/`，数据库只保存附件元数据和相对路径；附件失败会进入 `import_failures`，不影响笔记记录本身导入。
 - 新增自动化测试覆盖：无 `--confirm` 不创建 DB；有 `--confirm` 时在临时测试库中备份、导入、复制附件、保留原始正文。
 - 已对真实 `.nsx` 执行无确认预检：93 条记录、93 条可导入、0 失败、4 个附件引用、4 个原始分类、0 标签；正式数据库未写入。
+
+### Note Station 正式导入完成
+
+- 用户确认 dry-run、sandbox 和正式导入前检查结果后，已允许执行正式导入。
+- 首次正式导入触发自动备份，但发现真实附件结构解析不足：Note Station 附件是 `{key: { md5, name, ext, size... }}` map，旧解析降级为 `attachment-1`，导致附件复制失败。
+- 已用首次正式导入前备份恢复 `data/database/app.db`，避免正式库留下重复导入记录；随后修复附件解析并重新执行正式导入。
+- 新增/更新测试覆盖附件 map 结构，确认正式导入会从 `.nsx` 内 `file_<md5>` 复制附件。
+- 最终正式导入批次：`import_nsx_formal_mqysc6bn_h0ypw4`。
+- 正式库记录数从 18 增至 111；本次导入 93 条记录、0 条失败、20 条附件元数据、20 个附件复制成功、0 个附件复制失败。
+- 本次导入所有记录仍先落入 `uncategorized`，原始分类/笔记本路径保留在 `originalCategory`、`originalPath` 和 metadata 中。
+- 已验证首页、搜索、分类筛选、详情字段、附件路径、手动备份、JSON 导出、`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
+- `.nsx`、dry-run JSON、正式数据库、备份、附件和导出文件仍在 `.gitignore` 保护范围内，不提交 GitHub。

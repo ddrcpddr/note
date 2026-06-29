@@ -275,19 +275,33 @@ function normalizeAttachments(attachment) {
   const items = [];
   const values = [];
   if (Array.isArray(attachment)) values.push(...attachment);
+  else if (attachment && typeof attachment === 'object' && !hasDirectAttachmentFields(attachment)) values.push(...Object.values(attachment));
   else if (attachment) values.push(attachment);
 
   for (const [index, value] of values.entries()) {
     if (typeof value === 'string') {
       items.push({ id: value, fileName: value, originalName: value });
     } else if (value && typeof value === 'object') {
-      const id = normalizeText(value.id || value.file_id || value.filename || value.name || value.path || `attachment-${index + 1}`);
+      const md5 = normalizeText(value.md5);
+      const id = normalizeText(value.id || value.file_id || value.path || (md5 ? `file_${md5}` : '') || value.filename || value.name || `attachment-${index + 1}`);
       const originalName = normalizeText(value.name || value.filename || value.title || id);
-      items.push({ id, fileName: id, originalName });
+      items.push({
+        id,
+        fileName: originalName,
+        originalName,
+        originalSize: typeof value.size === 'number' ? value.size : null,
+        originalType: normalizeText(value.type) || null,
+        originalExt: normalizeText(value.ext) || null,
+        thumb: normalizeText(value.thumb) || null
+      });
     }
   }
 
   return items;
+}
+
+function hasDirectAttachmentFields(value) {
+  return ['id', 'file_id', 'filename', 'name', 'path', 'md5'].some((key) => Object.prototype.hasOwnProperty.call(value, key));
 }
 
 function resolveNotebookTitle(notebooks, parentId) {

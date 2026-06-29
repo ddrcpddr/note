@@ -227,3 +227,60 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 
 - 本阶段没有对正式 `data/database/app.db` 执行 `--confirm`。
 - `.nsx`、dry-run JSON、sandbox DB、正式 DB、备份和附件均在 `.gitignore` 保护范围内，不允许提交。
+
+## 正式导入执行结果（2026-06-29 13:42:52 +08:00）
+
+用户确认 dry-run、sandbox 导入和正式导入前检查后，已执行正式导入。
+
+### 执行命令
+
+```bash
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx --confirm
+```
+
+### 导入保护
+
+- 执行前自动备份正式数据库。
+- 最终成功导入前备份文件：`data/backups/app-before-notestation-import-2026-06-29T05-36-38-145Z.db`。
+- 若需要回滚：停止服务，用上述备份文件替换 `data/database/app.db`，再重启服务。
+- 备份文件属于运行数据，已被 `.gitignore` 忽略，不提交 GitHub。
+
+### 正式导入结果
+
+| 项目 | 结果 |
+| --- | ---: |
+| 导入批次 | `import_nsx_formal_mqysc6bn_h0ypw4` |
+| 导入前正式库记录数 | 18 |
+| 导入后正式库记录数 | 111 |
+| 本次导入记录数 | 93 |
+| 失败记录数 | 0 |
+| 附件元数据数 | 20 |
+| 附件复制成功数 | 20 |
+| 附件复制失败数 | 0 |
+| 原始分类/笔记本数量 | 4 |
+| 标签数量 | 0 |
+
+### 附件解析修正
+
+首次正式导入时发现真实 NSX 附件字段不是简单数组，而是 `{key: { md5, name, ext, size... }}` map 结构。旧解析会把每条带附件记录降级成 `attachment-1`，导致附件复制失败。
+
+处理过程：
+
+1. 使用首次正式导入前自动备份恢复 `data/database/app.db`，避免重复导入记录。
+2. 修复 `normalizeAttachments`，将附件对象的 `md5` 映射到归档内 `file_<md5>` 条目。
+3. 新增测试覆盖真实附件 map 结构。
+4. 重新执行正式导入，20 个附件引用全部复制成功。
+
+### 验收结果
+
+- 首页 app-data 可看到本次正式导入记录。
+- 搜索可找到本次正式导入样本记录。
+- `uncategorized` 分类可筛出本次正式导入记录。
+- 详情 API 可读取标题、纯文本正文、来源、原始路径、原始分类、原始创建/更新时间和附件元数据。
+- 附件相对路径对应的文件存在于 `data/attachments/` 下。
+- 设置页相关 API：手动备份和 JSON 导出通过。
+- `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
+
+### 安全说明
+
+本次不提交 `.nsx`、dry-run JSON、sandbox DB、正式 DB、备份文件、附件文件、导出文件或任何真实笔记正文。
