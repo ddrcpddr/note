@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Default avatar self</title>
+  <desc id="desc">Abstract friendly circular avatar with green accent.</desc>
+  <circle cx="256" cy="256" r="240" fill="#EAF6F2"/>
+  <circle cx="256" cy="238" r="112" fill="#FFFFFF"/>
+  <path d="M170 230c25-58 75-82 128-66 38 12 63 39 76 78" fill="none" stroke="#0F8F80" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="218" cy="240" r="12" fill="#087267"/>
+  <circle cx="294" cy="240" r="12" fill="#087267"/>
+  <path d="M222 294c24 22 56 22 78 0" fill="none" stroke="#087267" stroke-width="16" stroke-linecap="round"/>
+  <path d="M340 140c26-34 64-42 88-24-2 38-27 65-68 72" fill="#F5C36A"/>
+  <path d="M336 150c38-2 66-18 88-34" fill="none" stroke="#D17800" stroke-width="10" stroke-linecap="round"/>
+</svg>

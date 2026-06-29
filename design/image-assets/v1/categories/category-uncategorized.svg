@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category uncategorized</title>
+  <desc id="desc">Rounded tray with neutral dot icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#F3F4F1"/>
+  <path d="M72 88h112l18 88a18 18 0 0 1-18 22H72a18 18 0 0 1-18-22z" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M82 152h32c6 16 22 24 44 0h16" fill="none" stroke="#087267" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="128" cy="116" r="10" fill="#D17800"/>
+</svg>

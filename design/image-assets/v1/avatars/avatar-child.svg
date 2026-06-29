@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Default avatar child</title>
+  <desc id="desc">Abstract friendly child avatar with star accent.</desc>
+  <circle cx="256" cy="256" r="240" fill="#F7F2FF"/>
+  <circle cx="256" cy="244" r="106" fill="#FFFFFF"/>
+  <path d="M178 216c22-52 75-72 128-48 24 11 43 29 56 54" fill="none" stroke="#0F8F80" stroke-width="18" stroke-linecap="round"/>
+  <path d="M206 178l28 28 32-34 34 38 30-28" fill="none" stroke="#7D63B8" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="220" cy="250" r="11" fill="#087267"/>
+  <circle cx="292" cy="250" r="11" fill="#087267"/>
+  <path d="M226 300c22 20 50 20 70 0" fill="none" stroke="#087267" stroke-width="15" stroke-linecap="round"/>
+  <path d="M380 146l13 27 29 4-21 21 5 29-26-14-26 14 5-29-21-21 29-4z" fill="#F5C36A"/>
+</svg>

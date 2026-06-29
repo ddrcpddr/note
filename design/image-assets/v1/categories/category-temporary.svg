@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category temporary notes</title>
+  <desc id="desc">Rounded sticky note and clock icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#FFF2E2"/>
+  <path d="M76 66h100v86l-38 38H76z" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M138 190v-38h38" fill="none" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="162" cy="92" r="24" fill="#EAF6F2" stroke="#D17800" stroke-width="10"/>
+  <path d="M162 80v14l10 8" stroke="#D17800" stroke-width="8" stroke-linecap="round"/>
+</svg>

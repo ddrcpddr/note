@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category child education</title>
+  <desc id="desc">Rounded open book and star icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#F7F2FF"/>
+  <path d="M68 82h48c18 0 28 10 28 28v82H96c-16 0-28-10-28-26zM144 110c0-18 10-28 28-28h16v110h-44z" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M188 76l8 16 18 3-13 12 3 18-16-9-16 9 3-18-13-12 18-3z" fill="#F5C36A"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category house equipment</title>
+  <desc id="desc">Rounded house and equipment icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#EAF6F2"/>
+  <path d="M66 118l62-50 62 50v58a16 16 0 0 1-16 16H82a16 16 0 0 1-16-16z" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <rect x="100" y="132" width="56" height="42" rx="12" fill="#E8F1FA" stroke="#2B76B7" stroke-width="10"/>
+  <path d="M112 153h32" stroke="#2B76B7" stroke-width="8" stroke-linecap="round"/>
+</svg>

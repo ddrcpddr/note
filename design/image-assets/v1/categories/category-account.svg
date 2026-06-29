@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category documents accounts</title>
+  <desc id="desc">Rounded card and key icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#F7F2FF"/>
+  <rect x="64" y="76" width="128" height="96" rx="18" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12"/>
+  <path d="M92 112h44M92 140h28" stroke="#7D63B8" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="158" cy="138" r="14" fill="none" stroke="#D17800" stroke-width="10"/>
+  <path d="M172 138h24m-8 0v14" stroke="#D17800" stroke-width="10" stroke-linecap="round"/>
+</svg>

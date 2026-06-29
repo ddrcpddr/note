@@ -198,3 +198,25 @@ Final closeout decision for this round:
 - These two files are image2 visual style references only. They are not final frontend-ready individual avatar files or individual category icon files.
 - Do not split, regenerate, or replace these icon sets in this closeout round.
 - After the Figma prototype pages, actual display sizes, and usage surfaces are confirmed, generate the final individual avatar files and individual category icon files using this accepted style.
+
+## 8. Actual V1 Asset Directory Registered
+
+The image2-generated V1 asset directory is now confirmed:
+
+```text
+design/image-assets/v1/
+```
+
+Registered subfolders:
+
+- `avatars/`: individual default member avatar SVG files.
+- `categories/`: individual category icon SVG files.
+- `illustrations/`: app icon source and state illustration PNG files.
+- `image2-previews/`: composite image2 preview boards for style reference only.
+
+Current guidance:
+
+- Use `docs/IMAGE_ASSET_MANIFEST.md` as the source of truth for filenames, paths, usage, frontend readiness, Figma readiness, and follow-up work.
+- `image2-previews/` files are not final frontend assets; they are style boards.
+- Future generation should focus only on missing companion assets, variants, optimization, or regenerated pieces after user review.
+- Do not regenerate existing assets unless the user asks for a style change or quality revision.

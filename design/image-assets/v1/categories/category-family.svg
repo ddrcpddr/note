@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category family tasks</title>
+  <desc id="desc">Rounded home checklist icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#EAF6F2"/>
+  <path d="M70 122l58-48 58 48v58a14 14 0 0 1-14 14H84a14 14 0 0 1-14-14z" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M108 144l15 15 30-34" fill="none" stroke="#D17800" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

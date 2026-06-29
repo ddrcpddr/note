@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Default avatar parents</title>
+  <desc id="desc">Two abstract friendly circular avatars for parents.</desc>
+  <circle cx="256" cy="256" r="240" fill="#EAF6F2"/>
+  <circle cx="206" cy="238" r="86" fill="#FFFFFF"/>
+  <circle cx="312" cy="238" r="86" fill="#FFFFFF"/>
+  <path d="M146 222c18-44 58-62 100-44" fill="none" stroke="#0F8F80" stroke-width="16" stroke-linecap="round"/>
+  <path d="M254 224c18-46 62-64 106-42" fill="none" stroke="#087267" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="184" cy="246" r="9" fill="#087267"/>
+  <circle cx="230" cy="246" r="9" fill="#087267"/>
+  <circle cx="292" cy="246" r="9" fill="#087267"/>
+  <circle cx="338" cy="246" r="9" fill="#087267"/>
+  <path d="M186 286c16 14 34 14 50 0M294 286c16 14 34 14 50 0" fill="none" stroke="#087267" stroke-width="12" stroke-linecap="round"/>
+  <path d="M168 350c44-34 118-34 164 0M252 350c34-24 82-24 116 0" fill="none" stroke="#D17800" stroke-width="14" stroke-linecap="round"/>
+</svg>

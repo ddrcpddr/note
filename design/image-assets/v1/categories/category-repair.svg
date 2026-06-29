@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category repair</title>
+  <desc id="desc">Rounded repair tool icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#FFF2E2"/>
+  <path d="M92 72a46 46 0 0 0 54 58l46 46a18 18 0 0 1-25 25l-46-46a46 46 0 0 0-58-54l29 29 27-27z" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="178" cy="188" r="8" fill="#D17800"/>
+</svg>

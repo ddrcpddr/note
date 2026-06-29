@@ -44,6 +44,17 @@ Member system:
 - Member management page must support rename, avatar change, color change, and current member switching.
 - Home, Search, New Record, Detail, and Settings must all use this member system consistently.
 
+
+Image asset directory:
+
+- image2 visual assets are already available in `design/image-assets/v1/`.
+- Read `docs/IMAGE_ASSET_MANIFEST.md` before placing image assets.
+- Figma prototypes may reference assets from this directory.
+- `design/image-assets/v1/illustrations/` contains larger illustrations for empty states, import success, backup success/failure, and app identity.
+- `design/image-assets/v1/avatars/` contains default avatar assets for member management, member chips, and creator display.
+- `design/image-assets/v1/categories/` contains category icons for category pages, category filters, and record cards.
+- `design/image-assets/v1/image2-previews/` contains composite image2 preview boards; use them only as style reference, not as final single-file assets.
+- Do not use these images to replace editable Figma components or full-page UI structure.
 Required Figma output:
 
 1. Mobile page frames for 390px and key 430px checks.
@@ -65,3 +76,4 @@ Before using the prompt, confirm:
 - Whether only mobile screens are needed or tablet reference frames are also needed.
 - Whether member customization should be designed as a full page, modal, or bottom sheet.
 - Whether image placeholders should be blank slots or linked to future image2 asset names.
+

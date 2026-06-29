@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Category work miscellaneous</title>
+  <desc id="desc">Rounded briefcase and small note icon.</desc>
+  <rect x="24" y="24" width="208" height="208" rx="54" fill="#E8F1FA"/>
+  <rect x="66" y="94" width="124" height="88" rx="18" fill="#FFFFFF" stroke="#0F8F80" stroke-width="12"/>
+  <path d="M104 94V80h48v14M66 126h124" stroke="#087267" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="128" cy="126" r="9" fill="#2B76B7"/>
+</svg>

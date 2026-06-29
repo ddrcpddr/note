@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Default avatar pet</title>
+  <desc id="desc">Abstract friendly pet avatar with rounded face.</desc>
+  <circle cx="256" cy="256" r="240" fill="#FFF2E2"/>
+  <path d="M174 204c-26-42-20-78 18-102 36 18 52 52 42 100M278 202c-8-48 8-82 44-100 38 24 44 62 18 104" fill="#FFFFFF" stroke="#0F8F80" stroke-width="16" stroke-linejoin="round"/>
+  <circle cx="256" cy="266" r="104" fill="#FFFFFF"/>
+  <circle cx="218" cy="260" r="12" fill="#087267"/>
+  <circle cx="294" cy="260" r="12" fill="#087267"/>
+  <path d="M250 288h14l-7 10z" fill="#D17800"/>
+  <path d="M238 318c12 12 26 12 38 0M257 298v18" fill="none" stroke="#087267" stroke-width="12" stroke-linecap="round"/>
+</svg>
