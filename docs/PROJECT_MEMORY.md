@@ -503,3 +503,11 @@ MVP 需要覆盖：
 - Figma 交接规则已更新：Figma Agent 可以引用 `design/image-assets/v1/` 中的素材，但页面结构、组件系统和点击流仍应保持可编辑；`image2-previews/` 只作为风格参考，不作为最终单文件素材。
 - `illustrations/` 可用于空状态、搜索无结果、导入成功、备份成功/失败等页面；`avatars/` 用于成员管理和创建人显示；`categories/` 用于分类页、分类筛选和记录卡片。
 - 本阶段未移动或删除素材文件，未修改业务逻辑，未提交真实 Note Station 数据、数据库、备份、导出或附件运行数据。
+
+### Figma 线程补充 image2 图标尺寸要求（2026-06-29）
+
+- 后续最终生成家庭成员头像时，沿用 `design/image-assets/v1/image2-previews/avatar-set-image2-preview.png` 的视觉方向；每个独立头像源尺寸为 `512 x 512 px`，优先 PNG，路径为 `design/image-assets/v1/avatars/`。
+- 后续最终生成默认分类图标时，沿用 `design/image-assets/v1/image2-previews/category-set-image2-preview.png` 的视觉方向；每个独立分类图标源尺寸为 `256 x 256 px`，优先透明背景 PNG，路径为 `design/image-assets/v1/categories/`。
+- 当前两张 preview 只是 image2 视觉风格参考，不是最终前端可直接使用的单个头像或单个分类图标文件。
+- 本轮只记录尺寸和后续规则，不拆分头像和分类图标，不重新生成图片，不修改业务代码。
+- 后续等 Figma 原型页面、实际显示尺寸和使用位置确认后，再按该风格生成最终单文件素材；头像需在 `24 px` 可辨认并保留 `12%-16%` 圆形裁切安全边距，分类图标需在 `16-20 px` 可辨认且主体占画布约 `64%-72%`。

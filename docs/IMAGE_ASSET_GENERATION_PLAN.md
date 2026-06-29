@@ -220,3 +220,71 @@ Current guidance:
 - `image2-previews/` files are not final frontend assets; they are style boards.
 - Future generation should focus only on missing companion assets, variants, optimization, or regenerated pieces after user review.
 - Do not regenerate existing assets unless the user asks for a style change or quality revision.
+
+## 9. 2026-06-29 Figma Delegated Icon Size Requirements
+
+These requirements come from the Figma prototype thread and apply to future final generation/export of the member avatar set and category icon set. Do not generate, split, or regenerate assets in this documentation update.
+
+### Member Avatar Icons
+
+Accepted visual direction:
+
+- Use `design/image-assets/v1/image2-previews/avatar-set-image2-preview.png` as the current avatar style reference.
+- The preview board is only an image2 visual reference. It is not a set of final frontend-ready individual avatar files.
+
+Final source asset requirements for later generation:
+
+- Source size: `512 x 512 px` for each member avatar.
+- Preferred format: PNG. Transparent background or a circular light-color background is acceptable.
+- Optional format: SVG only if a clean and stable vector result can be produced.
+- Save path: `design/image-assets/v1/avatars/`.
+- File names: `avatar-self.png`, `avatar-partner.png`, `avatar-child.png`, `avatar-parents.png`, `avatar-elders.png`, `avatar-pet.png`, `avatar-other.png`.
+
+Mobile display references:
+
+- Record card creator / small avatar: `24-28 px`.
+- Member filter pill: `24-32 px`.
+- Member management list: `40-48 px`.
+- Current member emphasis area: `56-64 px`.
+
+Design constraints:
+
+- Must remain recognizable at `24 px`, so silhouettes should be simple and strokes should not be too thin.
+- Do not hard-code labels such as father/mother; member names remain customizable.
+- Default role set: self, partner, child, parents, elders/in-laws, pet, other.
+- Express role feeling through color or simple symbols only; avoid realistic portraits and privacy-sensitive identity cues.
+- Must work with circular cropping. Keep the main graphic inside a `12%-16%` safe margin.
+
+### Category Icons
+
+Accepted visual direction:
+
+- Use `design/image-assets/v1/image2-previews/category-set-image2-preview.png` as the current category icon style reference.
+- The preview board is only an image2 visual reference. It is not a set of final frontend-ready individual category icon files.
+
+Final source asset requirements for later generation:
+
+- Source size: `256 x 256 px` for each category icon.
+- Preferred format: PNG with transparent background.
+- Optional format: SVG only if a clean and stable vector result can be produced.
+- Save path: `design/image-assets/v1/categories/`.
+- File names: `category-family.png`, `category-house.png`, `category-repair.png`, `category-shopping.png`, `category-account.png`, `category-kids.png`, `category-health.png`, `category-pet.png`, `category-work.png`, `category-temporary.png`, `category-uncategorized.png`.
+
+Mobile display references:
+
+- Record card left category icon: `40-48 px`.
+- Category filter / pill small icon: `16-20 px`.
+- Category page card primary icon: `48-56 px`.
+- Detail page category visual: `40-56 px`.
+
+Design constraints:
+
+- Must remain recognizable at `16-20 px`, so icons should be very simple with clear silhouettes.
+- Use gentle green as the primary color with a few soft accent colors only.
+- Avoid high-saturation tech blue and backend/admin-system styling.
+- Transparent background is preferred so Figma/frontend can add the light circular container outside the asset.
+- Main icon body should occupy about `64%-72%` of the canvas with enough whitespace around it.
+
+### Follow-up Rule
+
+After Figma prototype pages, actual display sizes, and usage surfaces are confirmed, generate the final individual avatar files and individual category icon files using the accepted image2 preview direction. Until then, keep the two preview boards as style references only.
