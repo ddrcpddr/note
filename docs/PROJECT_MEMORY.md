@@ -700,3 +700,11 @@ MVP 需要覆盖：
 - 提交前重新运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`，全部通过。
 - 正式库健康检查仍为 111 条记录；自动化测试 16 项通过。
 - 本轮只提交前端文案/视觉收敛和文档记录，不提交 `data/`、数据库、备份、导出、附件、`.nsx` 或 Playwright 临时截图。
+
+### V1 最终视觉审计（2026-06-29）
+
+- 新增 `docs/V1_VISUAL_FINAL_AUDIT.md`，逐页对照 `design/home-records-prototype/` 下 7 张 V1 PNG，记录当前实现的对齐程度、保留差异和理由。
+- 设置页行尾普通 `>` 文本替换为 `ChevronRight` 图标，作为最后一处低风险视觉抛光。
+- 当前首页、新建、详情、搜索、分类、导入、设置已经分别完成 V1 字体/密度/筛选/导航/浮动操作/信息层级/文案收敛。
+- 阶段性结论：在保持当前功能的前提下，移动端 MVP 已达到与 V1 差不太多的标准；后续建议只根据真实手机验收反馈做微调。
+- 最终验证：Playwright 390px / 430px x 8 screens 通过，失败数 0；`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 全部通过。

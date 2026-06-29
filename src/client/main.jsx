@@ -1590,7 +1590,7 @@ function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClic
           <p className="mt-1 break-all text-[15px] leading-relaxed text-muted">{desc}</p>
         </div>
       </div>
-      <span className="shrink-0 text-[15px] text-muted">{action}</span>
+      {action === '>' ? <ChevronRight className="shrink-0 text-muted" size={20} /> : <span className="shrink-0 text-[15px] text-muted">{action}</span>}
     </button>
   );
 }
