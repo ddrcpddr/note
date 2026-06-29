@@ -105,3 +105,53 @@ src/server/importers/notestation/
 
 任何失败项都必须进入失败列表，由导入页展示给用户确认。
 
+
+## 真实 NSX dry-run 解析（2026-06-29）
+
+用户已提供真实 `.nsx` 样例后，项目新增只读 dry-run 解析能力：
+
+```bash
+node src/server/scripts/notestation-dry-run.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+```
+
+该命令只读取 `.nsx`，不会写入正式数据库，不会解压真实内容到工作区。含真实标题和脱敏摘要的输出应保存到 `data/imports/notestation/` 下，该目录被 Git 忽略。
+
+### NSX 字段映射
+
+| Note Station 来源字段 | 当前系统字段 | 当前策略 |
+| --- | --- | --- |
+| 原始标题 `title` | `notes.title` | 直接映射 |
+| 原始正文 `content` | `notes.content` | sandbox 导入转为纯文本；正式导入前可再决定是否保留 HTML |
+| 原始摘要 `brief` | `notes.summary` | 优先使用，缺失时从正文截取 |
+| 原始分类 / 笔记本 `parent_id -> notebook.title` | `categories` / `notes.original_category` | dry-run 保留为 `originalCategory`；sandbox 导入暂落到 `uncategorized`，避免自动创建错误分类 |
+| 原始标签 `tag` | `tags` / `note_tags` | 本样例未发现有效标签；解析器保留数组/逗号字符串支持 |
+| 创建时间 `ctime` | `notes.created_at` / `notes.occurred_at` / `notes.original_created_at` | 解析为 ISO 字符串；无法解析时保留原始值 |
+| 更新时间 `mtime` | `notes.updated_at` / `notes.original_updated_at` | 解析为 ISO 字符串；无法解析时保留原始值 |
+| 附件 `attachment` | `attachments` | 当前只写元数据，不复制真实附件文件 |
+| 缩略图 `thumb` | import metadata / resource statistics | 只做资源统计，不计入用户附件数 |
+| 原始路径 `notebook path + title` | import metadata / `notes.original_path` | 由 notebook 层级和标题组合生成 |
+| 来源 | `notes.source_type` | 固定为 `notestation_import` |
+
+### Sandbox 导入命令
+
+只允许写入 sandbox/test/temp 数据目录：
+
+```bash
+NOTE_DATA_DIR=data/imports/notestation/sandbox-db node src/server/scripts/notestation-sandbox-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+```
+
+脚本会拒绝在未设置 `NOTE_DATA_DIR`，或 `NOTE_DATA_DIR` 不包含 `sandbox`、`test`、`temp` 的情况下运行，防止污染正式数据库。
+
+### 当前真实样例 dry-run 结果
+
+| 项目 | 结果 |
+| --- | ---: |
+| 总记录数 | 93 |
+| 成功解析数量 | 93 |
+| 失败数量 | 0 |
+| 记录附件数量 | 4 |
+| 归档附件/缩略图资源数量 | 25 |
+| 实际引用分类数 | 4 |
+| 标签数量 | 0 |
+
+正式导入前仍建议先由用户检查 `data/imports/notestation/notestation-dry-run-preview.json` 中的标题、摘要、分类和附件数量是否合理。

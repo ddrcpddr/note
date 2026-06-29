@@ -19,3 +19,18 @@ data/exports/*
 
 npm-debug.log*
 *.local
+# Runtime data and private imports
+*.nsx
+*.db
+*.sqlite
+*.sqlite3
+logs/
+*.log
+data/imports/**
+data/backups/**
+data/exports/**
+data/attachments/**
+data/
+backups/
+exports/
+attachments/

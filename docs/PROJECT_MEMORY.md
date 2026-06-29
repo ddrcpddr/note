@@ -421,3 +421,14 @@ MVP 需要覆盖：
 - 最小修复：`getImportPreview` 在缺失批次时抛出业务错误 `导入批次不存在`，路由继续返回 404 JSON。
 - 修复后 API 测试从 9 项扩展到 10 项，并通过；API 冒烟覆盖首页数据、新建、详情、搜索、分类筛选、成员筛选、设置存储状态、备份、JSON 导出、样例导入预览和缺失导入批次错误。
 - 本次仍不实现真实 Note Station 导出解析，不接真实 NAS，不提交运行数据。
+
+### 真实 Note Station NSX 样例分析与 dry-run
+
+- 用户已将真实 `.nsx` 放入 `data/imports/notestation/`，当前样例文件为 `20260629_112626_15568_ddrcpddr.nsx`，约 21.38 MiB。
+- 已确认 `.nsx` 是 ZIP/PK 压缩包，可在内存中读取，不需要解压到工作区。
+- 已新增 `src/server/importers/notestation/nsx.js`，实现 NSX 结构分析与 dry-run 解析；默认 dry-run 输出标题、脱敏摘要、时间、原始路径、附件数和失败项，不输出完整正文。
+- 已新增 `src/server/scripts/notestation-dry-run.js`，可生成本地 dry-run JSON；输出文件应放在被忽略的 `data/imports/notestation/` 下。
+- 已新增 `src/server/scripts/notestation-sandbox-import.js`，只允许写入 `NOTE_DATA_DIR` 包含 sandbox/test/temp 的测试数据库，防止污染正式数据库。
+- 真实样例 dry-run 结果：93 条记录全部解析成功，失败 0，记录附件 4，归档内附件/缩略图资源 25，实际引用分类 4，标签 0。
+- 已用 sandbox 数据库验证导入：本次 importId `import_nsx_sandbox_mqyoos5g_opxd42` 写入 93 条记录、0 条失败、4 条附件元数据；正式数据库未写入。
+- 已创建 `docs/NOTESTATION_SAMPLE_ANALYSIS.md`，记录脱敏结构分析和后续策略；仍禁止提交 `.nsx`、dry-run JSON、sandbox 数据库、附件和解压内容。
