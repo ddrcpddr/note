@@ -404,3 +404,11 @@ MVP 需要覆盖：
 - 已确认运行数据均被 `.gitignore` 忽略，Git 只跟踪 `data/**/.gitkeep`；未发现 password/token/secret 或真实 NAS 地址写入跟踪文件。
 - 新增 `docs/RUN_RESULT_HANDOFF.md` 作为本轮交接报告。
 
+
+### 项目专用 Skill：mvp-bugfix-qa
+
+- 新增 `.agents/skills/mvp-bugfix-qa/SKILL.md`，用于后续在本项目内按固定流程修 bug、跑测试、检查移动端 UI、检查数据持久化、备份、导出和 Note Station 导入流程。
+- 触发语示例：`使用 mvp-bugfix-qa skill 修复 bug`。
+- Skill 明确要求每次修 bug 按顺序执行：读取项目记忆和 QA 文档、检查 git 状态、复现问题、定位最小原因、小步修复、运行 `npm run build` / `npm run check` / `npm run test`、更新 QA 报告和项目记忆、输出修改文件清单，并使用 `Fix:` 开头的 commit message。
+- Skill 明确保持 V1 为唯一视觉参考，不调用 Product Design，不生成新 PNG，不重做 UI，不把页面改成后台管理风格。
+- Skill 明确禁止提交数据库、`data/` 运行数据、备份、导出、附件、真实导入文件、日志、密码、token 和真实 NAS 地址。
