@@ -284,3 +284,12 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 ### 安全说明
 
 本次不提交 `.nsx`、dry-run JSON、sandbox DB、正式 DB、备份文件、附件文件、导出文件或任何真实笔记正文。
+
+## 导入后查看与整理体验（2026-06-29）
+
+当前正式导入后的记录仍优先落入 `未分类 / 待整理`，避免自动误建分类。页面层已做以下收口：
+
+- 详情页对 `notestation_import` 记录显示 Note Station 来源信息，包括原始分类和原始路径。
+- 分类页在 `未分类 / 待整理` 卡片显示导入记录待整理数量，提醒用户后续可以人工整理。
+- Notes API 支持 `source=notestation_import`，用于搜索页来源筛选和后续自动化验收。
+- 当前仍不做批量分类迁移、不猜测 Note Station 原分类与家庭分类的自动映射，也不修改真实导入内容。

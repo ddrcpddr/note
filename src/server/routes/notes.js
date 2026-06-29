@@ -79,6 +79,7 @@ export function listNotes(query = {}) {
   const category = String(query.category || '').trim();
   const member = String(query.member || '').trim();
   const tag = String(query.tag || '').trim();
+  const source = String(query.source || '').trim();
   const params = [];
   const where = ['n.is_deleted = 0'];
 
@@ -110,6 +111,11 @@ export function listNotes(query = {}) {
   if (member) {
     where.push('n.member_id = ?');
     params.push(member);
+  }
+
+  if (source) {
+    where.push('n.source_type = ?');
+    params.push(source);
   }
 
   if (tag) {

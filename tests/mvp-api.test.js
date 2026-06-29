@@ -137,7 +137,7 @@ describe('MVP API', () => {
     assert.equal(detail.notes[0].title, title);
   });
 
-  test('supports search, category, member and tag filters', async () => {
+  test('supports search, category, member, tag and source filters', async () => {
     const title = `筛选测试记录 ${Date.now()}`;
     const created = await requestJson('/api/notes', {
       method: 'POST',
@@ -147,6 +147,17 @@ describe('MVP API', () => {
         categoryId: 'house',
         memberId: 'partner',
         tags: ['NAS', '物业']
+      })
+    });
+
+    const imported = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: `来源筛选导入记录 ${Date.now()}`,
+        content: '这是一条用于验证 Note Station 来源筛选的测试记录。',
+        categoryId: 'uncategorized',
+        memberId: 'self',
+        sourceType: 'notestation_import'
       })
     });
 
@@ -161,6 +172,10 @@ describe('MVP API', () => {
 
     const tag = await requestJson(`/api/notes?tag=${encodeURIComponent('NAS')}`);
     assert.ok(tag.notes.some((note) => note.id === created.note.id));
+
+    const source = await requestJson('/api/notes?source=notestation_import');
+    assert.ok(source.notes.some((note) => note.id === imported.note.id));
+    assert.ok(source.notes.every((note) => note.sourceType === 'notestation_import'));
   });
 
   test('switches current member and uses it for new notes by default', async () => {

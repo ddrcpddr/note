@@ -473,6 +473,10 @@ function normalizeNote(note) {
     status: note.saveStatus === 'saved' ? '已保存到 NAS' : '保存中',
     source: sourceType === 'notestation_import' ? 'Note Station 导入' : '手动创建',
     sourceType,
+    originalPath: note.originalPath || '',
+    originalCategory: displayCategoryName(note.originalCategory || '', note.categoryId),
+    originalCreatedAt: note.originalCreatedAt ? formatLongTime(note.originalCreatedAt) : '',
+    originalUpdatedAt: note.originalUpdatedAt ? formatLongTime(note.originalUpdatedAt) : '',
     createdAt: formatLongTime(note.createdAt),
     updatedAt: formatShortTime(note.updatedAt),
     attachments: attachments.map((attachment) => attachment.originalName || attachment.fileName || attachment)
@@ -790,6 +794,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
 
 function CategoriesScreen({ notes, onSelectCategory }) {
   const [query, setQuery] = useState('');
+  const importedToReviewCount = notes.filter((note) => note.sourceType === 'notestation_import' && note.categoryId === 'uncategorized').length;
   const visibleCategories = categories
     .map((category) => ({
       ...category,
@@ -829,6 +834,11 @@ function CategoriesScreen({ notes, onSelectCategory }) {
                 <h2 className="text-[20px] font-bold leading-tight">{category.name}</h2>
                 <p className="mt-2 text-[15px] font-medium text-teal-600">{category.count} 条记录</p>
                 <p className="mt-1 text-[13px] text-muted">{category.update}</p>
+                {category.id === 'uncategorized' && importedToReviewCount > 0 && (
+                  <p className="mt-2 inline-flex rounded-full bg-amber-50 px-3 py-1 text-[12px] font-medium text-amber-700">
+                    {importedToReviewCount} 条导入记录待整理
+                  </p>
+                )}
               </div>
               <ChevronRight className="shrink-0 text-muted" size={18} />
             </button>
@@ -1052,6 +1062,15 @@ function DetailScreen({ note, onBack }) {
           <MetaRow icon={FileText} label="来源" value={note.source} />
           <MetaRow icon={Cloud} label="状态" value={note.status} emphasize />
         </div>
+        {note.sourceType === 'notestation_import' && (
+          <div className="mt-5 rounded-2xl bg-teal-50/70 p-4 text-[15px] leading-relaxed text-muted">
+            <p className="font-semibold text-teal-700">Note Station 来源信息</p>
+            <div className="mt-3 space-y-2">
+              <p className="break-words"><span className="text-[#24312f]">原始分类：</span>{note.originalCategory || '未分类 / 待整理'}</p>
+              <p className="break-words"><span className="text-[#24312f]">原始路径：</span>{note.originalPath || '已标记为 Note Station 导入，原始路径待整理'}</p>
+            </div>
+          </div>
+        )}
       </section>
       <section className="soft-card mt-4 p-5">
         <h2 className="flex items-center gap-3 text-[22px] font-bold text-teal-600"><Tags size={24} /> 内容</h2>
