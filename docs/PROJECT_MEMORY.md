@@ -481,3 +481,16 @@ MVP 需要覆盖：
 - Git 当前只跟踪 `data/attachments/.gitkeep`、`data/backups/.gitkeep`、`data/database/.gitkeep`、`data/exports/.gitkeep`、`data/imports/.gitkeep` 这类占位文件；真实数据文件不进入 Git。
 - 当前尚未进入 Figma 原型设计文档阶段，也尚未进入 image2 图片素材说明文档阶段。
 - 建议下一阶段在用户确认后进入 Figma 原型设计文档 / image2 图片素材说明文档准备，但进入前仍需先确认：是否基于当前 V1 风格整理、是否只做文档不改 UI、是否需要脱敏截图、是否允许使用真实导入后的页面状态作为参考。
+
+### Image2 图标方向确认（2026-06-29）
+
+- 用户认可 `design/image-assets/v1/image2-previews/avatar-set-image2-preview.png` 和 `design/image-assets/v1/image2-previews/category-set-image2-preview.png` 这两张 image2 预览图的风格方向。
+- 当前头像组和分类图标组优先采用这两种 image2 风格；此前手写 SVG 图标仅保留为占位 / 实现参考，不作为最终推荐视觉。
+- 暂不继续拆分或重生成单个图标；等后续确定图标尺寸和具体使用位置后，再按同一风格重新生成或拆分。
+- 仍保持 V1 为唯一视觉参考：温和、清爽、生活化、浅色背景、绿色主色、圆角、轻量插画感。
+### Image2 首批视觉素材收口（2026-06-29）
+
+- image2 首批视觉素材方向已确认：头像组采用 `design/image-assets/v1/image2-previews/avatar-set-image2-preview.png` 的方向，分类图标组采用 `design/image-assets/v1/image2-previews/category-set-image2-preview.png` 的方向。
+- 这两张图目前只是视觉风格参考，不是最终前端可直接使用的单个头像或单个分类图标文件。
+- 本轮暂不拆分头像和分类图标，也不继续重新生成图片。
+- 后续等 Figma 原型页面、实际显示尺寸和使用场景确认后，再按该风格生成最终单文件素材。

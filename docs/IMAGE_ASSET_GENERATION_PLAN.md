@@ -108,3 +108,93 @@ Stop and ask the user if:
 - A prompt would require a real NAS address or screenshot.
 - The desired style conflicts with V1.
 - The user asks for full-page UI images instead of auxiliary assets.
+
+## 8. 2026-06-29 First Asset Batch
+
+User requested the first complete visual asset batch for the family life record tool. This round generated auxiliary assets only and did not modify app UI code or business logic.
+
+### Output Root
+
+```text
+design/image-assets/v1/
+```
+
+### Generated PNG Illustrations
+
+| Asset | File | Purpose | Figma | Frontend |
+| --- | --- | --- | --- | --- |
+| PWA app icon | `illustrations/app-icon-1024.png` | Home-screen / PWA / browser icon source | Import directly; later export smaller sizes | Use after review for manifest icon derivatives |
+| Empty home state | `illustrations/empty-home.png` | No records state on home/list pages | Import directly | Use in empty-state component |
+| Search no result | `illustrations/empty-search.png` | Search page no-result state | Import directly | Use in search empty-state component |
+| Note Station import success | `illustrations/import-success.png` | Import completion state | Import directly | Use in import flow success state |
+| NAS backup success | `illustrations/backup-success.png` | Backup completed state | Import directly | Use in settings / backup status |
+| NAS unavailable | `illustrations/backup-unavailable.png` | NAS connection or backup unavailable state | Import directly | Use in gentle error / offline backup state |
+
+### Generated SVG Avatar Icons
+
+| Asset | File | Purpose | Figma | Frontend |
+| --- | --- | --- | --- | --- |
+| Self avatar | `avatars/avatar-self.svg` | Default current-user avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Partner avatar | `avatars/avatar-partner.svg` | Default partner avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Child avatar | `avatars/avatar-child.svg` | Default child avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Parents avatar | `avatars/avatar-parents.svg` | Default parents avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Elders avatar | `avatars/avatar-elders.svg` | Default elder / in-law avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Pet avatar | `avatars/avatar-pet.svg` | Default pet avatar | Import directly as editable vector | Use directly as img/SVG component |
+| Other avatar | `avatars/avatar-other.svg` | Default custom / other member avatar | Import directly as editable vector | Use directly as img/SVG component |
+
+### Generated SVG Category Icons
+
+| Asset | File | Purpose | Figma | Frontend |
+| --- | --- | --- | --- | --- |
+| Family tasks | `categories/category-family.svg` | 家庭事务 | Import directly as editable vector | Use directly as img/SVG component |
+| House / equipment | `categories/category-house.svg` | 房屋 / 设备 | Import directly as editable vector | Use directly as img/SVG component |
+| Repair / after-sales | `categories/category-repair.svg` | 维修 / 售后 | Import directly as editable vector | Use directly as img/SVG component |
+| Shopping / spending | `categories/category-shopping.svg` | 购物 / 消费 | Import directly as editable vector | Use directly as img/SVG component |
+| Documents / accounts | `categories/category-account.svg` | 证件 / 账号 | Import directly as editable vector | Use directly as img/SVG component |
+| Child / education | `categories/category-kids.svg` | 孩子 / 教育 | Import directly as editable vector | Use directly as img/SVG component |
+| Elder / health | `categories/category-health.svg` | 老人 / 健康 | Import directly as editable vector | Use directly as img/SVG component |
+| Pet | `categories/category-pet.svg` | 宠物 | Import directly as editable vector | Use directly as img/SVG component |
+| Work / misc | `categories/category-work.svg` | 工作 / 杂事 | Import directly as editable vector | Use directly as img/SVG component |
+| Temporary notes | `categories/category-temporary.svg` | 临时记录 | Import directly as editable vector | Use directly as img/SVG component |
+| Uncategorized | `categories/category-uncategorized.svg` | 未分类 | Import directly as editable vector | Use directly as img/SVG component |
+
+### Review Notes
+
+- The PNG illustrations were generated with the built-in image generation tool and copied into the project from Codex generated-image storage.
+- The avatar and category assets were created as project-local SVG files so Figma and frontend code can reuse them without sprite slicing.
+- All assets avoid real Note Station content, real NAS addresses, account text, passwords, tokens, QR codes, and private family data.
+- No full-page UI prototype images were generated.
+- The app icon should be manually reviewed before replacing the current manifest icon, because PWA icons need strong recognition at very small sizes.
+- The two NAS illustrations can be used as-is or manually A/B reviewed in Figma if the error state feels too prominent.
+### 2026-06-29 Image2 Icon Preview Addendum
+
+After review, the manually created SVG avatar and category icons were not considered visually satisfying enough. Image2 was used to generate higher-fidelity bitmap preview sheets without deleting the SVG files.
+
+| Asset | File | Status | Note |
+| --- | --- | --- | --- |
+| Image2 avatar set preview | `image2-previews/avatar-set-image2-preview.png` | Review candidate | More polished and warm; may be used as visual direction before splitting into individual PNG avatars. |
+| Image2 category icon set preview | `image2-previews/category-set-image2-preview.png` | Review candidate | More cohesive than the hand-authored SVG category icons; suitable for Figma review before individual export. |
+
+Decision note: image2 outputs bitmap images, not native editable SVG. If editable vectors are required later, use the accepted image2 preview as the visual reference for manual vectorization or Figma tracing.
+### 2026-06-29 Image2 Icon Style Accepted
+
+The user approved the current image2 direction for both icon preview sheets:
+
+- `image2-previews/avatar-set-image2-preview.png`
+- `image2-previews/category-set-image2-preview.png`
+
+Current decision:
+
+- Use these two image2 styles as the preferred direction for member avatars and category icons.
+- Keep the hand-authored SVG files only as rough placeholders / implementation references, not as the preferred final visual style.
+- Do not regenerate or split icons yet. Wait until the target icon dimensions and usage surfaces are confirmed.
+- If later adjustments are needed, regenerate from the accepted image2 direction after defining final sizes.
+### 2026-06-29 Closeout: Accepted Image2 Reference Only
+
+Final closeout decision for this round:
+
+- Current member avatar group uses `image2-previews/avatar-set-image2-preview.png` as the accepted visual direction.
+- Current category icon group uses `image2-previews/category-set-image2-preview.png` as the accepted visual direction.
+- These two files are image2 visual style references only. They are not final frontend-ready individual avatar files or individual category icon files.
+- Do not split, regenerate, or replace these icon sets in this closeout round.
+- After the Figma prototype pages, actual display sizes, and usage surfaces are confirmed, generate the final individual avatar files and individual category icon files using this accepted style.
