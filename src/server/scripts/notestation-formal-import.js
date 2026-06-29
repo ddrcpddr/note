@@ -63,7 +63,7 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
     INSERT INTO imports
       (id, source_type, file_name, file_path, status, total_count, success_count, failed_count, created_by_member_id, completed_at)
     VALUES
-      (?, 'notestation', ?, ?, 'completed', ?, ?, ?, 'history', CURRENT_TIMESTAMP)
+      (?, 'notestation', ?, ?, 'completed', ?, ?, ?, 'self', CURRENT_TIMESTAMP)
   `);
   const insertFailure = db.prepare(`
     INSERT INTO import_failures
@@ -94,7 +94,7 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
         occurred_at
       )
     VALUES
-      (?, ?, ?, ?, 'uncategorized', 'history', 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
+      (?, ?, ?, ?, 'uncategorized', 'self', 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');

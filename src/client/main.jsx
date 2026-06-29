@@ -74,23 +74,18 @@ const memberToneClasses = [
 
 const legacyMemberNames = {
   dad: '我',
-  mom: '老婆',
-  elder: '父母',
-  history: '其他',
-  老人: '父母',
-  历史导入: '其他',
+  mom: '爱人',
+  elder: '我',
+  history: '我',
+  老人: '我',
+  历史导入: '我',
   爸爸: '我',
-  妈妈: '老婆'
+  妈妈: '爱人'
 };
 
 const fallbackMembers = [
   { id: 'self', name: '我', avatar: '我', colorClass: memberToneClasses[0], isCurrent: true },
-  { id: 'wife', name: '老婆', avatar: '伴', colorClass: memberToneClasses[1] },
-  { id: 'child', name: '孩子', avatar: '孩', colorClass: memberToneClasses[2] },
-  { id: 'parents', name: '父母', avatar: '父', colorClass: memberToneClasses[3] },
-  { id: 'elders', name: '老人 / 岳父母', avatar: '老', colorClass: memberToneClasses[4] },
-  { id: 'pet', name: '宠物', avatar: '宠', colorClass: memberToneClasses[5] },
-  { id: 'other', name: '其他', avatar: '其', colorClass: memberToneClasses[6] }
+  { id: 'partner', name: '爱人', avatar: '爱', colorClass: memberToneClasses[1] }
 ];
 
 const initialNotes = [
@@ -136,7 +131,7 @@ const initialNotes = [
       { label: '重要', tone: tagTones.important }
     ],
     time: '昨天 18:35',
-    member: '老婆',
+    member: '爱人',
     attachmentCount: 1,
     status: '已保存到 NAS',
     source: '手动创建',
@@ -157,7 +152,7 @@ const initialNotes = [
     iconTone: 'bg-purple-50 text-purple-600',
     tags: [{ label: '待办', tone: tagTones.todo }],
     time: '昨天 09:21',
-    member: '其他',
+    member: '我',
     attachmentCount: 3,
     status: '已保存到 NAS',
     source: 'Note Station 导入',
@@ -203,7 +198,8 @@ function App() {
         const data = await response.json();
         if (!isMounted) return;
 
-        const nextMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
+        const loadedMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
+        const nextMembers = keepDefaultMembers(loadedMembers);
         const nextNotes = data.notes?.length ? data.notes.map(normalizeNote) : initialNotes;
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
@@ -467,7 +463,7 @@ function normalizeNote(note) {
     tags: tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
     time: formatShortTime(note.occurredAt || note.createdAt),
     member: displayMemberName(note.memberName || note.member || '我', note.memberId),
-    memberId: note.memberId || 'dad',
+    memberId: note.memberId || 'self',
     memberAvatar: note.memberAvatar || displayMemberName(note.memberName || note.member || '我', note.memberId).slice(0, 1),
     attachmentCount: attachments.length,
     status: note.saveStatus === 'saved' ? '已保存到 NAS' : '保存中',
@@ -477,6 +473,14 @@ function normalizeNote(note) {
     updatedAt: formatShortTime(note.updatedAt),
     attachments: attachments.map((attachment) => attachment.originalName || attachment.fileName || attachment)
   };
+}
+
+function keepDefaultMembers(memberList) {
+  const visible = fallbackMembers.map((fallback) => memberList.find((member) => member.name === fallback.name) || fallback);
+  if (!visible.some((member) => member.isCurrent)) {
+    return visible.map((member, index) => ({ ...member, isCurrent: index === 0 }));
+  }
+  return visible;
 }
 
 function displayMemberName(name, memberId) {

@@ -184,6 +184,6 @@ export function listNotes(query = {}) {
 
 function getCurrentMemberId() {
   const member = getDb().prepare('SELECT id FROM members WHERE is_current = 1 ORDER BY sort_order LIMIT 1').get();
-  return member?.id || 'dad';
+  return member?.id || 'self';
 }
 

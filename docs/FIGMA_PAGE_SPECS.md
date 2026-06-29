@@ -84,7 +84,7 @@ Member behavior:
 - Default to current member.
 - Allow switching member before saving.
 - Show avatar/color consistently.
-- Do not use fixed “爸爸/妈妈” labels.
+- Do not use fixed “爸爸/妈妈/老婆” labels.
 
 ### 2.4 Detail
 
@@ -164,12 +164,9 @@ Must support:
 Default design members:
 
 - 我
-- 老婆
-- 孩子
-- 父母
-- 老人/岳父母
-- 宠物
-- 其他
+- 爱人
+
+The user may later add or rename members such as 老婆、妻子、配偶、孩子、父母、老人/岳父母、宠物 or 其他.
 
 All names must be editable.
 

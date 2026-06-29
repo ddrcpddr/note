@@ -69,14 +69,11 @@ Do not use:
 Design the product from the current user's perspective. Default member groups for design should be:
 
 - 我
-- 老婆
-- 孩子
-- 父母
-- 老人/岳父母
-- 宠物
-- 其他
+- 爱人
 
-Do not hard-code “爸爸/妈妈” as fixed product identities in Figma screens. They can appear only as editable example names if needed, but the component and information architecture must treat names as user-defined.
+Additional household roles can be added later by the user through customization.
+
+Do not hard-code “爸爸/妈妈/老婆/妻子” as fixed product identities in Figma screens. They can appear only as user-edited examples if needed, but the component and information architecture must treat names as user-defined.
 
 The member system must support later customization:
 

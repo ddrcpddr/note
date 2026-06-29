@@ -106,7 +106,8 @@ describe('MVP API', () => {
   test('reads seeded app data and note list', async () => {
     const appData = await requestJson('/api/app-data');
 
-    assert.ok(appData.members.length >= 5);
+    assert.equal(appData.members.length, 2);
+    assert.deepEqual(appData.members.map((member) => member.name), ['我', '爱人']);
     assert.ok(appData.categories.length >= 11);
     assert.ok(appData.tags.length >= 10);
     assert.ok(appData.notes.length >= 3);
@@ -120,7 +121,7 @@ describe('MVP API', () => {
         title,
         content: '这是一条自动化测试记录，用来验证新建、详情、搜索和筛选。',
         categoryId: 'repair',
-        memberId: 'dad',
+        memberId: 'self',
         tags: ['维修', 'NAS'],
         attachments: [{ fileName: 'test.txt', originalName: 'test.txt' }]
       })
@@ -128,7 +129,7 @@ describe('MVP API', () => {
 
     assert.equal(created.note.title, title);
     assert.equal(created.note.categoryId, 'repair');
-    assert.equal(created.note.memberId, 'dad');
+    assert.equal(created.note.memberId, 'self');
     assert.equal(created.note.attachments.length, 1);
 
     const detail = await requestJson(`/api/notes?id=${encodeURIComponent(created.note.id)}`);
@@ -144,7 +145,7 @@ describe('MVP API', () => {
         title,
         content: '搜索关键词：宽带 物业 NAS。',
         categoryId: 'house',
-        memberId: 'mom',
+        memberId: 'partner',
         tags: ['NAS', '物业']
       })
     });
@@ -155,7 +156,7 @@ describe('MVP API', () => {
     const category = await requestJson('/api/notes?category=house');
     assert.ok(category.notes.some((note) => note.id === created.note.id));
 
-    const member = await requestJson('/api/notes?member=mom');
+    const member = await requestJson('/api/notes?member=partner');
     assert.ok(member.notes.some((note) => note.id === created.note.id));
 
     const tag = await requestJson(`/api/notes?tag=${encodeURIComponent('NAS')}`);
@@ -165,11 +166,11 @@ describe('MVP API', () => {
   test('switches current member and uses it for new notes by default', async () => {
     const switched = await requestJson('/api/members/current', {
       method: 'POST',
-      body: JSON.stringify({ memberId: 'mom' })
+      body: JSON.stringify({ memberId: 'partner' })
     });
 
-    assert.equal(switched.currentMemberId, 'mom');
-    assert.ok(switched.members.some((member) => member.id === 'mom' && member.isCurrent));
+    assert.equal(switched.currentMemberId, 'partner');
+    assert.ok(switched.members.some((member) => member.id === 'partner' && member.isCurrent));
 
     const created = await requestJson('/api/notes', {
       method: 'POST',
@@ -180,7 +181,7 @@ describe('MVP API', () => {
       })
     });
 
-    assert.equal(created.note.memberId, 'mom');
+    assert.equal(created.note.memberId, 'partner');
 
     const invalid = await requestRaw('/api/members/current', {
       method: 'POST',
@@ -226,7 +227,7 @@ describe('MVP API', () => {
           title: `全量导出测试 ${index}`,
           content: `这是一条用于验证 JSON 全量导出的记录 ${index}`,
           categoryId: 'family',
-          memberId: 'dad',
+          memberId: 'self',
           tags: ['导出测试']
         })
       });
@@ -244,7 +245,7 @@ describe('MVP API', () => {
   test('previews and commits the sample Note Station import flow', async () => {
     const preview = await requestJson('/api/imports/notestation/sample-preview', {
       method: 'POST',
-      body: JSON.stringify({ memberId: 'history' })
+      body: JSON.stringify({ memberId: 'self' })
     });
 
     assert.equal(preview.status, 'previewed');
@@ -258,7 +259,7 @@ describe('MVP API', () => {
 
     const committed = await requestJson(`/api/imports/notestation/${preview.importId}/commit`, {
       method: 'POST',
-      body: JSON.stringify({ memberId: 'history' })
+      body: JSON.stringify({ memberId: 'self' })
     });
 
     assert.equal(committed.status, 'completed');
@@ -270,7 +271,7 @@ describe('MVP API', () => {
 
     const secondCommit = await requestJson(`/api/imports/notestation/${preview.importId}/commit`, {
       method: 'POST',
-      body: JSON.stringify({ memberId: 'history' })
+      body: JSON.stringify({ memberId: 'self' })
     });
 
     assert.equal(secondCommit.status, 'completed');

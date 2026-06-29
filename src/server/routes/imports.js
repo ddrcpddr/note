@@ -10,7 +10,7 @@ import { listNotes } from './notes.js';
 export const importsRouter = Router();
 
 importsRouter.post('/notestation/sample-preview', (request, response) => {
-  const memberId = request.body?.memberId || 'history';
+  const memberId = request.body?.memberId || 'self';
   response.status(201).json(createNotestationSamplePreview(memberId));
 });
 
@@ -28,7 +28,7 @@ importsRouter.get('/notestation/:importId', (request, response) => {
 
 importsRouter.post('/notestation/:importId/commit', (request, response) => {
   try {
-    const memberId = request.body?.memberId || 'history';
+    const memberId = request.body?.memberId || 'self';
     const result = commitNotestationImport(request.params.importId, memberId);
     const notes = result.importedNoteIds?.length
       ? listNotes({ limit: 'all' }).filter((note) => result.importedNoteIds.includes(note.id))

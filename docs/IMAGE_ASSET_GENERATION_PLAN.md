@@ -9,7 +9,7 @@ image2 is responsible for auxiliary assets only. Figma is responsible for pages,
 ## 2. Recommended Order
 
 1. PWA app icon.
-2. Default member avatar set.
+2. Default member avatar set for 我 and 爱人.
 3. Category icon set.
 4. Empty state illustration.
 5. Search no-result illustration.
@@ -53,11 +53,12 @@ Suggested future names:
 app-icon-1024.png
 avatar-self.png
 avatar-partner.png
-avatar-child.png
-avatar-parents.png
-avatar-elders.png
-avatar-pet.png
-avatar-other.png
+# Optional future member roles, only if user adds them:
+# avatar-child.png
+# avatar-parents.png
+# avatar-elders.png
+# avatar-pet.png
+# avatar-other.png
 category-family.png
 category-house.png
 category-repair.png
@@ -238,7 +239,7 @@ Final source asset requirements for later generation:
 - Preferred format: PNG. Transparent background or a circular light-color background is acceptable.
 - Optional format: SVG only if a clean and stable vector result can be produced.
 - Save path: `design/image-assets/v1/avatars/`.
-- File names: `avatar-self.png`, `avatar-partner.png`, `avatar-child.png`, `avatar-parents.png`, `avatar-elders.png`, `avatar-pet.png`, `avatar-other.png`.
+- File names: `avatar-self.png`, `avatar-partner.png`. Optional future files may include child, parents, elders, pet, or other if the user adds those members.
 
 Mobile display references:
 
@@ -251,7 +252,7 @@ Design constraints:
 
 - Must remain recognizable at `24 px`, so silhouettes should be simple and strokes should not be too thin.
 - Do not hard-code labels such as father/mother; member names remain customizable.
-- Default role set: self, partner, child, parents, elders/in-laws, pet, other.
+- Default role set: self and partner. Other roles are optional user-added members.
 - Express role feeling through color or simple symbols only; avoid realistic portraits and privacy-sensitive identity cues.
 - Must work with circular cropping. Keep the main graphic inside a `12%-16%` safe margin.
 

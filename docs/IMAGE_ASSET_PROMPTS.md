@@ -75,18 +75,13 @@ A gentle NAS backup unavailable illustration: a simple storage box with a soft d
 Prompt:
 
 ```text
-Create a set of simple default avatar icons for a family life records app: 我, partner, child, parents, elders, pet, other. Use abstract friendly faces or symbols, soft rounded vector style, customizable color backgrounds, no realistic faces, no real identity, no fixed爸爸/妈妈 labels, no text if possible.
+Create a set of simple default avatar icons for a family life records app: 我 and 爱人. Optional future roles can include child, parents, elders, pet, and other. Use abstract friendly faces or symbols, soft rounded vector style, customizable color backgrounds, no realistic faces, no real identity, no fixed爸爸/妈妈 labels, no text if possible.
 ```
 
 Design labels for planning only:
 
 - 我
-- 老婆
-- 孩子
-- 父母
-- 老人/岳父母
-- 宠物
-- 其他
+- 爱人
 
 ## 9. Category Icons
 

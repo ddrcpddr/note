@@ -23,11 +23,8 @@ export const noteTypes = [
 ];
 
 export const defaultMembers = [
-  { id: 'dad', name: '爸爸', avatar: '爸', sortOrder: 10, isCurrent: true },
-  { id: 'mom', name: '妈妈', avatar: '妈', sortOrder: 20, isCurrent: false },
-  { id: 'child', name: '孩子', avatar: '孩', sortOrder: 30, isCurrent: false },
-  { id: 'elder', name: '老人', avatar: '老', sortOrder: 40, isCurrent: false },
-  { id: 'history', name: '历史导入', avatar: '历', sortOrder: 999, isCurrent: false }
+  { id: 'self', name: '我', avatar: '我', sortOrder: 10, isCurrent: true },
+  { id: 'partner', name: '爱人', avatar: '爱', sortOrder: 20, isCurrent: false }
 ];
 
 export const defaultTags = ['待办', '重要', '维修', '购物', '账单', '发票', '保修', 'NAS', '物业', '医院'];
@@ -39,7 +36,7 @@ export const seedNotes = [
     content: '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。需要拍照留存，顺便问一下厨房水龙头是否也能一起检查。',
     summary: '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。',
     categoryId: 'family',
-    memberId: 'dad',
+    memberId: 'self',
     noteType: 'family_task',
     tags: ['待办', '重要', '维修'],
     attachments: ['卫生间天花板渗水.jpg', '维修记录模板.docx']
@@ -50,7 +47,7 @@ export const seedNotes = [
     content: '欧姆龙 J710，上臂式，家里老人用更方便。包装和发票先放在电视柜下面。',
     summary: '欧姆龙 J710，上臂式，家里老人用更方便。',
     categoryId: 'shopping',
-    memberId: 'mom',
+    memberId: 'partner',
     noteType: 'shopping',
     tags: ['购物', '重要'],
     attachments: ['电子发票.pdf']
@@ -61,7 +58,7 @@ export const seedNotes = [
     content: '从 Note Station 导入的历史记录，需要统一分类和标签。先保留原始路径和来源，稍后慢慢整理。',
     summary: '从 Note Station 导入的历史记录，需要统一分类和标签。',
     categoryId: 'temporary',
-    memberId: 'history',
+    memberId: 'self',
     noteType: 'normal',
     sourceType: 'notestation_import',
     tags: ['待办', 'NAS'],

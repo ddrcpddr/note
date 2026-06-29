@@ -13,7 +13,7 @@
   - 失败数量
 - 支持确认导入并写入本地 SQLite。
 - 导入记录标记为 `notestation_import`。
-- 无法识别作者时归属到 `历史导入` 或当前执行导入的成员。
+- 无法识别作者时归属到当前执行导入的成员，并保留来源元数据。
 - 保留原始元数据：
   - 原始标题
   - 原始路径
@@ -35,7 +35,7 @@ POST /api/imports/notestation/sample-preview
 
 ```json
 {
-  "memberId": "history"
+  "memberId": "self"
 }
 ```
 

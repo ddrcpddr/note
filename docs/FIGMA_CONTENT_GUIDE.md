@@ -37,16 +37,11 @@ Never use:
 Use the current-user perspective:
 
 - 我
-- 老婆
-- 孩子
-- 父母
-- 老人/岳父母
-- 宠物
-- 其他
+- 爱人
 
-These are defaults for design, not hard-coded permanent identities. The UI must support custom names, avatars, and colors.
+These are defaults for design, not hard-coded permanent identities. The UI must support custom names, avatars, and colors, and users may later rename members to 老婆、妻子、配偶 or other terms.
 
-Do not use “爸爸/妈妈” as fixed member names in the design system.
+Do not use “爸爸/妈妈/老婆” as fixed member names in the design system.
 
 ## 4. Safe Example Notes
 

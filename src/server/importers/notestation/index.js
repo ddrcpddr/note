@@ -35,7 +35,7 @@ export function createNotestationDryRunPreview(payload = {}) {
   };
 }
 
-export function createNotestationSamplePreview(memberId = 'history') {
+export function createNotestationSamplePreview(memberId = 'self') {
   const db = getDb();
   const importId = createId('import');
   const insertImport = db.prepare(`
@@ -73,7 +73,7 @@ export function createNotestationSamplePreview(memberId = 'history') {
   return getImportPreview(importId);
 }
 
-export function commitNotestationImport(importId, memberId = 'history') {
+export function commitNotestationImport(importId, memberId = 'self') {
   const db = getDb();
   const batch = db.prepare('SELECT * FROM imports WHERE id = ?').get(importId);
   if (!batch) {

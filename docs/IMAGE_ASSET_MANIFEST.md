@@ -28,7 +28,7 @@ Rules:
 
 | Type | Count | Frontend readiness | Figma readiness | Notes |
 | --- | ---: | --- | --- | --- |
-| avatars | 7 | Yes, after integration decision | Yes | Default member avatar candidates |
+| avatars | 7 files, 2 default roles | Yes, after integration decision | Yes | `avatar-self` and `avatar-partner` are defaults; other avatar files are optional future role presets |
 | categories | 11 | Yes, after icon mapping decision | Yes | Category icon candidates matching current category IDs |
 | illustrations | 6 | Yes, after size/performance review | Yes | Empty, import, backup, and app icon assets |
 | image2-previews | 2 | No | Style reference only | Composite preview boards, not final single-purpose assets |
@@ -37,12 +37,12 @@ Rules:
 
 | File | Relative path | Type | Purpose | Direct frontend use | Figma use | Style reference only | Needs split / regeneration |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| avatar-child.svg | `design/image-assets/v1/avatars/avatar-child.svg` | avatars | Default avatar for child member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if custom avatar upload/edit states need more variants |
-| avatar-elders.svg | `design/image-assets/v1/avatars/avatar-elders.svg` | avatars | Default avatar for elders / parents-in-law member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if elders and parents-in-law are split later |
-| avatar-other.svg | `design/image-assets/v1/avatars/avatar-other.svg` | avatars | Default avatar for other member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if more household roles are added |
-| avatar-parents.svg | `design/image-assets/v1/avatars/avatar-parents.svg` | avatars | Default avatar for parents member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if father/mother are separately customized by user |
-| avatar-partner.svg | `design/image-assets/v1/avatars/avatar-partner.svg` | avatars | Default avatar for spouse/partner group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if user customizes partner avatar |
-| avatar-pet.svg | `design/image-assets/v1/avatars/avatar-pet.svg` | avatars | Default avatar for pet member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if multiple pets need separate avatars |
+| avatar-child.svg | `design/image-assets/v1/avatars/avatar-child.svg` | avatars | Optional future avatar for child member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if custom avatar upload/edit states need more variants |
+| avatar-elders.svg | `design/image-assets/v1/avatars/avatar-elders.svg` | avatars | Optional future avatar for elders / parents-in-law member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if elders and parents-in-law are split later |
+| avatar-other.svg | `design/image-assets/v1/avatars/avatar-other.svg` | avatars | Optional future avatar for other member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if more household roles are added |
+| avatar-parents.svg | `design/image-assets/v1/avatars/avatar-parents.svg` | avatars | Optional future avatar for parents member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if father/mother are separately customized by user |
+| avatar-partner.svg | `design/image-assets/v1/avatars/avatar-partner.svg` | avatars | Default avatar for partner / 爱人 member | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if user customizes partner avatar |
+| avatar-pet.svg | `design/image-assets/v1/avatars/avatar-pet.svg` | avatars | Optional future avatar for pet member group | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if multiple pets need separate avatars |
 | avatar-self.svg | `design/image-assets/v1/avatars/avatar-self.svg` | avatars | Default avatar for current user / self | Yes, after member avatar mapping | Yes, member management and creator display | No | Maybe, if user-uploaded avatar support is added |
 | category-account.svg | `design/image-assets/v1/categories/category-account.svg` | categories | Category icon for documents / accounts | Yes, after category icon mapping | Yes, category page, filters, record cards | No | Usually no |
 | category-family.svg | `design/image-assets/v1/categories/category-family.svg` | categories | Category icon for household tasks | Yes, after category icon mapping | Yes, category page, filters, record cards | No | Usually no |

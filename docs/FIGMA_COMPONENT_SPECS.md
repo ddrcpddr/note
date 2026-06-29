@@ -86,17 +86,14 @@ Fields:
 Default design options:
 
 - 我
-- 老婆
-- 孩子
-- 父母
-- 老人/岳父母
-- 宠物
-- 其他
+- 爱人
+
+Additional members are user-defined and can later be renamed to 老婆、妻子、配偶、孩子、父母、老人/岳父母、宠物 or 其他.
 
 Rules:
 
 - Names are editable user labels.
-- Do not use “爸爸/妈妈” as fixed product labels.
+- Do not use “爸爸/妈妈/老婆” as fixed product labels.
 - Avatar can be initials, icon, or generated default avatar.
 - Color is customizable.
 

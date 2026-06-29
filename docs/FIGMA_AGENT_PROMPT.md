@@ -38,8 +38,8 @@ Product scope baseline:
 Member system:
 
 - Design from the current user's perspective.
-- Default member groups: 我、老婆、孩子、父母、老人/岳父母、宠物、其他.
-- Do not use “爸爸/妈妈” as fixed member names.
+- Default member groups: 我、爱人. Other household members are added or renamed by the user later.
+- Do not use “爸爸/妈妈/老婆” as fixed member names.
 - Member names, avatars, and colors must be customizable.
 - Member management page must support rename, avatar change, color change, and current member switching.
 - Home, Search, New Record, Detail, and Settings must all use this member system consistently.
