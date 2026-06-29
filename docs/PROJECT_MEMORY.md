@@ -560,3 +560,11 @@ MVP 需要覆盖：
 - 插画 runtime：6 个 `*-640.webp`，均为 `640 x 480`，约 `6.2-9.2 KB`。
 - PWA runtime：`app-icon-512.png`、`app-icon-192.png`、`app-icon-maskable-512.png`、`favicon-32.png`、`favicon-16.png`；512 图标约 `84.4 KB`，maskable 约 `65.7 KB`，192 约 `14.0 KB`。
 - 建议主开发线程前端接入时优先切换到 runtime 路径，source 原图继续供 Figma 和后续再生成使用。
+
+### Runtime 图片前端切换（2026-06-29）
+
+- 已接收视觉素材线程提交 `99cf6de Add runtime image asset variants`，新增 `design/image-assets/v1/runtime/` 下头像、分类、插画和 PWA 小图。
+- 前端 `src/client/assetMap.js` 已从 source PNG 切换为 runtime WebP：头像使用 `128x128`，分类图标使用 `96x96`，空状态 / 导入 / 备份插画使用 `640x480`。
+- PWA 图标已从 `design/image-assets/v1/runtime/pwa/` 复制到 `public/icons/`，`public/manifest.webmanifest` 改用 `app-icon-192.png`、`app-icon-512.png`、`app-icon-maskable-512.png`，`index.html` 改用 PNG favicon 和 apple-touch-icon。
+- source 原图继续保留给 Figma 和后续再生成使用；`image2-previews/` 仍仅作为风格参考。
+- 默认成员仍只内置“我 / 爱人”，本轮未修改真实 Note Station 导入数据、数据库、备份、导出或附件运行数据。
