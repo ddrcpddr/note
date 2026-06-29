@@ -583,8 +583,8 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
       <header className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-[32px] font-bold leading-none text-teal-600">家事记</h1>
-            <Home className="mt-1 text-teal-600" size={30} strokeWidth={2.2} />
+            <h1 className="text-[25px] font-bold leading-none text-teal-600">家事记</h1>
+            <Home className="mt-0.5 text-teal-600" size={25} strokeWidth={2.2} />
           </div>
           <p className="mt-2 text-[15px] text-muted">记录家里的大小事</p>
         </div>
@@ -757,7 +757,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[32px] font-bold leading-none text-[#093f3e]">搜索</h1>
+          <h1 className="text-[25px] font-bold leading-none text-[#093f3e]">搜索</h1>
           <p className="mt-2 text-[15px] text-muted">快速找到你需要的记录</p>
         </div>
         <button className="chip mt-3 px-3">
@@ -829,7 +829,7 @@ function CategoriesScreen({ notes, onSelectCategory }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">分类</h1>
+          <h1 className="text-[25px] font-bold leading-none text-[#093f3e]">分类</h1>
           <p className="mt-2 text-[15px] text-muted">按家里的事情慢慢整理</p>
         </div>
         <button className="grid h-12 w-12 place-items-center rounded-full bg-white text-teal-600 shadow-card">
@@ -1055,7 +1055,7 @@ function DetailScreen({ note, onBack }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex justify-between gap-2">
-              <h2 className="min-w-0 text-[26px] font-bold leading-tight" style={{ overflowWrap: 'anywhere' }}>{note.title}</h2>
+              <h2 className="min-w-0 text-[16px] font-bold leading-tight" style={{ overflowWrap: 'anywhere' }}>{note.title}</h2>
               <span className="text-[25px] text-muted">☆</span>
             </div>
             <div className={`mt-3 flex items-center gap-2 text-[17px] font-medium ${note.categoryColor}`}>
@@ -1266,7 +1266,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
     <>
       <header className="relative min-h-[142px]">
         <div>
-          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">设置</h1>
+          <h1 className="text-[25px] font-bold leading-none text-[#093f3e]">设置</h1>
           <p className="mt-2 text-[15px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
         </div>
         <div className="absolute right-0 top-0 h-24 w-32">
@@ -1481,7 +1481,7 @@ function RecordCard({ note, onClick }) {
         <div className={`circle-icon bg-white ${note.iconTone}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-11 w-11" iconSize={32} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 text-[21px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
+            <h3 className="min-w-0 text-[16px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
             <MoreHorizontal size={22} className="shrink-0 text-ink" />
           </div>
           <p className="record-summary mt-2 text-[16px] leading-relaxed text-muted">{note.summary}</p>
@@ -1555,7 +1555,7 @@ function RelatedRow({ title, meta }) {
   return (
     <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
       <div>
-        <p className="text-[18px] font-medium">{title}</p>
+        <p className="text-[16px] font-medium">{title}</p>
         <p className="mt-1 text-[14px] text-muted">{meta}</p>
       </div>
       <ChevronRight className="text-muted" />
