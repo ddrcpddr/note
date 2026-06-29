@@ -33,7 +33,7 @@
 | 检查项 | 结果 |
 | --- | --- |
 | `npm.cmd run check` | 通过 |
-| `npm.cmd run test` | 通过，9 项 API 集成测试通过 |
+| `npm.cmd run test` | 通过，16 项测试通过，覆盖 API、Note Station 解析 / 正式导入保护、PWA manifest 与 Docker ignore 安全规则 |
 | `npm.cmd run build` | 通过 |
 | `git status --short --branch` | 本轮文档更新前，功能提交为 `ca08d70 Strengthen-MVP-API-coverage` |
 

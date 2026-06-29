@@ -103,6 +103,18 @@ after(async () => {
 });
 
 describe('MVP API', () => {
+  test('reports storage paths under NOTE_DATA_DIR', async () => {
+    const health = await requestJson('/api/health');
+    const paths = health.dataPaths;
+
+    assert.equal(path.resolve(paths.dataDir), path.resolve(tempDataDir));
+    assert.equal(path.resolve(paths.databaseDir), path.join(path.resolve(tempDataDir), 'database'));
+    assert.equal(path.resolve(paths.attachmentsDir), path.join(path.resolve(tempDataDir), 'attachments'));
+    assert.equal(path.resolve(paths.backupsDir), path.join(path.resolve(tempDataDir), 'backups'));
+    assert.equal(path.resolve(paths.importsDir), path.join(path.resolve(tempDataDir), 'imports', 'notestation'));
+    assert.equal(path.resolve(paths.exportsDir), path.join(path.resolve(tempDataDir), 'exports'));
+  });
+
   test('reads seeded app data and note list', async () => {
     const appData = await requestJson('/api/app-data');
 

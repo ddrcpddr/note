@@ -627,3 +627,27 @@
 | `npm.cmd run test` | 通过，13 项测试全部通过 |
 | `npm.cmd run build` | 通过，Vite 生产构建成功 |
 | `docker compose config` | 未运行成功：当前机器未安装或未暴露 `docker` 命令，需在 NAS / Docker daemon 可用环境实机验证 |
+
+
+## 阶段 6：自动化 QA 回归补强（2026-06-29）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | NOTE_DATA_DIR、PWA manifest/runtime icons、Docker 构建上下文安全规则 |
+| 结论 | 自动化测试从 13 项扩展到 16 项；新增测试首次运行通过 |
+
+### 本轮新增覆盖
+
+| 覆盖项 | 说明 |
+| --- | --- |
+| 数据目录隔离 | `/api/health` 返回的 `dataPaths` 必须位于测试进程传入的 `NOTE_DATA_DIR` 下 |
+| PWA 安装配置 | manifest、standalone、portrait、runtime 图标和 index meta/link 均存在 |
+| Docker 安全忽略 | `.dockerignore` 必须包含 `data`、`*.nsx`、数据库、备份、导出、附件、日志和临时输出 |
+
+### 运行命令
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 111 条记录 |
+| `npm.cmd run test` | 通过，16 项测试全部通过 |
+| `npm.cmd run build` | 通过，Vite 生产构建成功 |

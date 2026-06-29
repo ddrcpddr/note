@@ -608,3 +608,11 @@ MVP 需要覆盖：
 - `.dockerignore` 同步增强，忽略 `data/`、`*.nsx`、数据库、备份、导出、附件、日志和临时 `output/`，降低 Docker 构建上下文泄露真实运行数据的风险。
 - README、NAS 部署说明、DEV_HANDOVER、NEXT_STEPS 已同步到当前事实：PWA runtime 图标准备完成，真实 `.nsx` 已完成 dry-run / sandbox / 正式导入，当前重点转为 NAS 实机试用和导入后人工整理。
 - 当前仍不接真实 NAS 地址、不做外网访问、不新增成员、不实现登录权限或真实附件上传。
+
+
+### 阶段 6：自动化 QA 回归补强（2026-06-29）
+
+- 在现有 Node 内置测试体系中补充回归护栏，不引入新测试框架或大型依赖。
+- MVP API 测试新增 `NOTE_DATA_DIR` 路径断言，确认测试 / 容器 / NAS 部署时数据目录会落到指定根目录，而不是误写工作目录。
+- 新增 `tests/pwa-config.test.js`，覆盖 PWA manifest、runtime 图标文件、移动端安装 meta，以及 `.dockerignore` 对 `data/`、`*.nsx`、数据库、备份、导出、附件和日志的忽略规则。
+- `npm.cmd run test` 当前为 16 项测试通过，覆盖 MVP API、Note Station NSX dry-run、正式导入保护、PWA/NAS 配置安全。
