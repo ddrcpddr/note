@@ -1,5 +1,5 @@
 import express from 'express';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { getDataPaths, getDb, getDbPath } from './db/database.js';
 import { categoriesRouter } from './routes/categories.js';
@@ -10,10 +10,6 @@ import { storageRouter } from './routes/storage.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3300);
-
-for (const dir of ['data', 'data/database', 'data/attachments', 'data/imports/notestation', 'data/backups', 'data/exports']) {
-  mkdirSync(path.resolve(process.cwd(), dir), { recursive: true });
-}
 
 getDb();
 

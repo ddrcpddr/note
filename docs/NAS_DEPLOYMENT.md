@@ -173,3 +173,31 @@ volumes:
 
 当前自动化已覆盖 JSON 全量导出和备份失败提示，但 Docker 镜像构建仍需要在可用 Docker daemon 或 NAS 环境中实机验证。
 
+
+
+## 阶段 5：家庭 NAS 试用前收口（2026-06-29）
+
+本阶段的目标是让移动端 MVP 可以被放到家庭 NAS / 局域网服务器上稳定试用，而不是接入真实 NAS 账号或外网访问。
+
+### 当前可直接使用的配置
+
+- 生产服务由 Express 同时提供 API 和 `dist/` 前端静态文件。
+- `NOTE_DATA_DIR=/data` 时，数据库、附件、备份、导入和导出都会写入容器内 `/data`。
+- `.dockerignore` 已忽略 `data/`、`*.nsx`、数据库、备份、导出、附件、日志和临时 `output/`。
+- PWA manifest、192 / 512 / maskable 图标和 favicon 已准备，可用于手机添加到桌面。
+
+### NAS 试用验证顺序
+
+1. 在 NAS / Docker 环境准备一个空的数据目录，并挂载到容器 `/data`。
+2. 运行 `docker compose up -d --build` 或在 Container Manager 中使用等价配置。
+3. 打开 `/api/health`，确认 `dataPaths` 都指向 `/data/...`。
+4. 手机在同一局域网访问应用地址，添加到桌面。
+5. 新建一条记录，刷新后确认不丢失。
+6. 在设置页执行“立即备份”和“导出 JSON”，确认文件出现在 NAS 挂载目录下。
+7. 抽查一条 Note Station 导入记录详情，确认来源信息和附件元数据可见。
+
+### 仍需实机确认
+
+- 当前机器未在真实 NAS Docker daemon 上完成镜像构建和容器启动验证。
+- NAS 在线 / 离线开关仍是应用内测试状态，不会探测真实 NAS 连接。
+- 不要把真实 NAS IP、域名、账号、密码或 token 写入仓库。

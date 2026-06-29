@@ -59,9 +59,9 @@ npm.cmd run dev
 
 ## 手机添加到桌面
 
-项目已包含基础 PWA 配置。部署或本地启动后，在同一局域网手机浏览器中访问前端地址，然后使用浏览器菜单里的“添加到主屏幕”或“安装应用”。
+项目已包含基础 PWA 配置和 runtime 图标。部署或本地启动后，在同一局域网手机浏览器中访问前端地址，然后使用浏览器菜单里的“添加到主屏幕”或“安装应用”。
 
-MVP 阶段暂不启用复杂离线同步；手机需要能访问家庭 NAS / 局域网服务才能正常读取和保存数据。
+MVP 阶段暂不启用 service worker 或复杂离线同步；手机需要能访问家庭 NAS / 局域网服务才能正常读取和保存数据。
 
 ## 构建
 
@@ -154,7 +154,7 @@ docker compose up -d --build
 http://localhost:3300
 ```
 
-`docker-compose.yml` 会把项目下的 `data/` 挂载到容器内 `/data`，并通过 `NOTE_DATA_DIR=/data` 让数据库、附件、备份、导入和导出都集中写入该目录。部署到 NAS 时，可以把 compose 里的 `./data:/data` 改成 NAS 上的实际目录，例如 `/volume1/docker/note-data:/data`。
+`docker-compose.yml` 会把项目下的 `data/` 挂载到容器内 `/data`，并通过 `NOTE_DATA_DIR=/data` 让数据库、附件、备份、导入和导出都集中写入该目录。部署到 NAS 时，把 compose 里的 `./data:/data` 改成 NAS 上的实际目录即可；文档只使用 `/your/nas/path/note-data:/data` 这类占位示例，不写入真实 NAS 地址。
 
 ## 备份
 
@@ -226,23 +226,24 @@ POST /api/storage/export-json
 - 分类、成员、标签和关键词筛选可用。
 - 手动备份会复制 SQLite 数据库到备份目录。
 - JSON 导出会写入导出目录，并已用超过 200 条记录的自动化测试确认会导出全量记录。
-- Docker / NAS 部署配置已准备。
-- PWA manifest 已准备，可添加到手机桌面。
+- Docker / NAS 部署配置已准备，容器内数据目录统一使用 `/data`。
+- PWA manifest 和 runtime 图标已准备，可添加到手机桌面。
+- Note Station 真实 `.nsx` 已完成 dry-run、sandbox 和正式导入流程；导入后可查看来源信息并在未分类中整理。
 
 ## 当前模拟功能
 
 - NAS 在线 / 离线状态仍是模拟，不连接真实 NAS。
 - 附件上传只保存元数据，不保存真实附件。
-- Note Station 导入使用样例数据和 dry-run 框架，不解析真实导出文件。
+- Note Station 导入已支持当前真实 `.nsx` 样例；其他 Synology Note Station 导出变体仍需要先 dry-run 验证。
 - 家庭成员切换不等于真实登录。
 - 私密记录 / 权限隔离只预留字段，暂不启用。
 - 复杂离线同步暂不实现。
 
 ## 后续需要提供
 
-- 一份脱敏后的 Synology Note Station 真实导出样例。
-- 目标 NAS 的部署方式，例如 Docker、Container Manager 或普通 Node 服务。
-- 家庭成员名单，以及是否需要简单访问口令。
+- 目标 NAS 的部署方式，例如 Docker Compose、群晖 Container Manager，还是普通 Node 服务。
+- NAS 上用于挂载 `/data` 的实际目录规划。
+- 是否需要简单访问口令；默认成员当前只保留“我 / 爱人”。
 - 是否需要外网访问，以及计划使用的内网穿透或反向代理方式。
 
 ## 常见问题

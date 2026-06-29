@@ -602,3 +602,28 @@
 | `npm.cmd run check` | 通过，正式库 111 条记录 |
 | `npm.cmd run test` | 通过，13 项测试全部通过 |
 | `npm.cmd run build` | 通过，Vite 生产构建成功 |
+
+
+## 阶段 5：PWA / NAS 部署收口（2026-06-29）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | PWA/NAS 部署配置、Docker 构建上下文安全、交接文档同步 |
+| 结论 | 配置已收口到可进入 NAS 实机试用；不包含真实 NAS 地址或账号信息 |
+
+### 本轮修正
+
+| 区域 | 调整 |
+| --- | --- |
+| 服务启动 | 移除固定创建工作目录 `data/...` 的逻辑，统一由数据库层按 `NOTE_DATA_DIR` 创建真实数据目录 |
+| Docker 构建上下文 | `.dockerignore` 增加 `*.nsx`、数据库、备份、导出、附件、日志和 `output/` 忽略规则 |
+| 文档 | README、NAS_DEPLOYMENT、DEV_HANDOVER、NEXT_STEPS、PROJECT_MEMORY 同步当前 PWA/NAS 试用状态 |
+
+### 运行命令
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 111 条记录 |
+| `npm.cmd run test` | 通过，13 项测试全部通过 |
+| `npm.cmd run build` | 通过，Vite 生产构建成功 |
+| `docker compose config` | 未运行成功：当前机器未安装或未暴露 `docker` 命令，需在 NAS / Docker daemon 可用环境实机验证 |

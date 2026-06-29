@@ -600,3 +600,11 @@ MVP 需要覆盖：
 - Notes API 增加 `source` 筛选参数，搜索页已有的来源筛选和自动化测试可以与后端能力保持一致。
 - 新增 API 测试覆盖 `source=notestation_import`；本阶段仍不新增分类批量整理、成员新增、权限或数据库结构变更。
 - Playwright 复查 390px / 430px x 8 screens 通过，失败数 0；`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均已通过。
+
+
+### 阶段 5：PWA / NAS 部署收口（2026-06-29）
+
+- 已将生产服务启动目录创建逻辑收敛到数据库层的 `NOTE_DATA_DIR` / `NOTE_DB_PATH` 规则，避免容器使用 `/data` 时额外在工作目录生成一套空 `data/...`。
+- `.dockerignore` 同步增强，忽略 `data/`、`*.nsx`、数据库、备份、导出、附件、日志和临时 `output/`，降低 Docker 构建上下文泄露真实运行数据的风险。
+- README、NAS 部署说明、DEV_HANDOVER、NEXT_STEPS 已同步到当前事实：PWA runtime 图标准备完成，真实 `.nsx` 已完成 dry-run / sandbox / 正式导入，当前重点转为 NAS 实机试用和导入后人工整理。
+- 当前仍不接真实 NAS 地址、不做外网访问、不新增成员、不实现登录权限或真实附件上传。

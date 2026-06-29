@@ -141,15 +141,16 @@ NOTE_DATA_DIR=/your/nas/path/note-data
 - 手动备份数据库
 - JSON 全量导出
 - Note Station 样例导入
-- Note Station dry-run 准备，不生成可提交导入批次
-- PWA manifest
-- Docker Compose 配置
+- Note Station 真实 `.nsx` dry-run、sandbox 和正式导入流程
+- 导入记录来源信息展示和未分类待整理提示
+- PWA manifest 和 runtime 图标
+- Docker Compose 配置，容器内数据目录统一为 `/data`
 
 ## 当前模拟能力
 
-- NAS 在线 / 离线状态
-- 附件真实上传
-- 真实 Note Station 文件解析
+- NAS 在线 / 离线状态仍是本地模拟
+- 新建记录的真实附件上传
+- 其他 Note Station 导出变体仍需先 dry-run 验证
 - 登录和权限
 - 离线同步
 

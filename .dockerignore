@@ -6,3 +6,13 @@ data
 .env.*
 npm-debug.log*
 *.local
+*.nsx
+*.db
+*.sqlite
+*.sqlite3
+backups
+exports
+attachments
+logs
+*.log
+output
