@@ -464,3 +464,20 @@ MVP 需要覆盖：
 - 本次导入所有记录仍先落入 `uncategorized`，原始分类/笔记本路径保留在 `originalCategory`、`originalPath` 和 metadata 中。
 - 已验证首页、搜索、分类筛选、详情字段、附件路径、手动备份、JSON 导出、`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
 - `.nsx`、dry-run JSON、正式数据库、备份、附件和导出文件仍在 `.gitignore` 保护范围内，不提交 GitHub。
+
+### 项目同步检查与下一阶段准备（2026-06-29 13:55:04 +08:00）
+
+- 本次同步前最新功能提交：`76a1a99 Fix: import Note Station attachments`，分支为 `main`，本地相对 `origin/main` 领先 6 个 commit。
+- 多 Agent / 多角色协作任务已经执行并沉淀到文档：Lead Agent 计划、QA 验收、Docs / Deploy 整理、Import Agent 路线和 UI Polish 边界均已记录在 `docs/AGENT_WORKPLAN.md`、`docs/RUN_RESULT_HANDOFF.md`、`docs/QA_REPORT_CURRENT.md` 和本文件中。
+- QA / 验收报告已生成并持续更新：当前 `docs/QA_REPORT_CURRENT.md` 覆盖 MVP API、移动端基础验收、Note Station dry-run、sandbox 导入、正式导入前保护流程和正式导入验收。
+- 真实 Synology Note Station `.nsx` 文件已成功识别为 ZIP/PK 结构，可在内存中读取，不需要把真实内容解压到工作区。
+- dry-run 解析已成功：真实样例 93 条记录全部解析成功，失败 0；解析器可读取标题、纯文本正文、原始 HTML / 富文本、创建时间、更新时间、原始路径、原始分类和附件元数据。
+- sandbox 导入测试已成功：写入 sandbox DB 93 条记录，失败 0，附件元数据验证通过，正式数据库当时未污染。
+- 正式导入前保护流程已完成并验证：默认 preflight 不写库；`--confirm` 前自动备份 `data/database/app.db` 到 `data/backups/`；失败时提供回滚说明。
+- 正式导入已完成：最终批次 `import_nsx_formal_mqysc6bn_h0ypw4`，正式库记录数从 18 增至 111，导入 93 条记录、失败 0、附件元数据 20、附件复制成功 20。
+- 首次正式导入发现真实附件字段是 `{key: { md5, name, ext, size... }}` map 结构，已用自动备份恢复正式库后修复解析器并重新导入，避免重复导入记录。
+- 最近一次完整检查通过：`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过；`npm.cmd run test` 当前 13 项测试通过。
+- `.gitignore` 当前保护的运行数据包括：`data/`、`.nsx`、dry-run JSON、sandbox 数据库、正式数据库、备份文件、导出文件、附件文件、真实 Note Station 导入目录和日志文件。
+- Git 当前只跟踪 `data/attachments/.gitkeep`、`data/backups/.gitkeep`、`data/database/.gitkeep`、`data/exports/.gitkeep`、`data/imports/.gitkeep` 这类占位文件；真实数据文件不进入 Git。
+- 当前尚未进入 Figma 原型设计文档阶段，也尚未进入 image2 图片素材说明文档阶段。
+- 建议下一阶段在用户确认后进入 Figma 原型设计文档 / image2 图片素材说明文档准备，但进入前仍需先确认：是否基于当前 V1 风格整理、是否只做文档不改 UI、是否需要脱敏截图、是否允许使用真实导入后的页面状态作为参考。

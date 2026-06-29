@@ -355,3 +355,42 @@
 ### 下一步建议
 
 建议用户人工检查首页、搜索、分类页、1 条带附件详情页、设置页备份/导出这 5 个流程。
+
+## 项目同步与安全复核（2026-06-29 13:55:04 +08:00）
+
+| 项目 | 内容 |
+| --- | --- |
+| 同步前最新功能提交 | `76a1a99 Fix: import Note Station attachments` |
+| 当前分支 | `main` |
+| 本地领先远程 | 同步检查开始时领先 6 个 commit |
+| 检查范围 | Git 状态、敏感文件跟踪、运行数据忽略、项目文档同步、check/test/build |
+
+### Git 与安全检查
+
+| 检查项 | 结果 |
+| --- | --- |
+| `git status --short --branch` | `main...origin/main [ahead 6]`，同步前工作区干净 |
+| `git log --oneline -10` | 最近提交包含正式导入附件修复、正式导入准备、sandbox 导入、dry-run 解析和 QA skill |
+| 未推送提交 | 同步检查开始时 6 个 |
+| `git ls-files data` | 仅跟踪 5 个 `.gitkeep` 占位文件 |
+| `git status --ignored data` | 正式 DB、sandbox DB、备份、导出、附件和导入目录均被忽略 |
+| `.nsx` / dry-run JSON | 未被 Git 跟踪 |
+| 日志文件 | 未发现被 Git 跟踪的日志文件 |
+| 密码 / token / 真实 NAS 地址 | `git grep` 未发现真实敏感值；命中项为规则说明、npm 包名或元数据 |
+
+### 最近工作沉淀状态
+
+| 工作项 | 状态 |
+| --- | --- |
+| 多 Agent 协作计划与执行 | 已记录 |
+| QA / 验收报告 | 已生成并更新 |
+| `.nsx` 识别 | 成功 |
+| dry-run 解析 | 成功，93 条成功、0 失败 |
+| sandbox 导入 | 成功，正式库未污染 |
+| 正式导入前保护流程 | 已完成，preflight + `--confirm` + 自动备份 + 回滚说明 |
+| 正式导入 | 已完成，93 条记录、20 个附件、0 失败 |
+| 自动化检查 | 最近一轮 `check/test/build` 通过 |
+
+### 下一阶段判断
+
+代码和文档同步 push 后，可以进入 Figma 原型设计文档准备阶段；但仍需用户确认：只基于 V1 风格整理、不改 UI、不调用 Product Design、不生成新 PNG，以及是否允许使用脱敏截图进入 image2 图片素材说明文档。

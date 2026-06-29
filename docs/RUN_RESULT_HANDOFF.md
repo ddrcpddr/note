@@ -208,3 +208,66 @@ data/exports/
 ```text
 2026-06-29 11:05:20 +08:00
 ```
+
+## 项目同步交接补充（2026-06-29 13:55:04 +08:00）
+
+### 当前 Git 状态
+
+- 当前分支：`main`
+- 同步前最新功能提交：`76a1a99 Fix: import Note Station attachments`
+- 本地相对远程：同步检查开始时 `main...origin/main [ahead 6]`
+- 同步前未推送提交数：6
+- 本轮同步文档提交完成后，以 `git log --oneline -10` 的最新提交为准。
+
+### 当前真实可用功能
+
+- SQLite 持久化记录。
+- 首页记录列表、详情页、新建记录、搜索、分类筛选、成员筛选。
+- 家庭成员切换。
+- 手动备份 SQLite 数据库。
+- JSON 全量导出。
+- PWA 基础 manifest，可用于手机添加到桌面。
+- Note Station `.nsx` dry-run 解析。
+- Note Station sandbox 导入验证。
+- Note Station 正式导入已执行，导入 93 条记录、20 个附件元数据，失败 0。
+
+### 当前仍是模拟或待确认功能
+
+- NAS 在线 / 离线状态仍是本地模拟，不连接真实 NAS 服务。
+- 登录、密码、PIN、复杂权限仍未实现。
+- Note Station 原始分类目前统一进入 `uncategorized`，后续需要人工整理分类映射。
+- 标签在当前真实样例中为 0，真实标签映射还无法验证。
+- 附件 MIME 主要按文件名基础推断，建议后续人工抽查附件可打开性。
+- Figma 原型设计文档和 image2 图片素材说明文档尚未开始。
+
+### 如何启动项目
+
+```bash
+npm.cmd run dev
+```
+
+默认地址：
+
+- 前端：`http://localhost:5173`
+- 后端：`http://localhost:3300`
+- 健康检查：`http://localhost:3300/api/health`
+
+### 如何运行测试
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+### 如何验证 Note Station 导入结果
+
+1. 打开首页，确认记录总数和导入记录可见。
+2. 搜索一条已知导入记录关键词，确认可搜到。
+3. 打开分类页或使用 `uncategorized` 筛选，确认可看到导入记录。
+4. 打开一条带附件的导入记录详情，确认标题、正文、来源、原始时间、原始路径和附件元数据可见。
+5. 在设置页执行手动备份和 JSON 导出，确认生成文件位于被 Git 忽略的 `data/backups/` 与 `data/exports/`。
+
+### 下一阶段建议
+
+可以在用户确认后进入 Figma 原型设计文档阶段，但建议只做文档和流程整理，不重做 UI、不调用 Product Design、不生成新 PNG、不改变 V1 风格。进入前需要确认是否允许使用当前真实导入后的页面状态做脱敏参考，以及 image2 图片素材说明文档的目标格式。
