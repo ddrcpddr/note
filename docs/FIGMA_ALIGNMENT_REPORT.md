@@ -206,3 +206,25 @@ Remaining differences:
 
 - Secondary action bars are still fixed for usability and to avoid hiding primary actions on long imported notes.
 - Current MVP keeps its real Note Station safety wording and member selector even where the older V1 static mock did not show those product additions.
+
+## 12. V1 Record And Detail Information Hierarchy（2026-06-29）
+
+This pass focuses on record card density and detail-page information hierarchy.
+
+Frontend changes made:
+
+- Record card summaries now clamp to two lines, keeping imported long text from making cards feel heavier than the V1 timeline reference.
+- Detail page keeps the core V1-style metadata rows focused on create time, update time, and source.
+- Creator and saved status are still shown, but now as small chips below the main metadata rows instead of extra table-like rows.
+- The detail content section uses a list-style icon, closer to the V1 detail reference than a tag icon.
+
+Validation:
+
+- `npm.cmd run build` passed after the frontend changes.
+- Playwright mobile audit passed at 390px and 430px across 8 screens: `failed: 0`.
+- DOM metrics confirmed page titles remain 36px, card radius remains 20px, and 390px pages do not exceed viewport width.
+
+Remaining differences:
+
+- Detail page still preserves creator/status and Note Station import metadata because they are real current MVP information.
+- Long detail content remains fully readable in the detail page; only timeline summaries are visually clamped.

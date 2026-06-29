@@ -67,6 +67,13 @@
     @apply inline-flex items-center rounded-lg px-2.5 py-1 text-[13px] font-medium;
   }
 
+  .record-summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   .bottom-nav {
     @apply fixed bottom-3 left-1/2 z-30 grid h-[76px] w-[calc(100%-24px)] max-w-[398px] -translate-x-1/2 grid-cols-4 rounded-[28px] border border-line/75 bg-white/95 px-4 py-2 shadow-[0_8px_26px_rgba(39,43,48,0.12)] backdrop-blur;
   }

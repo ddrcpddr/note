@@ -20,6 +20,7 @@ import {
   Inbox,
   KeyRound,
   Lightbulb,
+  ListChecks,
   MoreHorizontal,
   Paperclip,
   PawPrint,
@@ -1070,9 +1071,11 @@ function DetailScreen({ note, onBack }) {
         <div className="mt-5 space-y-3.5 border-t border-line pt-5 text-[16px] text-muted">
           <MetaRow icon={CalendarDays} label="创建" value={note.createdAt} />
           <MetaRow icon={Clock3} label="更新" value={note.updatedAt} />
-          <MetaRow icon={UserRound} label="创建人" value={note.member} />
           <MetaRow icon={FileText} label="来源" value={note.source} />
-          <MetaRow icon={Cloud} label="状态" value={note.status} emphasize />
+          <div className="flex flex-wrap gap-2 pt-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1.5 text-[14px] font-medium text-teal-700"><UserRound size={16} /> {note.member}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-soft px-3 py-1.5 text-[14px] font-medium text-muted"><Cloud size={16} /> {note.status}</span>
+          </div>
         </div>
         {note.sourceType === 'notestation_import' && (
           <div className="mt-5 rounded-2xl bg-teal-50/70 p-4 text-[15px] leading-relaxed text-muted">
@@ -1085,7 +1088,7 @@ function DetailScreen({ note, onBack }) {
         )}
       </section>
       <section className="soft-card mt-4 p-5">
-        <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Tags size={22} /> 内容</h2>
+        <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><ListChecks size={22} /> 内容</h2>
         <p className="mt-4 text-[18px] leading-[1.8]">{note.content}</p>
       </section>
       <section className="soft-card mt-4 p-5">
@@ -1478,7 +1481,7 @@ function RecordCard({ note, onClick }) {
             <h3 className="min-w-0 text-[21px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
             <MoreHorizontal size={22} className="shrink-0 text-ink" />
           </div>
-          <p className="mt-2 text-[16px] leading-relaxed text-muted">{note.summary}</p>
+          <p className="record-summary mt-2 text-[16px] leading-relaxed text-muted">{note.summary}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {note.tags.map((tag) => <span className={`tag ${tag.tone}`} key={tag.label}>{tag.label}</span>)}
           </div>
