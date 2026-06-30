@@ -830,3 +830,10 @@ MVP 需要覆盖：
 - 刷新 `docs/TRIAL_RUN_READINESS_REPORT.md` 到当前真实状态：最新提交 `4aa5cd8`、本地领先远程 11 个提交、Docker 容器 `note` healthy、正式库记录数 112、自动化测试 26 项通过。
 - 同步 `docs/RUN_RESULT_HANDOFF.md`，追加当前 Docker / Android 决策交接补充，避免后续线程误读早期“16 项测试、附件上传/PIN 未实现”等历史状态。
 - 当前 Docker 测试地址为 `http://127.0.0.1:3300/`；手机试运行使用同局域网地址，不把真实 IP 或 NAS 地址写入仓库。
+
+### Docker 试运行发现数据库完整性问题（2026-06-30）
+
+- Docker HTTP 烟测发现真实问题：SPA 页面路径返回 200，但业务 API `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 500。
+- Docker 日志显示 `database disk image is malformed`；主机和容器对 `data/database/app.db` 执行 `PRAGMA integrity_check` 均失败，说明正式 SQLite 文件已有损坏。
+- 扫描 `data/backups/` 后，最近健康备份为 `app-2026-06-29T05-40-32-597Z.db`，111 条记录；最新 `app-2026-06-30T04-06-15-239Z.db` 同样损坏，不建议恢复。
+- 已创建 `docs/DATABASE_INTEGRITY_RECOVERY.md` 记录诊断、恢复候选和安全步骤；已停止 Docker 容器，未自动替换正式库，等待用户确认。

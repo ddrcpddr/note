@@ -1258,3 +1258,15 @@
 | 当前测试数量 | 26 项自动化测试通过 |
 | 真实运行数据 | `data/` 仍被 Git 忽略 |
 | Android 工程 | 尚未创建，等待用户确认决策清单 |
+
+## Docker 试运行数据库完整性问题（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 触发 | Docker HTTP 烟测中 SPA 路由 200，但 `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 500 |
+| 错误 | `database disk image is malformed` |
+| 根因状态 | 已确认 `data/database/app.db` 主机和容器 integrity_check 均失败 |
+| 最近健康备份 | `data/backups/app-2026-06-29T05-40-32-597Z.db`，111 条记录，integrity_check ok |
+| 当前处理 | 已停止 Docker 容器，未自动恢复，等待用户确认 |
+
+详见：`docs/DATABASE_INTEGRITY_RECOVERY.md`。

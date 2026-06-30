@@ -9,7 +9,7 @@
 
 ## 2. 当前阶段结论
 
-当前 Web / PWA / Docker 版本已经可以进入真实手机和家庭局域网试运行。Android 原生 App 封装仍排最后；在创建 Android 工程前，需要先按 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md` 确认包名、封装路线、最低 Android 版本、NAS 地址配置策略和签名方式。
+当前 Web / PWA / Docker 代码和镜像可以运行，但本地正式数据库 `data/database/app.db` 已确认损坏，Docker 业务 API 暂不可用于试运行。需要先按 `docs/DATABASE_INTEGRITY_RECOVERY.md` 恢复到最近健康备份，再进入真实手机和家庭局域网试运行。Android 原生 App 封装仍排最后；在创建 Android 工程前，需要先按 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md` 确认包名、封装路线、最低 Android 版本、NAS 地址配置策略和签名方式。
 
 ## 3. check / test / build 结果
 
@@ -27,19 +27,19 @@
 | `docker-compose.yml` | 存在，端口 `3300:3300`，`NOTE_DATA_DIR=/data`，`./data:/data` |
 | `.dockerignore` | 已排除 `data/`、`*.nsx`、数据库、备份、导出、附件、日志和 `output/` |
 | 当前容器 | `note` |
-| 当前状态 | `Up` 且 `healthy` |
+| 当前状态 | 已停止；此前容器 healthcheck healthy，但业务 API 因数据库损坏返回 500 |
 | 当前端口 | `0.0.0.0:3300->3300/tcp` |
-| 健康接口 | `http://127.0.0.1:3300/api/health` 返回 200 |
-| 前端访问 | `http://127.0.0.1:3300/` 可打开 |
+| 健康接口 | 此前返回 200；该接口不验证业务查询或数据库完整性 |
+| 前端访问 | 此前 SPA 页面可打开；业务 API 暂不可用 |
 | 容器数据目录 | `/data/database/app.db`，确认 `NOTE_DATA_DIR=/data` 生效 |
 
-本机测试地址：
+恢复数据库并重新启动 Docker 后，本机测试地址：
 
 ```text
 http://127.0.0.1:3300/
 ```
 
-手机同局域网测试地址：
+恢复数据库并重新启动 Docker 后，手机同局域网测试地址：
 
 ```text
 http://<这台电脑或 NAS 的局域网 IP>:3300/
@@ -74,7 +74,17 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 - 复杂离线同步 / 手机本地数据库不建议现在做。
 - 其他 Synology Note Station 导出变体仍需先 dry-run，不硬猜格式。
 
-## 7. 当前已知风险
+## 7. 当前阻塞问题
+
+- 正式数据库 `data/database/app.db` 已确认 `PRAGMA integrity_check` 失败。
+- Docker 业务 API `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 500。
+- 最近健康备份为 `data/backups/app-2026-06-29T05-40-32-597Z.db`，111 条记录。
+- 最新备份 `app-2026-06-30T04-06-15-239Z.db` 同样损坏，不建议恢复。
+- 当前已停止 Docker 容器，等待用户确认是否恢复数据库。
+
+详见：`docs/DATABASE_INTEGRITY_RECOVERY.md`。
+
+## 8. 当前已知风险
 
 - Docker compose 默认把本地 `./data` 挂载到容器 `/data`；NAS 实机部署前必须确认 NAS 挂载目录可写。
 - SQLite 试运行中应避免多个服务长期同时写同一个 `app.db`。
@@ -82,7 +92,7 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 - `NOTE_ACCESS_PIN` 只是家庭局域网轻量入口保护，不是账号 / 权限系统。
 - Android WebView / TWA 工程启动前必须确认包名、签名和地址配置策略。
 
-## 8. 手机端待人工验收
+## 9. 手机端待人工验收
 
 详见：`docs/MOBILE_TRIAL_CHECKLIST.md`。
 
@@ -99,23 +109,23 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 9. `NOTE_ACCESS_PIN` 开启时的手机端解锁流程。
 10. 长标题、长正文、长链接是否横向溢出。
 
-## 9. Android 封装前置状态
+## 10. Android 封装前置状态
 
 - 已创建：`docs/ANDROID_WRAPPER_PLAN.md`
 - 已创建：`docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md`
 - 推荐路线：先 PWA 试运行，再做 Android WebView 壳。
 - 当前暂停点：用户确认包名、App 名、最低 Android 版本、地址策略、签名方式和依赖授权前，不创建 Android 工程、不安装 Android 依赖、不生成 keystore。
 
-## 10. 是否建议进入家庭局域网试运行
+## 11. 是否建议进入家庭局域网试运行
 
-建议进入真实家庭局域网试运行。
+暂不建议继续用当前正式库进入真实家庭局域网试运行。
 
 理由：
 
-- `check/test/build` 已通过。
-- Docker 容器当前 healthy。
-- 前端和 API 可从同一端口 `3300` 访问。
-- 数据目录在容器内正确指向 `/data`。
+- `check/test/build` 已通过，但不能证明正式数据库完整。
+- Docker SPA 页面此前可打开，但业务 API 已因数据库损坏返回 500。
+- 当前 Docker 容器已停止，避免继续读写损坏库。
+- 必须先恢复或修复 `data/database/app.db`，并重新验证 `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 200。
 - 真实运行数据仍被 Git 忽略，没有进入提交。
 
-试运行后，再根据真实手机反馈决定是否进入 Android WebView 工程或继续修小问题。
+恢复后，再根据真实手机反馈决定是否进入 Android WebView 工程或继续修小问题。
