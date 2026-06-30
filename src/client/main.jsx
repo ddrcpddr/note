@@ -1692,6 +1692,17 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
     }
   }
 
+  async function exportMarkdown() {
+    try {
+      const response = await fetch('/api/storage/export-markdown', { method: 'POST' });
+      if (!response.ok) throw new Error('markdown export failed');
+      await response.json();
+      setStorageMessage('导出完成，Markdown 文件已保存到 data/exports/。');
+    } catch {
+      setStorageMessage('Markdown 没有导出成功，请确认服务端正在运行后再试。');
+    }
+  }
+
   return (
     <>
       <header className="relative min-h-[142px]">
@@ -1760,6 +1771,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
       <SectionTitle>导出</SectionTitle>
       <section className="soft-card divide-y divide-line">
         <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action="导出" onClick={exportJson} />
+        <SettingsRow title="导出 Markdown" desc="导出所有记录为 Markdown 文件" icon={FileText} action="导出" onClick={exportMarkdown} />
       </section>
       <SectionTitle>附件目录</SectionTitle>
       <section className="soft-card">

@@ -23,6 +23,17 @@ storageRouter.post('/backup', (request, response) => {
   response.json({ backup, ...getStorageStatus() });
 });
 
+storageRouter.post('/export-markdown', (_request, response) => {
+  const paths = getDataPaths();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const exportPath = path.join(paths.exportsDir, `notes-${timestamp}.md`);
+  const markdown = renderNotesMarkdown(listNotes({ limit: 'all' }));
+  writeFileSync(exportPath, markdown, 'utf8');
+  const fileSize = statSync(exportPath).size;
+
+  response.json({ export: { filePath: exportPath, fileSize }, ...getStorageStatus() });
+});
+
 storageRouter.post('/export-json', (_request, response) => {
   const paths = getDataPaths();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -36,6 +47,33 @@ storageRouter.post('/export-json', (_request, response) => {
 
   response.json({ export: { filePath: exportPath, fileSize }, ...getStorageStatus() });
 });
+
+function renderNotesMarkdown(notes) {
+  const lines = ['# 家事记 Markdown 导出', '', `导出时间：${new Date().toISOString()}`, ''];
+
+  for (const note of notes) {
+    lines.push(`## ${escapeMarkdownHeading(note.title)}`);
+    lines.push('');
+    lines.push(`- ID：${note.id}`);
+    lines.push(`- 分类：${note.categoryName || note.categoryId || '未分类 / 待整理'}`);
+    lines.push(`- 成员：${note.memberName || note.memberId || '我'}`);
+    lines.push(`- 来源：${note.sourceType === 'notestation_import' ? 'Note Station 导入' : '手动创建'}`);
+    lines.push(`- 创建时间：${note.createdAt || ''}`);
+    lines.push(`- 更新时间：${note.updatedAt || ''}`);
+    if (note.tags?.length) lines.push(`- 标签：${note.tags.map((tag) => tag.label).join('、')}`);
+    if (note.attachments?.length) lines.push(`- 附件：${note.attachments.map((attachment) => attachment.originalName || attachment.fileName).join('、')}`);
+    if (note.originalPath) lines.push(`- 原始路径：${note.originalPath}`);
+    lines.push('');
+    lines.push(note.content || note.summary || '');
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function escapeMarkdownHeading(value) {
+  return String(value || '未命名记录').replace(/^#+\s*/, '').trim() || '未命名记录';
+}
 
 export function createDatabaseBackup() {
   const paths = getDataPaths();

@@ -447,6 +447,30 @@ describe('MVP API', () => {
     assert.ok(exported.export.fileSize > 0);
   });
 
+  test('exports notes as Markdown', async () => {
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Markdown 导出测试记录',
+        content: '这条记录用于验证 Markdown 导出正文。',
+        categoryId: 'family',
+        memberId: 'self',
+        tags: ['导出测试']
+      })
+    });
+
+    const exported = await requestJson('/api/storage/export-markdown', { method: 'POST' });
+    assert.ok(exported.export.filePath.includes('exports'));
+    assert.ok(exported.export.filePath.endsWith('.md'));
+    assert.ok(exported.export.fileSize > 0);
+
+    const markdown = readFileSync(exported.export.filePath, 'utf8');
+    assert.match(markdown, /# 家事记 Markdown 导出/);
+    assert.match(markdown, /## Markdown 导出测试记录/);
+    assert.match(markdown, /这条记录用于验证 Markdown 导出正文。/);
+    assert.match(markdown, new RegExp(created.note.id));
+  });
+
   test('reports failed backup when NAS is offline', async () => {
     const offline = await requestRaw('/api/storage/backup', {
       method: 'POST',

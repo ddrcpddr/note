@@ -1155,3 +1155,26 @@
 | 设置 `NOTE_AUTO_BACKUP_INTERVAL_MS` 后生成备份 | 自动化测试通过 |
 | 最新备份状态可通过 `/api/storage/status` 读取 | 自动化测试通过 |
 | 备份文件位置 | `data/backups/`，继续被 Git 忽略 |
+
+## Markdown 导出 P1 验收（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | 全量记录 Markdown 导出，设置页入口 |
+| 原则 | 不提交导出文件，不暴露真实笔记内容到文档，不替代 JSON 导出 |
+
+### TDD 过程
+
+| 步骤 | 结果 |
+| --- | --- |
+| 新增 `exports notes as Markdown` 测试 | 红灯，`/api/storage/export-markdown` 不存在 |
+| 实现 Markdown 导出 API | 单文件 API 测试转绿，18 项通过 |
+
+### 验收点
+
+| 检查项 | 结果 |
+| --- | --- |
+| Markdown 文件写入 `data/exports/` | 自动化测试通过 |
+| 导出包含标题、正文、记录 ID | 自动化测试通过 |
+| 设置页入口 | 已接入，构建通过 |
+| JSON 导出 | 保持可用 |

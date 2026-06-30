@@ -794,3 +794,10 @@ MVP 需要覆盖：
 - 默认不启用自动备份；设置 `NOTE_AUTO_BACKUP_INTERVAL_HOURS` 后按小时级间隔把 `app.db` 复制到 `data/backups/`。测试环境可用 `NOTE_AUTO_BACKUP_INTERVAL_MS`。
 - 自动备份失败会写入 `backups` 表的 failed 状态和错误信息；不会提交任何备份文件或数据库文件。
 - 自动化测试已覆盖：启用 `NOTE_AUTO_BACKUP_INTERVAL_MS` 后，服务会生成备份文件并可通过 `/api/storage/status` 看到 completed 最新备份。
+
+### Markdown 导出闭环（2026-06-30）
+
+- P1 第 8 项“Markdown 导出”已完成本地开发：设置页现在可以导出 JSON 和 Markdown。
+- 后端新增 `POST /api/storage/export-markdown`，导出全量 `listNotes({ limit: "all" })` 为单个 Markdown 文件，落到 `data/exports/`。
+- Markdown 内容包含记录标题、ID、分类、成员、来源、创建 / 更新时间、标签、附件清单、原始路径和正文；不提交导出文件。
+- 自动化测试已覆盖：Markdown 文件写入导出目录，包含导出标题、目标记录标题、正文和记录 ID。
