@@ -716,3 +716,13 @@ MVP 需要覆盖：
 - 当前主页面标题已调整为：首页 `家事记` 32px，搜索 32px，分类 30px，设置 30px；主页面副标题统一 15px。
 - 该调整只影响视觉字号，不修改业务逻辑、数据库、导入、备份、导出或成员体系。
 - 验证结果：`npm.cmd run build` 通过；DOM 指标确认 390px 下页面宽度正常、标题字号为 32/30px、卡片圆角 20px；Playwright 390px / 430px x 8 screens 通过，失败数 0。
+
+### V1 字体最终试用收口与项目记忆同步（2026-06-30）
+
+- 用户基于本地视觉试用继续反馈 V1 字体尺度，最终将主页面左上角标题统一收敛为 `25px`，首页、搜索、分类、设置保持更克制的标题尺度。
+- 记录相关标题按用户确认统一收敛为 `16px`：记录卡片标题、详情页记录标题、关联记录标题；该调整只改视觉字号，不修改业务逻辑、数据结构、导入、备份、导出、成员体系或真实 Note Station 数据。
+- 最新功能提交为 `6a0d046 Tune V1 typography scale`，已推送到 GitHub；提交前运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`，全部通过，其中自动化测试为 16 项通过。
+- Git 维护：用户允许后已执行 `git prune`，loose objects 从 `12492 / 188.70 MiB` 清理到 `0 / 0 bytes`；未产生代码改动或提交。
+- Skill 状态：已从 `multica-ai/andrej-karpathy-skills` 安装并读取 `karpathy-guidelines`，后续编码/评审按“先想清楚、保持简单、外科手术式修改、可验证目标”执行；新安装 skill 通常需重启 Codex 后才会出现在可用技能列表。
+- 当前 Git 状态：`main` 与 `origin/main` 对齐，工作区干净；本轮记忆同步前确认 `docs/PROJECT_MEMORY.md` 文件本身与 GitHub 一致，但内容缺少最新字体、Git 维护和 skill 安装记录，因此补充本段。
+- 下一步建议仍是先做真实手机和 NAS / Docker 实机验收，再根据真实试用反馈做小步 UI 微调或进入附件上传、简单访问口令等 P1 项。
