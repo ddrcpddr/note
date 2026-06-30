@@ -916,3 +916,13 @@ MVP 需要覆盖：
   - `TF-20260630-002`：首页“今天要记 / 快速记录”点击无反应，已由 `98ad2c9` 修复。
 - 本阶段只做文档和流程收口，不新增功能、不重做 UI、不调用 Product Design、不生成图片、不创建 Android 工程。
 - 后续真实手机反馈应先写入 `docs/TRIAL_FEEDBACK_LOG.md` 或按模板提供，再按 `mvp-bugfix-qa` 流程一个 bug 一个 `Fix:` commit 处理。
+
+### Gate 4：备份 / 恢复演练强化（2026-06-30）
+
+- 根据持续开发计划进入 Gate 4，本轮只强化备份与恢复流程文档，不新增功能、不修改数据库结构、不接真实 NAS、不创建 Android 工程。
+- 已重写 `docs/BACKUP_RESTORE_DRILL.md`，将数据库损坏后的真实经验固化为强流程：试运行前必须备份 `app.db` 和 `attachments/`，恢复前必须停止 Node / Docker，`restore-db` 默认 dry-run，只有 `--confirm` 才真正替换正式库。
+- 文档明确不恢复 `integrity_check` 未通过的备份，恢复后必须运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`，Docker / NAS 场景还需运行 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`。
+- 已记录 Docker / NAS 试运行前后保留快照、避免重复 Note Station 导入、恢复附件目录、以及出问题时先保留现场再修复的规则。
+- 现有 `tests/database-restore.test.js` 已覆盖 dry-run 不替换正式库、`--confirm` 保留恢复前副本、坏备份拒绝；本轮无需新增重复测试。
+- 本轮验证结果：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。
+- 提交前安全检查：Git 仍只跟踪 `data/**/.gitkeep`；正式数据库、备份、导出、附件、sandbox DB 和真实导入目录均为 ignored 运行数据。

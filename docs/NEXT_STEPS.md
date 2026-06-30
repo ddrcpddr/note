@@ -159,3 +159,15 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 下一步真实手机试运行时，请尽量按模板记录：页面、操作步骤、预期结果、实际结果、截图路径、是否影响数据和严重程度。当前已登记并关闭两条反馈：标签编辑 / 导入页文案、首页今天要记无响应。
 
 当前仍不建议新增大功能。继续真实试用，出现 P0 / P1 问题时按 `mvp-bugfix-qa` 流程小步修复。
+
+## Gate 4：备份 / 恢复演练已强化（2026-06-30）
+
+已更新 `docs/BACKUP_RESTORE_DRILL.md`，下一次真实手机 / NAS 试运行前请先按该文档完成：
+
+1. 停止 Node / Docker 后备份 `data/database/app.db`。
+2. 同步备份 `data/attachments/`。
+3. 记录当前 Git commit。
+4. NAS 上保留数据目录快照。
+5. 出问题时先对目标备份运行 `npm.cmd run restore-db -- --backup <backup.db>` dry-run，确认 `ok=true` 后再追加 `--confirm`。
+
+当前仍建议继续真实手机试运行，只处理 P0 / P1 真实反馈；不要在未完成一轮稳定试用前继续扩展大功能、Android 工程或外网访问方案。

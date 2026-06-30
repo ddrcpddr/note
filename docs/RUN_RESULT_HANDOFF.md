@@ -455,3 +455,17 @@ npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
 - HTTP 烟测：`npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过；app-data 返回 `notes: 111`，手动备份、JSON 导出和前端 shell 均通过。
 - 当前风险：最近健康备份之后、损坏发生之前的 1 条记录未恢复；如确实需要找回，必须单独做只读 salvage 评估，并在用户确认后进行，不能直接从损坏库写回。
 - 当前建议：可以继续进入真实手机 / NAS 试运行，但试运行前保留本次恢复用备份和 `app-before-restore` 损坏库副本，避免后续误删。
+
+## Gate 4：备份 / 恢复演练强化交接（2026-06-30）
+
+- 已强化 `docs/BACKUP_RESTORE_DRILL.md`，把正式库损坏后的恢复经验转成试运行前后必须执行的流程。
+- 关键规则：恢复前停 Node / Docker；`restore-db` 先 dry-run；只有 `--confirm` 替换正式库；坏备份不恢复；恢复后必须 check/test/build，Docker / NAS 场景必须 smoke。
+- 试运行前需要保存：`data/database/app.db`、`data/attachments/`、最近健康备份、最近导出文件和当前 Git commit。
+- 运行数据仍只保存在 `.gitignore` 覆盖的 `data/` 下，不提交 GitHub。
+
+### Gate 4 验证结果
+
+- `npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`。
+- `npm.cmd run test` 通过，33 项测试全部通过。
+- `npm.cmd run build` 通过。
+- `git ls-files data` 只跟踪 5 个 `.gitkeep`；正式数据库、备份、导出、附件、sandbox DB 和真实导入目录均未进入 Git 跟踪。

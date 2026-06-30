@@ -1428,3 +1428,41 @@
 | 测试结果 | `npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。 |
 | 仍然存在的问题 | 当前无未处理反馈；继续等待真实手机试运行反馈。 |
 | 下一步建议 | 后续每个真实反馈先按模板登记，再按 P0/P1/P2/P3 排序处理；P1 继续一个 bug 一个 `Fix:` commit。 |
+
+## Gate 4：备份 / 恢复演练文档验收（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | 备份 / 恢复演练强化，面向真实手机、Docker、NAS 试运行前后的数据保护 |
+| 修改内容 | 更新 `docs/BACKUP_RESTORE_DRILL.md`，同步 `docs/PROJECT_MEMORY.md`、`docs/QA_REPORT_CURRENT.md`、`docs/NEXT_STEPS.md` 和 `docs/RUN_RESULT_HANDOFF.md` |
+| 复现背景 | 项目曾在 Docker 真实 data smoke 阶段遇到 `database disk image is malformed`，需要把恢复流程固化为可重复演练 |
+| 处理结论 | 本轮不改业务代码、不恢复数据库、不触碰真实运行数据，只强化文档和验收规则 |
+
+### 验收点
+
+| 检查项 | 结果 |
+| --- | --- |
+| 试运行前手动备份 `app.db` | 已写入强制原则 |
+| 试运行前备份 `attachments/` | 已写入强制原则和操作命令 |
+| 恢复前停止 Node / Docker | 已写入恢复流程 |
+| `restore-db` 默认 dry-run | 已写入预检流程 |
+| `--confirm` 才真正恢复 | 已写入确认恢复流程 |
+| 坏备份不恢复 | 已写入停止条件 |
+| Docker / NAS 快照 | 已写入快照策略 |
+| 恢复后 check/test/build | 已写入恢复后验收 |
+| Docker / NAS smoke | 已写入恢复后验收 |
+| 避免重复 Note Station 导入 | 已写入专门章节 |
+
+### 已有自动化覆盖
+
+`tests/database-restore.test.js` 已覆盖健康备份 dry-run、确认恢复保留前库副本、非数据库 / 损坏备份拒绝；`npm.cmd run check` 已覆盖 SQLite `PRAGMA integrity_check`。
+
+### Gate 4 本轮验证结果
+
+| 命令 / 检查 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`、`noteCount=113` |
+| `npm.cmd run test` | 通过，33 项测试全部通过 |
+| `npm.cmd run build` | 通过，Vite 生产构建成功 |
+| `git ls-files data` | 只跟踪 5 个 `.gitkeep` 占位文件 |
+| 敏感运行数据 | 正式数据库、备份、导出、附件、sandbox DB、真实导入目录均未被 Git 跟踪 |
