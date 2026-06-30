@@ -1358,3 +1358,10 @@
 - HTTP 烟测：`npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过；app-data 返回 `notes: 111`，手动备份、JSON 导出和前端 shell 均通过。
 - 当前风险：最近健康备份之后、损坏发生之前的 1 条记录未恢复；如确实需要找回，必须单独做只读 salvage 评估，并在用户确认后进行，不能直接从损坏库写回。
 - 当前建议：可以继续进入真实手机 / NAS 试运行，但试运行前保留本次恢复用备份和 `app-before-restore` 损坏库副本，避免后续误删。
+### Gate 2：真实手机局域网试运行准备（2026-06-30）
+
+- 已将用户提供的持续开发工作计划保存到 `docs/CODEX_CONTINUOUS_DEVELOPMENT_PLAN.md`，作为后续 Lead Agent 的 Gate 流程参考。
+- 当前 Gate 判断：Gate 0 正式数据库恢复已完成；Gate 1 Docker 真实 `data/` smoke 已通过；本轮进入 Gate 2，只做真实手机局域网试运行准备，不开发新功能。
+- 已更新 `docs/MOBILE_TRIAL_CHECKLIST.md`，补充恢复后正式库前提、Docker 真实 `data/` 挂载、手机局域网访问、防火墙排查、Markdown 导出、小附件上传、PIN、存储目录探测、长链接和底部导航检查。
+- 当前局域网 IP 仅在聊天回复中提示，不写入仓库，避免把真实地址固化到 Git。
+- 下一步停止点：等待用户用 Android 手机访问 `http://<局域网IP>:3300/` 做真实试运行；在真实反馈前，不继续新增功能、Android 工程或视觉重做。

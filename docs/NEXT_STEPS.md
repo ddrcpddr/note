@@ -135,3 +135,10 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 ```
 
 注意：该实例使用 `note-trial-data` Docker 命名卷，不是正式 `data/`。下一步正式试运行前仍需用户确认是否恢复最近健康备份，然后再用默认 Docker / NAS 数据目录重新验收。
+### Gate 2：真实手机局域网试运行准备（2026-06-30）
+
+- 已将用户提供的持续开发工作计划保存到 `docs/CODEX_CONTINUOUS_DEVELOPMENT_PLAN.md`，作为后续 Lead Agent 的 Gate 流程参考。
+- 当前 Gate 判断：Gate 0 正式数据库恢复已完成；Gate 1 Docker 真实 `data/` smoke 已通过；本轮进入 Gate 2，只做真实手机局域网试运行准备，不开发新功能。
+- 已更新 `docs/MOBILE_TRIAL_CHECKLIST.md`，补充恢复后正式库前提、Docker 真实 `data/` 挂载、手机局域网访问、防火墙排查、Markdown 导出、小附件上传、PIN、存储目录探测、长链接和底部导航检查。
+- 当前局域网 IP 仅在聊天回复中提示，不写入仓库，避免把真实地址固化到 Git。
+- 下一步停止点：等待用户用 Android 手机访问 `http://<局域网IP>:3300/` 做真实试运行；在真实反馈前，不继续新增功能、Android 工程或视觉重做。
