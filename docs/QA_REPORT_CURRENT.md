@@ -1499,10 +1499,26 @@
 
 | 命令 | 结果 |
 | --- | --- |
-|
-pm.cmd run check | 通过，正式库 integrityCheck=ok，
-oteCount=113 |
-|
-pm.cmd run test | 通过，10 个测试套件 / 33 项测试全部通过 |
-|
-pm.cmd run build | 通过，Vite 生产构建成功 |
+| `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`，`noteCount=113` |
+| `npm.cmd run test` | 通过，10 个测试套件 / 33 项测试全部通过 |
+| `npm.cmd run build` | 通过，Vite 生产构建成功 |
+
+## Gate 6：Product Design 7 图还原审计（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | 只审计 7 个 V1 / Product Design 页面，不修改前端业务代码 |
+| 新增文档 | `docs/PRODUCT_DESIGN_RESTORE_AUDIT.md` |
+| 审计页面 | 首页、新建记录、记录详情、搜索、分类、导入 Note Station、设置 / 备份 |
+| 检查方式 | 读取 V1 文档和源码样式；用当前 Docker 服务做 390px 截图审计 |
+| 截图处理 | 390px 截图仅作为本机临时审计产物，审计后已删除，不提交 Git |
+| 主要 P1 差异 | 大标题层级偏小、记录卡片标题偏小、分类卡片偏紧、设置页技术感仍偏强 |
+| 结论 | 当前可继续 MVP 试运行；进入 Gate 7 前需要用户确认修复顺序 |
+
+### Gate 6 验证命令结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`，`noteCount=113` |
+| `npm.cmd run test` | 通过，10 个测试套件 / 33 项测试全部通过 |
+| `npm.cmd run build` | 通过，Vite 生产构建成功 |

@@ -184,3 +184,17 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 2. 按 `docs/MOBILE_TRIAL_CHECKLIST.md` 在安卓手机上验收。
 3. 发现 P0 / P1 问题后，按 `docs/TRIAL_FEEDBACK_TEMPLATE.md` 记录，再用 `mvp-bugfix-qa` 修复。
 4. P2 功能、Android WebView、外网访问、附件增强等都等真实试运行反馈后再单项确认。
+
+## Gate 6 视觉还原审计已完成（2026-06-30）
+
+已新增 `docs/PRODUCT_DESIGN_RESTORE_AUDIT.md`。当前结论：页面可继续 MVP 试运行，但若要继续靠近 Product Design 7 张图，应先由用户确认进入 Gate 7。
+
+建议 Gate 7 顺序：
+
+1. 分类页 + 设置页。
+2. 首页 + 搜索页。
+3. 新建记录 + 详情页。
+4. 导入 Note Station + 导航细节。
+5. 最终 390px / 430px 截图验收。
+
+进入 Gate 7 前仍不新增功能、不改数据库、不碰真实数据、不生成图片。

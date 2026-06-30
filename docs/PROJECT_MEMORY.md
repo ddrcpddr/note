@@ -943,11 +943,22 @@ MVP 需要覆盖：
 
 ### Gate 9 验证结果（2026-06-30）
 
-- 冻结前验证已完成：
-pm.cmd run check 通过，正式库 integrityCheck=ok，
-oteCount=113。
--
-pm.cmd run test 通过，10 个测试套件 / 33 项测试全部通过。
--
-pm.cmd run build 通过，Vite 生产构建成功。
-- 本轮冻结只提交代码和文档，不提交 data/、数据库、备份、导出、附件、.nsx、dry-run JSON 或日志。
+- 冻结前验证已完成：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`，`noteCount=113`。
+- `npm.cmd run test` 通过，10 个测试套件 / 33 项测试全部通过。
+- `npm.cmd run build` 通过，Vite 生产构建成功。
+- 本轮冻结只提交代码和文档，不提交 `data/`、数据库、备份、导出、附件、`.nsx`、dry-run JSON 或日志。
+
+### Gate 6：Product Design 7 图还原审计（2026-06-30）
+
+- 用户指出持续开发计划仍有 Gate 未执行；重新读取 `docs/CODEX_CONTINUOUS_DEVELOPMENT_PLAN.md` 后确认 Gate 6 尚未单独提交。
+- 本轮只执行 Gate 6 审计，不改业务代码、不改数据库、不调用 Product Design、不生成新图片。
+- 新增 `docs/PRODUCT_DESIGN_RESTORE_AUDIT.md`，按 7 张 V1 / Product Design 页面图审计首页、新建记录、详情、搜索、分类、导入 Note Station、设置 / 备份。
+- 本轮使用当前 Docker 服务 `http://127.0.0.1:3300/` 和 Playwright CLI 做 390px 页面截图审计；截图为临时产物，审计后已删除，不提交 Git。
+- 审计结论：当前页面可继续 MVP 试运行；若继续视觉还原，建议先由用户确认 Gate 7，从“分类页 + 设置页”开始小步修复。
+
+### Gate 6 验证结果（2026-06-30）
+
+- `npm.cmd run check` 通过，正式库 `integrityCheck=ok`，`noteCount=113`。
+- `npm.cmd run test` 通过，10 个测试套件 / 33 项测试全部通过。
+- `npm.cmd run build` 通过。
+- 本轮不提交 `output/playwright/` 截图、不提交 `data/`、数据库、备份、导出、附件或真实导入内容。

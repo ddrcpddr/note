@@ -480,11 +480,22 @@ npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
 
 ### Gate 9 冻结验证结果
 
--
-pm.cmd run check：通过，正式库 integrityCheck=ok，
-oteCount=113。
--
-pm.cmd run test：通过，10 个测试套件 / 33 项测试全部通过。
--
-pm.cmd run build：通过。
+- `npm.cmd run check`：通过，正式库 `integrityCheck=ok`，`noteCount=113`。
+- `npm.cmd run test`：通过，10 个测试套件 / 33 项测试全部通过。
+- `npm.cmd run build`：通过。
 - 本次冻结提交只包含文档和发布说明，不包含任何真实运行数据。
+
+## Gate 6：Product Design 7 图还原审计交接（2026-06-30）
+
+- 已创建 `docs/PRODUCT_DESIGN_RESTORE_AUDIT.md`。
+- 本轮只做审计，不改前端业务代码、不改数据库、不生成新图片、不调用 Product Design。
+- 已按 7 张 V1 / Product Design 页面图审计首页、新建记录、详情、搜索、分类、导入 Note Station、设置 / 备份。
+- 本轮曾临时生成 390px 页面截图用于审计；截图已删除，不提交 Git。
+- 下一步如继续，应先由用户确认 Gate 7；建议第一批只修“分类页 + 设置页”。
+
+### Gate 6 验证结果
+
+- `npm.cmd run check`：通过，正式库 `integrityCheck=ok`，`noteCount=113`。
+- `npm.cmd run test`：通过，10 个测试套件 / 33 项测试全部通过。
+- `npm.cmd run build`：通过。
+- 本轮只提交审计报告和项目文档，不提交本地截图或真实运行数据。
