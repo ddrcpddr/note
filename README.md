@@ -13,7 +13,7 @@
 - SQLite 本地数据库
 - 默认成员、分类、标签和示例记录初始化
 - 首页、详情、新建、搜索、分类、导入、设置页面
-- Note Station 样例导入流程
+- Note Station 真实 `.nsx` dry-run、sandbox 和正式导入流程
 - 本地模拟 NAS 存储、数据库备份、JSON 导出
 - 家庭成员切换
 
@@ -23,7 +23,7 @@
 - 复杂权限隔离
 - 真实 NAS 连接
 - 真实附件上传
-- 真实 Synology Note Station 导出文件解析
+- 其他 Synology Note Station 导出变体自动适配
 
 ## 安装
 
@@ -196,16 +196,11 @@ POST /api/storage/export-json
 
 ## Note Station 导入
 
-当前导入页使用内置样例数据演示流程：
+当前真实 `.nsx` 样例已经完成结构分析、dry-run、sandbox 导入和正式导入。导入记录会标记为 `notestation_import`，并在详情页保留来源、原始分类 / 笔记本路径、原始路径和附件元数据。
 
-1. 选择样例文件
-2. 解析预览
-3. 确认导入
-4. 导入完成
+浏览器里的导入页用于展示安全导入流程和导入状态；正式写入数据库前仍应先 dry-run、确认预览并自动备份正式数据库。
 
-导入记录会标记为 `notestation_import`，失败项会进入失败列表。
-
-真实 Note Station 导出文件解析需要你后续提供样例文件后再适配。
+其他 Synology Note Station 导出变体不要硬猜格式，后续必须先 dry-run 验证，再考虑导入。
 
 ## 当前可演示流程
 
@@ -213,7 +208,7 @@ POST /api/storage/export-json
 2. 新建记录
 3. 查看详情
 4. 按分类、成员、标签、关键词搜索
-5. 使用 Note Station 样例数据导入历史记录
+5. 查看已导入的 Note Station 历史记录
 6. 手动备份数据库
 7. 导出 JSON
 
@@ -337,8 +332,8 @@ npm.cmd run build
 
 ## 后续待办
 
-- 根据真实 Note Station 导出样例实现解析器。
+- 针对其他 Note Station 导出变体继续执行 dry-run 验证和解析适配。
 - 实现真实附件上传和附件目录管理。
 - 验证手机端添加到桌面流程，并补充清晰的离线提示。
-- 在 Docker Desktop 或 NAS Container Manager 环境实机验证 `docker compose up -d --build`。
+- 在真实 NAS / Container Manager 环境验证数据目录权限和手机局域网访问。
 - 持续补充真实附件上传、访问口令和真实导入解析器的自动化测试。

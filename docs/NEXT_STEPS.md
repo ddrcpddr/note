@@ -89,3 +89,23 @@ adef873 Improve user-facing status messages
 - 是否允许使用真实导入后的页面截图；若允许，截图必须脱敏。
 - image2 图片素材说明文档需要 Markdown、表格，还是 Figma 注释格式。
 - 是否需要先 push 当前代码和文档，确保家里电脑可以同步同一状态。
+
+## 真实手机与 NAS / Docker 试运行后续（2026-06-30）
+
+当前已经完成本机生产模式和 Docker Desktop 试运行验证，下一步不建议继续盲目新增功能，而是进入真实家庭局域网人工验收。
+
+### 立刻做
+
+1. 在同一局域网安卓手机访问 `http://<电脑或NAS局域网IP>:3300`。
+2. 按 `docs/MOBILE_TRIAL_CHECKLIST.md` 做 15 项手机端验收。
+3. 试运行前按 `docs/BACKUP_RESTORE_DRILL.md` 保存数据库、附件目录和 NAS 快照。
+4. NAS 实机部署时确认 `/data` 挂载目录可写，访问 `/api/health` 应返回 `/data/database/app.db`。
+5. 记录真实手机反馈，再决定 P1：真实附件上传、简单访问口令、导入后分类整理、成员编辑或安卓封装。
+
+### 暂时不要做
+
+- 不要重做 UI 或改变 V1 风格。
+- 不要新增复杂权限系统。
+- 不要硬接真实 NAS 账号或外网访问。
+- 不要重复正式导入 Note Station，除非先备份或恢复到导入前快照。
+- 不要提交 `data/`、数据库、备份、导出、附件、`.nsx`、日志、密码、token 或真实 NAS 地址。

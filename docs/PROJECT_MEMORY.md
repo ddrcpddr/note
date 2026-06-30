@@ -726,3 +726,14 @@ MVP 需要覆盖：
 - Skill 状态：已从 `multica-ai/andrej-karpathy-skills` 安装并读取 `karpathy-guidelines`，后续编码/评审按“先想清楚、保持简单、外科手术式修改、可验证目标”执行；新安装 skill 通常需重启 Codex 后才会出现在可用技能列表。
 - 当前 Git 状态：`main` 与 `origin/main` 对齐，工作区干净；本轮记忆同步前确认 `docs/PROJECT_MEMORY.md` 文件本身与 GitHub 一致，但内容缺少最新字体、Git 维护和 skill 安装记录，因此补充本段。
 - 下一步建议仍是先做真实手机和 NAS / Docker 实机验收，再根据真实试用反馈做小步 UI 微调或进入附件上传、简单访问口令等 P1 项。
+
+### 真实手机与 NAS / Docker 试运行验收阶段（2026-06-30）
+
+- 当前进入“真实手机 + NAS/Docker 试运行验收阶段”，本轮不新增大功能、不重做 UI、不调用 Product Design、不生成新图片、不修改真实 Note Station 导入数据。
+- 同步检查：`git pull --ff-only` 显示已最新；本轮开始时 `main` 与 `origin/main` 一致，基线提交为 `529c585 Sync project memory`。
+- 安全检查：Git 仅跟踪 `data/attachments/.gitkeep`、`data/backups/.gitkeep`、`data/database/.gitkeep`、`data/exports/.gitkeep`、`data/imports/.gitkeep`；`.nsx`、正式数据库、sandbox DB、备份、导出、附件、导入目录和日志均未被跟踪。
+- 基础验收：`npm.cmd run check` 通过，正式库 `categoryCount=11`、`noteCount=111`；`npm.cmd run test` 通过，16 项测试全部通过；`npm.cmd run build` 通过。
+- 本机生产模式：使用 `PORT=3410 npm.cmd run server` 验证 Express 可同端口提供 API 和 `dist/` 前端，`/api/health`、`/api/app-data`、首页和常见 SPA 路径均返回 200；验证后已停止临时 Node 服务。
+- Docker 验收：当前电脑 Docker daemon 可用；`docker compose build` 通过，`docker compose up -d` 通过，容器 `note` 为 healthy；`http://localhost:3300/api/health` 返回 `dbPath=/data/database/app.db`，确认 `NOTE_DATA_DIR=/data` 生效。
+- 新增试运行文档：`docs/MOBILE_TRIAL_CHECKLIST.md`、`docs/BACKUP_RESTORE_DRILL.md`、`docs/TRIAL_RUN_READINESS_REPORT.md`。
+- 下一步建议：进入真实家庭局域网试运行，优先由用户和家人用安卓手机验收首页、新建、刷新持久化、搜索 / 分类 / 成员筛选、导入记录详情、备份、JSON 导出和 PWA 添加到桌面；试运行后再决定附件上传、简单访问口令、成员编辑或安卓封装。

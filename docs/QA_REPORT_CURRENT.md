@@ -916,3 +916,60 @@
 | `npm.cmd run build` | 通过，Vite 生产构建成功 |
 | DOM 指标 | 首页/搜索标题 32px；分类/设置标题 30px；页面宽度 390px；卡片圆角 20px |
 | Playwright 390px / 430px x 8 screens | 通过，`failed: 0` |
+
+## 真实手机与 NAS / Docker 试运行验收（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 基线 commit | `529c585 Sync project memory` |
+| 测试范围 | Git 同步、安全文件检查、本机 check/test/build、生产模式同端口启动、Docker build/up、NAS 数据目录配置、手机人工验收文档 |
+| 结论 | 自动化与本机 Docker 验收通过，建议进入家庭局域网真实手机试运行 |
+
+### Git 与安全检查
+
+| 检查项 | 结果 |
+| --- | --- |
+| `git pull --ff-only` | 已最新 |
+| `git status --short --branch` | `main...origin/main`，本轮开始时工作区干净 |
+| `HEAD` 与 `origin/main` | 一致，`529c5858a613253230e6d1c7cb3a5a401e6f451f` |
+| `git ls-files data` | 仅跟踪 5 个 `.gitkeep` |
+| `.nsx`、数据库、备份、导出、附件、日志 | 未被 Git 跟踪 |
+| 敏感词 / 私有地址扫描 | 命中均为规则说明、占位示例或 npm 包名；未发现真实密码、token、私钥或真实 NAS 地址 |
+
+### 运行命令
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 111 条记录 |
+| `npm.cmd run test` | 通过，16 项测试全部通过 |
+| `npm.cmd run build` | 通过 |
+| `PORT=3410 npm.cmd run server` | 通过，生产 Express 同端口提供 API 和前端 |
+| `docker compose build` | 通过 |
+| `docker compose up -d` | 通过，容器 `note` healthy |
+
+### 本机生产模式验收
+
+| 地址 / 路径 | 结果 |
+| --- | --- |
+| `http://localhost:3410/api/health` | 200 JSON |
+| `http://localhost:3410/api/app-data` | 200 JSON |
+| `http://localhost:3410/` | 200 HTML |
+| `/detail`、`/new`、`/search`、`/categories`、`/settings`、`/import`、`/members` | 200 HTML，SPA fallback 正常 |
+
+### Docker / NAS 验收
+
+| 检查项 | 结果 |
+| --- | --- |
+| Docker daemon | 可用，Docker Desktop 4.73.0 / Engine 29.4.3 |
+| 容器状态 | `note` running，healthy |
+| 宿主访问 | `http://localhost:3300/` 和 `/api/health` 可访问 |
+| 容器数据目录 | `/data/database`、`/data/attachments`、`/data/backups`、`/data/imports/notestation`、`/data/exports` |
+| compose 挂载 | `./data:/data`，NAS 实机部署时改成真实 NAS 数据目录但不提交仓库 |
+
+### 仍需人工验收
+
+- 安卓手机打开局域网地址和 PWA 添加到桌面。
+- 新建记录后刷新不丢失。
+- 搜索、分类、成员筛选是否符合家庭使用习惯。
+- Note Station 导入记录详情中的来源、原始路径和附件元数据是否可读。
+- 设置页备份和 JSON 导出文件是否落到 NAS 挂载目录。
