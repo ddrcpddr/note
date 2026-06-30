@@ -852,3 +852,16 @@ MVP 需要覆盖：
 - 新增 `tests/database-restore.test.js` 覆盖 dry-run 不改库、confirm 会恢复并保留前库副本、坏备份会被拒绝。
 - 已对真实候选备份 `data/backups/app-2026-06-29T05-40-32-597Z.db` 执行 dry-run，结果 `ok=true`、`restored=false`；未执行 `--confirm`，未替换正式库。
 - 本轮验证：`npm.cmd run test` 通过 30 项；`npm.cmd run build` 通过；当前正式库下 `npm.cmd run check` 仍正确失败，等待用户确认恢复。
+
+### Docker 临时试运行与 HTTP 烟测命令（2026-06-30）
+
+- 用户要求先启动一个当前可测试的 Docker 实例，再继续后续验收工作。
+- 已确认 `.dockerignore` 排除 `data/`、`.nsx`、数据库、备份、导出、附件和日志，Docker build 不会把真实运行数据打入镜像。
+- 已构建当前工作区镜像 `note-trial:current`，容器内 `npm run build` 通过。
+- 已用 Docker 命名卷 `note-trial-data` 启动临时容器 `note-trial`，端口映射 `3310:3300`，访问地址为 `http://127.0.0.1:3310/`。
+- 临时容器不挂载项目正式 `data/`，因此不会读取或写入当前损坏的正式数据库，也不会碰真实 Note Station 导入数据。
+- 新增 `src/server/scripts/http-smoke.js` 和 `npm.cmd run smoke`，用于对运行中的 Node / Docker 服务执行 HTTP 烟测：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、分类 API、存储探测、手动备份、JSON 导出和前端 shell。
+- 已新增 `tests/http-smoke.test.js`，使用临时 `NOTE_DATA_DIR` 启动独立服务验证烟测脚本和只读模式。
+- 对 `http://127.0.0.1:3310` 执行 `npm.cmd run smoke -- --base-url http://127.0.0.1:3310` 通过；临时容器返回 2 个成员、11 个分类和测试记录，备份与 JSON 导出均可用。
+- `node --test tests/http-smoke.test.js`、`npm.cmd run test`（32 项）和 `npm.cmd run build` 通过。
+- `npm.cmd run check` 当前仍正确失败，原因是正式 `data/database/app.db` 的 SQLite `integrity_check` 不通过；尚未执行 `restore-db --confirm`，等待用户确认是否用最近健康备份恢复正式库。

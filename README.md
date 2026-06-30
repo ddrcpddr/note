@@ -363,3 +363,19 @@ npm.cmd run build
 - 验证手机端添加到桌面流程，并补充清晰的离线提示。
 - 在真实 NAS / Container Manager 环境人工验证数据目录权限、手机局域网访问和设置页目录探测。
 - 持续补充导入后整理、成员编辑和其他导入变体的自动化测试。
+
+## HTTP 烟测
+
+启动 Node 服务或 Docker 容器后，可以用烟测命令快速确认 API、首页、筛选、备份和导出是否可用：
+
+```bash
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+如果只想做只读检查，不触发备份和导出，可追加：
+
+```bash
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300 --read-only
+```
+
+当前如果正式 `data/database/app.db` 已损坏，先不要用默认 `docker-compose.yml` 挂载 `./data` 试运行；可以先用临时 Docker 命名卷做界面和基础 API 验收，正式试运行仍需恢复健康数据库后再进行。

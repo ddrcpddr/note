@@ -129,3 +129,19 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 - 真实运行数据仍被 Git 忽略，没有进入提交。
 
 恢复后，再根据真实手机反馈决定是否进入 Android WebView 工程或继续修小问题。
+
+## 临时 Docker 可测实例（2026-06-30）
+
+在正式数据库尚未恢复前，已先启动一个不污染正式数据的 Docker 临时实例，供本机查看当前页面和基础 API：
+
+| 项目 | 结果 |
+| --- | --- |
+| 镜像 | `note-trial:current` |
+| 容器 | `note-trial` |
+| 地址 | `http://127.0.0.1:3310/` |
+| 数据卷 | `note-trial-data:/data` |
+| 是否挂载正式 `./data` | 否 |
+| 健康接口 | 通过 |
+| HTTP 烟测 | `npm.cmd run smoke -- --base-url http://127.0.0.1:3310` 通过 |
+
+这个临时实例可用于 UI 和 Docker 运行方式预览，但不代表正式库已恢复。正式家庭局域网试运行仍需先恢复 `data/database/app.db`，再使用默认 compose 或 NAS 挂载目录重新验收。

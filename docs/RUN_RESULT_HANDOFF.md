@@ -427,3 +427,14 @@ npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
 ```
 
 上述命令默认 dry-run，不替换正式库。用户确认后才追加 `--confirm` 执行恢复。当前尚未执行 `--confirm`，正式 `data/database/app.db` 仍处于损坏状态，Docker / 手机试运行继续暂停。
+
+## Docker 临时试运行补充（2026-06-30）
+
+- 已按用户要求先启动一个可测试 Docker：`note-trial`。
+- 测试地址：`http://127.0.0.1:3310/`。
+- 启动方式：当前镜像 `note-trial:current`，端口 `3310:3300`，数据卷 `note-trial-data:/data`。
+- 该实例只用于当前本机测试，不挂载项目正式 `data/`，不会污染正式数据库、备份、导出、附件或真实 Note Station 导入内容。
+- 新增烟测命令：`npm.cmd run smoke -- --base-url http://127.0.0.1:3310`。
+- 当前烟测结果：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、分类 API、存储探测、手动备份、JSON 导出和前端 shell 均通过。
+- 自动化验证：`node --test tests/http-smoke.test.js` 通过；`npm.cmd run test` 通过 32 项；`npm.cmd run build` 通过。
+- 正式 `data/database/app.db` 仍损坏，`npm.cmd run check` 正确失败；未执行 `restore-db --confirm`，等待用户确认。

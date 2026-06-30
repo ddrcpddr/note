@@ -1296,3 +1296,48 @@
 | 当前正式库结果 | `npm.cmd run check` 仍正确失败，说明尚未执行 `--confirm` 恢复，正式库仍等待用户确认 |
 | 仍然存在的问题 | 未经用户确认，不替换 `data/database/app.db`；Docker / 手机试运行仍需恢复后重新验证 |
 | 下一步建议 | 用户确认后执行 `npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm`，再运行 `check/test/build` 和 Docker API 烟测 |
+
+## Fix: Docker 临时试运行与 HTTP 烟测（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | 启动不污染正式数据的 Docker 临时实例，并新增可重复 HTTP 烟测命令 |
+| 当前 Docker 测试地址 | `http://127.0.0.1:3310/` |
+| Docker 数据目录 | Docker 命名卷 `note-trial-data`，不是项目正式 `data/` |
+| 复现步骤 | 之前默认 compose 挂载正式 `./data` 时会碰到损坏的 `data/database/app.db`，业务 API 不适合继续试运行 |
+| 处理方式 | 构建 `note-trial:current`，使用临时命名卷启动 `note-trial`，再对该实例运行 HTTP 烟测 |
+| 修复内容 | 新增 `src/server/scripts/http-smoke.js`、`tests/http-smoke.test.js` 和 `npm.cmd run smoke` |
+| 当前正式库状态 | `npm.cmd run check` 仍失败，错误为 SQLite `integrity_check` 不通过；未执行正式恢复 |
+
+### 运行命令
+
+| 命令 | 结果 |
+| --- | --- |
+| `docker build -t note-trial:current .` | 通过，容器内 `npm run build` 通过 |
+| `docker run -d --name note-trial -p 3310:3300 -e PORT=3300 -e NOTE_DATA_DIR=/data -v note-trial-data:/data note-trial:current` | 通过 |
+| `http://127.0.0.1:3310/api/health` | 通过，返回 `ok: true`，`dbPath=/data/database/app.db` |
+| `npm.cmd run smoke -- --base-url http://127.0.0.1:3310` | 通过，API、前端 shell、备份、JSON 导出均通过 |
+| `node --test tests/http-smoke.test.js` | 通过，2 项 |
+| `npm.cmd run test` | 通过，32 项 |
+| `npm.cmd run build` | 通过 |
+| `npm.cmd run check` | 失败，符合预期：正式本地数据库已损坏，等待用户确认恢复 |
+
+### 烟测覆盖
+
+- `/api/health`
+- `/api/app-data`
+- `/api/notes?limit=3`
+- 记录详情查询
+- 关键词搜索
+- 分类筛选
+- 成员筛选
+- `/api/categories`
+- `/api/storage/probe`
+- `/api/storage/backup`
+- `/api/storage/export-json`
+- 前端首页 shell
+
+### 仍然存在的问题
+
+- `note-trial` 是临时测试容器，使用测试卷，不代表正式 Note Station 导入库已经恢复。
+- 正式试运行仍需用户明确确认后执行 `npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm`，再重启默认 Docker / NAS 服务并重新烟测。

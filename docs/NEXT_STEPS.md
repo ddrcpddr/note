@@ -119,3 +119,19 @@ adef873 Improve user-facing status messages
 3. 确认后再启动 Android WebView / TWA 工程。
 
 已完成：编辑已有记录；删除 / 归档记录；真实附件上传；简单访问口令 / PIN；导入后批量整理未分类记录；成员改名、头像和颜色编辑；定时自动备份；Markdown 导出；NAS 数据目录读写探测；Android 原生封装前置评估和决策清单。后续继续保持小步提交，每步先测试、再实现、再更新 QA 和项目记忆。
+
+## 当前 Docker 测试入口（2026-06-30）
+
+已先启动临时 Docker 实例，方便当前本机查看效果：
+
+```text
+http://127.0.0.1:3310/
+```
+
+对应烟测命令：
+
+```bash
+npm.cmd run smoke -- --base-url http://127.0.0.1:3310
+```
+
+注意：该实例使用 `note-trial-data` Docker 命名卷，不是正式 `data/`。下一步正式试运行前仍需用户确认是否恢复最近健康备份，然后再用默认 Docker / NAS 数据目录重新验收。
