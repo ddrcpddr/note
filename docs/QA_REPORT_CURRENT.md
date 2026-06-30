@@ -1388,3 +1388,28 @@
 | 清空标签后旧标签筛选 | 通过，旧标签不再命中该记录 |
 | Docker 服务 | 通过，容器 `note` 已用修复后的前端 bundle 重建并启动 |
 | 数据安全 | 仅代码和文档改动；smoke 生成的备份 / 导出仍在 `data/` 忽略目录，不提交 Git |
+
+## Fix: 首页“今天要记 / 快速记录”可点击（2026-06-30 20:12 +08:00）
+
+| 项目 | 内容 |
+| --- | --- |
+| 当前 commit | 修复前基线 `0a52001` |
+| 测试时间 | `2026-06-30 20:12:22 +08:00` |
+| 复现步骤 | 手机首页点击“今天要记 / 快速记录”卡片，页面没有跳转，也没有进入新记录页。 |
+| 问题原因 | `TodayCard` 只是静态 `<section>`，没有点击事件；`HomeScreen` 也没有接收从 App 传入的新建记录 handler。 |
+| 修复内容 | 将 `TodayCard` 改为保持原视觉样式的 `<button>`，添加 `aria-label="快速记录"` 和 `onClick`；`HomeScreen` 新增 `onCreateNote` prop；App 在首页传入 `() => navigate('new')`，复用现有新建记录页。 |
+| 运行命令 | `node --test tests/frontend-ui.test.js` 先红灯后转绿；`npm.cmd run build`；`npm.cmd run check`；`npm.cmd run test`；`docker compose build`；`docker compose up -d`；`npm.cmd run smoke -- --base-url http://127.0.0.1:3300`。 |
+| 测试结果 | 定点前端回归 1 项通过；生产构建通过；正式库 `integrityCheck=ok`、`noteCount=113`；全量测试 33 项通过；Docker 真实 data smoke 通过。 |
+| 仍然存在的问题 | 本轮只修“今天要记 / 快速记录”入口，不改变首页其他筛选或记录卡片行为。 |
+| 下一步建议 | 用户在手机上刷新当前 Docker 页面，点击“今天要记 / 快速记录”，确认可进入“新记录”页并能正常保存。 |
+
+### 本次回归覆盖
+
+| 检查项 | 结果 |
+| --- | --- |
+| `HomeScreen` 接收 `onCreateNote` | 通过 |
+| App 首页向 `HomeScreen` 传入 `() => navigate('new')` | 通过 |
+| `TodayCard` 渲染为可点击按钮 | 通过 |
+| `TodayCard` 点击 handler 指向 `onCreateNote` | 通过 |
+| Docker 服务 | 通过，容器 `note` 已用修复后的前端 bundle 重建并启动 |
+| 数据安全 | 仅代码和文档改动；smoke 生成的备份 / 导出仍在 `data/` 忽略目录，不提交 Git |

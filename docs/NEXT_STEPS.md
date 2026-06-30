@@ -142,3 +142,9 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 - 已更新 `docs/MOBILE_TRIAL_CHECKLIST.md`，补充恢复后正式库前提、Docker 真实 `data/` 挂载、手机局域网访问、防火墙排查、Markdown 导出、小附件上传、PIN、存储目录探测、长链接和底部导航检查。
 - 当前局域网 IP 仅在聊天回复中提示，不写入仓库，避免把真实地址固化到 Git。
 - 下一步停止点：等待用户用 Android 手机访问 `http://<局域网IP>:3300/` 做真实试运行；在真实反馈前，不继续新增功能、Android 工程或视觉重做。
+## 真实手机反馈修复记录（2026-06-30 20:12）
+
+- 已修复首页“今天要记 / 快速记录”点击无反应：现在点击会进入现有“新记录”页。
+- 新增前端静态回归测试 `tests/frontend-ui.test.js`，防止首页快捷入口再次退化为纯展示卡片。
+- 本轮验证：`npm.cmd run build`、`npm.cmd run check`、`npm.cmd run test`、Docker 重建和 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 均通过。
+- 下一步仍建议继续真实手机试运行，只修实际反馈的小 bug；不要在未完成一轮试用前扩展新功能或重做 UI。

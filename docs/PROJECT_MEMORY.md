@@ -897,3 +897,12 @@ MVP 需要覆盖：
 - 已补回归：`tests/mvp-api.test.js` 在编辑记录测试中覆盖 `PATCH tags: []`，确认详情读取为空标签且旧标签筛选不再命中。
 - 已验证：`node --test tests/mvp-api.test.js` 通过 19 项；`npm.cmd run build` 通过；`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、记录数 112；`npm.cmd run test` 通过 32 项；`docker compose build`、`docker compose up -d` 和 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过。
 - 当前 Docker `http://127.0.0.1:3300/` 已重建为修复后的版本，用户可在手机同局域网地址刷新后复测。
+
+### Fix：首页“今天要记 / 快速记录”入口可点击（2026-06-30）
+
+- 用户在真实手机试运行中反馈：首页“今天要记 / 快速记录”卡片点击后没有任何反应。
+- 根因：`TodayCard` 是静态 `<section>`，没有 `onClick`；`HomeScreen` 没有接收新建记录 handler，也没有把入口传到 `TodayCard`。
+- 已修复：App 在首页向 `HomeScreen` 传入 `() => navigate('new')`；`HomeScreen` 将 `onCreateNote` 传给 `TodayCard`；`TodayCard` 改为保持 V1 视觉样式的 `<button>`，点击后进入现有新记录页。
+- 已新增 `tests/frontend-ui.test.js`，覆盖首页今天要记卡片必须连接到新建记录 screen，防止以后退回纯展示卡片。
+- 已验证：`node --test tests/frontend-ui.test.js` 先红灯后转绿；`npm.cmd run build` 通过；`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、记录数 113；`npm.cmd run test` 通过 33 项；`docker compose build`、`docker compose up -d` 和 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过。
+- 当前 Docker `http://127.0.0.1:3300/` 已重建为修复后的版本，用户可在手机同局域网地址刷新后复测。

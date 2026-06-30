@@ -605,6 +605,7 @@ function App() {
           onCategoryChange={setHomeCategory}
           onOpenDetail={openDetail}
           onOpenSearch={openSearch}
+          onCreateNote={() => navigate('new')}
           members={members}
         />
       )}
@@ -904,7 +905,7 @@ function AccessLockScreen({ message, onUnlock }) {
   );
 }
 
-function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {
+function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote }) {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const hasAdvancedFilter = member !== 'all' || category !== 'all';
   const visibleNotes = filterNotes(notes, { filter, member, category });
@@ -933,7 +934,7 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
           <CategoryFilters active={category} onChange={onCategoryChange} />
         </section>
       )}
-      <TodayCard />
+      <TodayCard onCreateNote={onCreateNote} />
       <SectionHeader
         title={category === 'all' ? '最新记录' : categoryName}
         trailing={<><RotateCw size={18} /> {visibleNotes.length} 条</>}
@@ -1954,9 +1955,9 @@ function CategoryFilters({ active, onChange }) {
   );
 }
 
-function TodayCard() {
+function TodayCard({ onCreateNote }) {
   return (
-    <section className="soft-card mt-4 flex items-center justify-between bg-teal-50/60 p-4">
+    <button className="soft-card mt-4 flex w-full items-center justify-between bg-teal-50/60 p-4 text-left transition active:scale-[0.99]" type="button" aria-label="快速记录" onClick={onCreateNote}>
       <div className="flex min-w-0 flex-1 items-center gap-4">
         <CalendarDays className="text-teal-600" size={30} />
         <div className="min-w-0">
@@ -1966,7 +1967,7 @@ function TodayCard() {
       </div>
       <div className="h-12 w-px shrink-0 bg-line" />
       <div className="flex shrink-0 items-center gap-2 text-[16px] font-semibold text-teal-600"><FileText size={22} /> 快速记录</div>
-    </section>
+    </button>
   );
 }
 
