@@ -73,6 +73,35 @@ notesRouter.post('/', (request, response) => {
   response.status(201).json({ note });
 });
 
+notesRouter.post('/:id/archive', (request, response) => {
+  const db = getDb();
+  const noteId = String(request.params.id || '').trim();
+  const existing = listNotes({ id: noteId, includeArchived: 'true' })[0];
+
+  if (!existing) {
+    response.status(404).json({ error: '记录不存在' });
+    return;
+  }
+
+  db.prepare('UPDATE notes SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0').run(noteId);
+  const note = listNotes({ id: noteId, includeArchived: 'true' })[0];
+  response.json({ note });
+});
+
+notesRouter.delete('/:id', (request, response) => {
+  const db = getDb();
+  const noteId = String(request.params.id || '').trim();
+  const existing = listNotes({ id: noteId, includeArchived: 'true' })[0];
+
+  if (!existing) {
+    response.status(404).json({ error: '记录不存在' });
+    return;
+  }
+
+  db.prepare('UPDATE notes SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0').run(noteId);
+  response.json({ deleted: true, id: noteId });
+});
+
 notesRouter.patch('/:id', (request, response) => {
   const db = getDb();
   const noteId = String(request.params.id || '').trim();
@@ -138,8 +167,13 @@ export function listNotes(query = {}) {
   const member = String(query.member || '').trim();
   const tag = String(query.tag || '').trim();
   const source = String(query.source || '').trim();
+  const includeArchived = ['1', 'true', 'yes'].includes(String(query.includeArchived || '').toLowerCase());
   const params = [];
   const where = ['n.is_deleted = 0'];
+
+  if (!includeArchived) {
+    where.push('n.is_archived = 0');
+  }
 
   if (id) {
     where.push('n.id = ?');
@@ -208,6 +242,7 @@ export function listNotes(query = {}) {
         n.source_type AS sourceType,
         n.save_status AS saveStatus,
         n.visibility,
+        n.is_archived AS isArchived,
         n.original_title AS originalTitle,
         n.original_path AS originalPath,
         n.original_category AS originalCategory,
@@ -241,6 +276,7 @@ export function listNotes(query = {}) {
     .all(...params)
     .map((row) => ({
       ...row,
+      isArchived: Boolean(row.isArchived),
       tags: JSON.parse(row.tags || '[]'),
       attachments: JSON.parse(row.attachments || '[]')
     }));

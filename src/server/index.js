@@ -38,7 +38,7 @@ app.get('/api/app-data', (_request, response) => {
         c.is_system AS isSystem,
         COUNT(n.id) AS noteCount
        FROM categories c
-       LEFT JOIN notes n ON n.category_id = c.id AND n.is_deleted = 0
+       LEFT JOIN notes n ON n.category_id = c.id AND n.is_deleted = 0 AND n.is_archived = 0
        GROUP BY c.id
        ORDER BY c.sort_order ASC, c.name ASC`
     )

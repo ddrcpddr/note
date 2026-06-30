@@ -190,6 +190,42 @@ describe('MVP API', () => {
     const newTag = await requestJson(`/api/notes?tag=${encodeURIComponent('维修')}`);
     assert.ok(newTag.notes.some((note) => note.id === created.note.id));
   });
+  test('archives and soft deletes a note from normal lists', async () => {
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '准备归档删除的记录',
+        content: '这条记录用于验证归档和软删除。',
+        categoryId: 'family',
+        memberId: 'self',
+        tags: ['待办']
+      })
+    });
+
+    const appDataWithCreated = await requestJson('/api/app-data');
+    const familyCountWithCreated = appDataWithCreated.categories.find((category) => category.id === 'family').noteCount;
+
+    const archived = await requestJson('/api/notes/' + created.note.id + '/archive', { method: 'POST' });
+    assert.equal(archived.note.id, created.note.id);
+    assert.equal(archived.note.isArchived, true);
+
+    const defaultList = await requestJson('/api/notes?search=' + encodeURIComponent('准备归档删除'));
+    assert.ok(!defaultList.notes.some((note) => note.id === created.note.id));
+
+    const archivedList = await requestJson('/api/notes?includeArchived=true&search=' + encodeURIComponent('准备归档删除'));
+    assert.ok(archivedList.notes.some((note) => note.id === created.note.id));
+
+    const appDataAfterArchive = await requestJson('/api/app-data');
+    const familyCountAfterArchive = appDataAfterArchive.categories.find((category) => category.id === 'family').noteCount;
+    assert.equal(familyCountAfterArchive, familyCountWithCreated - 1);
+
+    const deleted = await requestJson('/api/notes/' + created.note.id, { method: 'DELETE' });
+    assert.equal(deleted.deleted, true);
+
+    const afterDelete = await requestJson('/api/notes?includeArchived=true&search=' + encodeURIComponent('准备归档删除'));
+    assert.ok(!afterDelete.notes.some((note) => note.id === created.note.id));
+  });
+
   test('supports search, category, member, tag and source filters', async () => {
     const title = `筛选测试记录 ${Date.now()}`;
     const created = await requestJson('/api/notes', {

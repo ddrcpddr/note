@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   AlertCircle,
+  Archive,
   ArrowLeft,
   Briefcase,
   CalendarDays,
@@ -33,6 +34,7 @@ import {
   ShoppingBag,
   Star,
   Tags,
+  Trash2,
   Upload,
   UserRound,
   Wrench,
@@ -390,6 +392,46 @@ function App() {
     showToast('记录已在当前页面更新');
   }
 
+  function removeNoteFromCurrentView(noteId, message) {
+    const nextNotes = notesData.filter((note) => note.id !== noteId);
+    setNotesData(nextNotes);
+    setSelectedId(nextNotes[0]?.id ?? '');
+    setScreen('home');
+    showToast(message);
+  }
+
+  async function archiveNote(noteId) {
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/notes/' + noteId + '/archive', { method: 'POST' });
+        if (!response.ok) throw new Error('archive failed');
+        removeNoteFromCurrentView(noteId, '记录已归档');
+        return;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，归档未保存');
+        return;
+      }
+    }
+
+    removeNoteFromCurrentView(noteId, '记录已在当前页面归档');
+  }
+
+  async function deleteNote(noteId) {
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/notes/' + noteId, { method: 'DELETE' });
+        if (!response.ok) throw new Error('delete failed');
+        removeNoteFromCurrentView(noteId, '记录已删除');
+        return;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，删除未保存');
+        return;
+      }
+    }
+
+    removeNoteFromCurrentView(noteId, '记录已从当前页面移除');
+  }
+
   async function switchCurrentMember(memberId) {
     const nextMember = members.find((member) => member.id === memberId);
     if (!nextMember) return;
@@ -444,7 +486,7 @@ function App() {
           onSave={updateExistingNote}
         />
       )}
-      {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} onEdit={openEdit} />}
+      {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} onEdit={openEdit} onArchive={archiveNote} onDelete={deleteNote} />}
       {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
       {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} />}
       {screen === 'import' && (
@@ -552,6 +594,7 @@ function normalizeNote(note) {
     status: note.saveStatus === 'saved' ? '已保存到 NAS' : '保存中',
     source: sourceType === 'notestation_import' ? 'Note Station 导入' : '手动创建',
     sourceType,
+    isArchived: Boolean(note.isArchived),
     originalPath: note.originalPath || '',
     originalCategory: displayCategoryName(note.originalCategory || '', note.categoryId),
     originalCreatedAt: note.originalCreatedAt ? formatLongTime(note.originalCreatedAt) : '',
@@ -1130,7 +1173,9 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   );
 }
 
-function DetailScreen({ note, onBack, onEdit }) {
+function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
+  const [showActions, setShowActions] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const Icon = note.icon;
   const CategoryIcon = note.categoryIcon;
   return (
@@ -1201,9 +1246,29 @@ function DetailScreen({ note, onBack, onEdit }) {
         <RelatedRow title="去年卫生间防水维修" meta="维修 · 已完成" />
         <RelatedRow title="物业维修电话" meta="家庭事务 · 联系方式" />
       </section>
+      {showActions && (
+        <section className="fixed bottom-[92px] left-1/2 z-40 w-[calc(100%-32px)] max-w-[398px] -translate-x-1/2 rounded-3xl border border-line bg-white p-3 shadow-float">
+          <button className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left" type="button" onClick={() => onArchive(note.id)}>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-teal-50 text-teal-600"><Archive size={21} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[16px] font-semibold text-[#24312f]">归档记录</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">从首页和搜索中隐藏，数据仍保留在数据库里。</span>
+            </span>
+          </button>
+          <button className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left" type="button" onClick={() => (confirmDelete ? onDelete(note.id) : setConfirmDelete(true))}>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-rose-50 text-rose-600"><Trash2 size={21} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[16px] font-semibold text-rose-600">{confirmDelete ? '确认删除' : '删除记录'}</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-muted">软删除记录，不会删除附件文件。</span>
+            </span>
+          </button>
+        </section>
+      )}
       <div className="bottom-action-bar flex h-[78px] items-center justify-between px-8 py-3">
-        <button className="flex flex-col items-center gap-1 text-muted" type="button"><MoreHorizontal size={28} /><span className="text-[13px]">更多</span></button>
-        <button className="inline-flex h-[52px] items-center gap-3 rounded-2xl bg-teal-600 px-7 py-3 text-[18px] font-semibold text-white shadow-float"><Share2 size={25} /> 分享记录</button>
+        <button className="flex flex-col items-center gap-1 text-muted" type="button" onClick={() => { setShowActions((value) => !value); setConfirmDelete(false); }}>
+          {showActions ? <X size={28} /> : <MoreHorizontal size={28} />}<span className="text-[13px]">更多</span>
+        </button>
+        <button className="inline-flex h-[52px] items-center gap-3 rounded-2xl bg-teal-600 px-7 py-3 text-[18px] font-semibold text-white shadow-float" type="button"><Share2 size={25} /> 分享记录</button>
       </div>
     </>
   );
