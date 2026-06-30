@@ -801,3 +801,12 @@ MVP 需要覆盖：
 - 后端新增 `POST /api/storage/export-markdown`，导出全量 `listNotes({ limit: "all" })` 为单个 Markdown 文件，落到 `data/exports/`。
 - Markdown 内容包含记录标题、ID、分类、成员、来源、创建 / 更新时间、标签、附件清单、原始路径和正文；不提交导出文件。
 - 自动化测试已覆盖：Markdown 文件写入导出目录，包含导出标题、目标记录标题、正文和记录 ID。
+
+### NAS / 存储目录读写探测闭环（2026-06-30）
+
+- P1 第 9 项“NAS 真实状态探测”收口为不接真实 NAS 账号、不写死 NAS 地址的“数据目录读写探测”：验证当前 `NOTE_DATA_DIR` 下关键目录是否可写。
+- 后端新增 `POST /api/storage/probe`，会在 database、attachments、backups、exports 目录写入临时探测文件、读取确认后立即删除；任一目录失败则返回 503 和对应错误。
+- 设置页新增“检查当前数据目录”入口，用于家庭 NAS / Docker 试运行前确认挂载目录权限；它不是外网连接检测，也不会保存真实 NAS 地址、账号、密码或 token。
+- 自动化测试覆盖：在临时 `NOTE_DATA_DIR` 下调用探测接口，确认四个目录均可写且返回的数据目录与测试目录一致。
+- 本轮验证：`npm.cmd run check` 通过，正式库记录数 112；`npm.cmd run test` 通过，26 项测试全部通过；`npm.cmd run build` 通过。
+- 完成本阶段后，除安卓原生封装外，当前 P1 功能顺序中的开发项已收口；下一步应进入真实家庭局域网人工试运行，Android 原生 App 继续排最后。

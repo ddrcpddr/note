@@ -99,7 +99,7 @@ adef873 Improve user-facing status messages
 1. 在同一局域网安卓手机访问 `http://<电脑或NAS局域网IP>:3300`。
 2. 按 `docs/MOBILE_TRIAL_CHECKLIST.md` 做 15 项手机端验收。
 3. 试运行前按 `docs/BACKUP_RESTORE_DRILL.md` 保存数据库、附件目录和 NAS 快照。
-4. NAS 实机部署时确认 `/data` 挂载目录可写，访问 `/api/health` 应返回 `/data/database/app.db`。
+4. NAS 实机部署时确认 `/data` 挂载目录可写，访问 `/api/health` 应返回 `/data/database/app.db`，并在设置页运行“检查当前数据目录”。
 5. 记录真实手机反馈，再决定 P1：真实附件上传、简单访问口令、导入后分类整理、成员编辑或安卓封装。
 
 ### 暂时不要做
@@ -114,7 +114,6 @@ adef873 Improve user-facing status messages
 
 安卓原生 App 封装排到最后。当前建议按以下顺序继续：
 
-1. NAS 真实在线状态探测。
-2. 安卓原生 App 封装。
+1. 安卓原生 App 封装（最后阶段，暂不启动，等真实手机 / NAS 试运行反馈稳定后再决定）。
 
-已完成：编辑已有记录；删除 / 归档记录；真实附件上传；简单访问口令 / PIN；导入后批量整理未分类记录；成员改名、头像和颜色编辑；定时自动备份；Markdown 导出。后续继续保持小步提交，每步先测试、再实现、再更新 QA 和项目记忆。
+已完成：编辑已有记录；删除 / 归档记录；真实附件上传；简单访问口令 / PIN；导入后批量整理未分类记录；成员改名、头像和颜色编辑；定时自动备份；Markdown 导出；NAS 数据目录读写探测。后续继续保持小步提交，每步先测试、再实现、再更新 QA 和项目记忆。

@@ -432,6 +432,17 @@ describe('MVP API', () => {
     assert.equal(invalid.response.status, 404);
     assert.equal(invalid.data.error, '成员不存在');
   });
+  test('probes writable storage directories', async () => {
+    const probe = await requestJson('/api/storage/probe', { method: 'POST' });
+
+    assert.equal(probe.ok, true);
+    assert.equal(probe.checks.databaseDir.ok, true);
+    assert.equal(probe.checks.attachmentsDir.ok, true);
+    assert.equal(probe.checks.backupsDir.ok, true);
+    assert.equal(probe.checks.exportsDir.ok, true);
+    assert.equal(path.resolve(probe.dataPaths.dataDir), path.resolve(tempDataDir));
+  });
+
   test('backs up the database and exports JSON', async () => {
     const backup = await requestJson('/api/storage/backup', {
       method: 'POST',

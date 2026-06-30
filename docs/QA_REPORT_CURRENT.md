@@ -1178,3 +1178,28 @@
 | 导出包含标题、正文、记录 ID | 自动化测试通过 |
 | 设置页入口 | 已接入，构建通过 |
 | JSON 导出 | 保持可用 |
+
+## NAS / 存储目录读写探测 P1 验收（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | 当前 `NOTE_DATA_DIR` 下 database、attachments、backups、exports 目录读写权限探测 |
+| 原则 | 不接真实 NAS 账号，不写死 NAS 地址，不提交探测文件或运行数据 |
+
+### TDD 过程
+
+| 步骤 | 结果 |
+| --- | --- |
+| 新增 `probes writable storage directories` 测试 | 红灯，`/api/storage/probe` 不存在 |
+| 实现存储目录探测 API | 单文件 API 测试转绿 |
+
+### 验收点
+
+| 检查项 | 结果 |
+| --- | --- |
+| database 目录可写 | 自动化测试通过 |
+| attachments 目录可写 | 自动化测试通过 |
+| backups 目录可写 | 自动化测试通过 |
+| exports 目录可写 | 自动化测试通过 |
+| 设置页探测入口 | 已接入，`npm.cmd run build` 通过 |
+| 敏感文件 | 探测文件立即删除，`data/` 继续被 Git 忽略 |

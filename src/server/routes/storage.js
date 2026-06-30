@@ -1,4 +1,4 @@
-import { copyFileSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { Router } from 'express';
 import { createId, getDataPaths, getDb } from '../db/database.js';
@@ -8,6 +8,11 @@ export const storageRouter = Router();
 
 storageRouter.get('/status', (_request, response) => {
   response.json(getStorageStatus());
+});
+
+storageRouter.post('/probe', (_request, response) => {
+  const result = probeStorageDirectories();
+  response.status(result.ok ? 200 : 503).json(result);
 });
 
 storageRouter.post('/backup', (request, response) => {
@@ -47,6 +52,40 @@ storageRouter.post('/export-json', (_request, response) => {
 
   response.json({ export: { filePath: exportPath, fileSize }, ...getStorageStatus() });
 });
+
+function probeStorageDirectories() {
+  const paths = getDataPaths();
+  const directoryEntries = [
+    ['databaseDir', paths.databaseDir],
+    ['attachmentsDir', paths.attachmentsDir],
+    ['backupsDir', paths.backupsDir],
+    ['exportsDir', paths.exportsDir]
+  ];
+  const checks = {};
+
+  for (const [key, directory] of directoryEntries) {
+    const probePath = path.join(directory, `.note-probe-${process.pid}-${Date.now()}.txt`);
+    try {
+      writeFileSync(probePath, 'ok', 'utf8');
+      const content = readFileSync(probePath, 'utf8');
+      unlinkSync(probePath);
+      checks[key] = { ok: content === 'ok', path: directory };
+    } catch (error) {
+      checks[key] = { ok: false, path: directory, error: error.message };
+      try {
+        unlinkSync(probePath);
+      } catch {
+        // Nothing to clean up.
+      }
+    }
+  }
+
+  return {
+    ok: Object.values(checks).every((check) => check.ok),
+    dataPaths: paths,
+    checks
+  };
+}
 
 function renderNotesMarkdown(notes) {
   const lines = ['# 家事记 Markdown 导出', '', `导出时间：${new Date().toISOString()}`, ''];

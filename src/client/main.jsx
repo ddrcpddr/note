@@ -1626,6 +1626,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
   const [backupState, setBackupState] = useState('idle');
   const [storageStatus, setStorageStatus] = useState(null);
   const [storageMessage, setStorageMessage] = useState('');
+  const [storageProbe, setStorageProbe] = useState(null);
 
   useEffect(() => {
     async function loadStorageStatus() {
@@ -1678,6 +1679,18 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
     } catch {
       setBackupState('failed');
       setStorageMessage('备份没有完成，请确认家庭记录服务可以写入数据目录。');
+    }
+  }
+
+  async function probeStorage() {
+    try {
+      const response = await fetch('/api/storage/probe', { method: 'POST' });
+      const data = await response.json();
+      setStorageProbe(data);
+      setStorageMessage(data.ok ? '存储目录读写正常，NAS 挂载可以使用。' : '存储目录检查失败，请确认 NAS 挂载目录权限。');
+    } catch {
+      setStorageProbe({ ok: false });
+      setStorageMessage('没有完成存储目录检查，请确认服务端正在运行。');
     }
   }
 
@@ -1749,6 +1762,12 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
               离线
             </button>
           </div>
+        </div>
+        <div className="mt-3 flex items-center justify-between rounded-2xl bg-soft/80 px-4 py-3 text-[14px] text-muted">
+          <span>{storageProbe?.ok ? '存储目录读写正常' : '检查当前数据目录'}</span>
+          <button className="rounded-full border border-teal-600 bg-teal-50 px-3 py-1.5 font-medium text-teal-700" type="button" onClick={probeStorage}>
+            检查
+          </button>
         </div>
         {backupState === 'done' && (
           <div className="mt-4 rounded-2xl bg-teal-50 px-4 py-4 text-center">
