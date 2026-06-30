@@ -771,3 +771,11 @@ MVP 需要覆盖：
 - 该功能不是账号系统，不包含权限分级、不接真实账号密码、不写入真实 token；只用于家庭局域网试运行时的轻量入口保护。
 - `docker-compose.yml` 仅加入 `NOTE_ACCESS_PIN: "${NOTE_ACCESS_PIN:-}"` 占位，不提交真实口令。
 - 自动化测试已覆盖：开启 `NOTE_ACCESS_PIN` 后 app API 被拦截、错误口令失败、正确口令后可读取 app data。
+
+### 导入后批量整理未分类闭环（2026-06-30）
+
+- P1 第 5 项“导入后批量整理未分类记录”已完成本地开发：分类页新增“导入记录待整理”轻量面板，可将 Note Station 导入且仍处于 `uncategorized` 的记录批量整理到常用分类。
+- 后端新增 `POST /api/notes/bulk-categorize`，只会更新 `source_type = notestation_import` 且 `category_id = uncategorized` 的记录；即使请求中混入手动未分类记录，也不会误改。
+- 批量整理只更新 `notes.category_id` 和 `updated_at`，保留 Note Station 原始路径、原始分类 / 笔记本路径、来源字段、正文和附件元数据。
+- 前端保持 V1 风格，不做后台表格；分类页用家庭化 chip 表达“整理到 家庭事务 / 维修 / 购物 / 账号 / 临时记录”。
+- 自动化测试已覆盖：批量整理导入未分类记录、手动未分类记录不被误改、整理后可通过目标分类和来源筛选查到。

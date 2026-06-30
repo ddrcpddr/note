@@ -292,6 +292,53 @@ function App() {
     navigate('home');
   }
 
+  async function bulkCategorizeImported(categoryId) {
+    const noteIds = notesData
+      .filter((note) => note.sourceType === 'notestation_import' && note.categoryId === 'uncategorized')
+      .map((note) => note.id);
+    const category = categories.find((item) => item.id === categoryId);
+
+    if (!noteIds.length || !category) {
+      showToast('暂时没有导入记录需要整理');
+      return;
+    }
+
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/notes/bulk-categorize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ noteIds, categoryId })
+        });
+        if (!response.ok) throw new Error('bulk categorize failed');
+        const data = await response.json();
+        const updated = new Map((data.notes || []).map((note) => [note.id, normalizeNote(note)]));
+        setNotesData((current) => current.map((note) => updated.get(note.id) || note));
+        showToast(data.updatedCount ? `已整理 ${data.updatedCount} 条导入记录` : '没有符合条件的导入记录');
+        return;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，整理未保存');
+        return;
+      }
+    }
+
+    setNotesData((current) => current.map((note) => (
+      noteIds.includes(note.id)
+        ? {
+            ...note,
+            category: category.name,
+            categoryId: category.id,
+            categoryIcon: category.icon,
+            categoryImageSrc: category.imageSrc,
+            icon: category.icon,
+            iconTone: category.tone,
+            updatedAt: '刚刚'
+          }
+        : note
+    )));
+    showToast(`已整理 ${noteIds.length} 条导入记录`);
+  }
+
   async function createMockNote(draft) {
     const category = findCategoryForType(draft.type);
     const body = draft.body.trim() || '刚刚新建的一条家庭记录，稍后可以继续补充细节。';
@@ -528,7 +575,7 @@ function App() {
       )}
       {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} onEdit={openEdit} onArchive={archiveNote} onDelete={deleteNote} />}
       {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
-      {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} />}
+      {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} onBulkCategorizeImported={bulkCategorizeImported} />}
       {screen === 'import' && (
         <ImportScreen
           currentMemberId={currentMemberId}
@@ -1063,9 +1110,10 @@ function SearchScreen({ notes, members, onOpenDetail }) {
   );
 }
 
-function CategoriesScreen({ notes, onSelectCategory }) {
+function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported }) {
   const [query, setQuery] = useState('');
   const importedToReviewCount = notes.filter((note) => note.sourceType === 'notestation_import' && note.categoryId === 'uncategorized').length;
+  const reviewTargets = categories.filter((category) => ['family', 'repair', 'shopping', 'account', 'temporary'].includes(category.id));
   const visibleCategories = categories
     .map((category) => ({
       ...category,
@@ -1092,6 +1140,28 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder="搜索分类"
         />
+      </section>
+      <section className="soft-card mt-4 p-4">
+        <div className="flex items-start gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600">
+            <Folder size={21} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[17px] font-bold">导入记录待整理</h2>
+            <p className="mt-1 text-[14px] leading-relaxed text-muted">
+              {importedToReviewCount > 0 ? `${importedToReviewCount} 条 Note Station 导入记录还在未分类里，可以先批量放到一个常用分类。` : '当前没有 Note Station 导入记录停留在未分类。'}
+            </p>
+            {importedToReviewCount > 0 && (
+              <div className="scroll-row mt-3 flex gap-2 pb-1">
+                {reviewTargets.map((category) => (
+                  <button className="chip shrink-0" key={category.id} type="button" onClick={() => onBulkCategorizeImported(category.id)}>
+                    整理到 {category.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
       <section className="mt-5 grid grid-cols-2 gap-3">
         {visibleCategories.map((category) => {

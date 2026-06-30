@@ -75,6 +75,50 @@ notesRouter.post('/', (request, response) => {
   response.status(201).json({ note });
 });
 
+notesRouter.post('/bulk-categorize', (request, response) => {
+  const db = getDb();
+  const payload = request.body || {};
+  const categoryId = String(payload.categoryId || '').trim();
+  const noteIds = Array.isArray(payload.noteIds)
+    ? [...new Set(payload.noteIds.map((id) => String(id).trim()).filter(Boolean))]
+    : [];
+
+  if (!categoryId || noteIds.length === 0) {
+    response.status(400).json({ error: '请选择要整理的记录和目标分类' });
+    return;
+  }
+
+  const category = db.prepare('SELECT id FROM categories WHERE id = ?').get(categoryId);
+  if (!category) {
+    response.status(404).json({ error: '分类不存在' });
+    return;
+  }
+
+  const placeholders = noteIds.map(() => '?').join(', ');
+  const candidates = db
+    .prepare(`SELECT id
+       FROM notes
+       WHERE id IN (${placeholders})
+         AND source_type = 'notestation_import'
+         AND category_id = 'uncategorized'
+         AND is_deleted = 0`)
+    .all(...noteIds);
+  const updatedNoteIds = candidates.map((note) => note.id);
+
+  if (updatedNoteIds.length > 0) {
+    const updatePlaceholders = updatedNoteIds.map(() => '?').join(', ');
+    db.prepare(`UPDATE notes
+       SET category_id = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id IN (${updatePlaceholders})`).run(categoryId, ...updatedNoteIds);
+  }
+
+  response.json({
+    updatedCount: updatedNoteIds.length,
+    updatedNoteIds,
+    notes: updatedNoteIds.length ? listNotes({ includeArchived: 'true' }).filter((note) => updatedNoteIds.includes(note.id)) : []
+  });
+});
+
 notesRouter.post('/:id/archive', (request, response) => {
   const db = getDb();
   const noteId = String(request.params.id || '').trim();

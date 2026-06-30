@@ -13,7 +13,7 @@
 - SQLite 本地数据库
 - 默认成员、分类、标签和示例记录初始化
 - 首页、详情、新建、编辑、删除 / 归档、搜索、分类、导入、设置页面
-- Note Station 真实 `.nsx` dry-run、sandbox 和正式导入流程
+- Note Station 真实 `.nsx` dry-run、sandbox、正式导入和导入后未分类整理流程
 - 本地模拟 NAS 存储、真实附件上传、可选访问口令、数据库备份、JSON 导出
 - 家庭成员切换
 

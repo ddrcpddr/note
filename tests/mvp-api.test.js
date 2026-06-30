@@ -318,6 +318,57 @@ describe('MVP API', () => {
     assert.ok(source.notes.every((note) => note.sourceType === 'notestation_import'));
   });
 
+  test('bulk categorizes imported uncategorized notes only', async () => {
+    const importedOne = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '导入未分类整理 1',
+        content: '这条导入记录需要整理分类。',
+        categoryId: 'uncategorized',
+        memberId: 'self',
+        sourceType: 'notestation_import'
+      })
+    });
+    const importedTwo = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '导入未分类整理 2',
+        content: '这条导入记录也需要整理分类。',
+        categoryId: 'uncategorized',
+        memberId: 'self',
+        sourceType: 'notestation_import'
+      })
+    });
+    const manual = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '手动未分类不应被批量整理',
+        content: '手动记录不属于导入整理范围。',
+        categoryId: 'uncategorized',
+        memberId: 'self',
+        sourceType: 'manual'
+      })
+    });
+
+    const result = await requestJson('/api/notes/bulk-categorize', {
+      method: 'POST',
+      body: JSON.stringify({
+        categoryId: 'repair',
+        noteIds: [importedOne.note.id, importedTwo.note.id, manual.note.id]
+      })
+    });
+
+    assert.equal(result.updatedCount, 2);
+    assert.deepEqual(result.updatedNoteIds.sort(), [importedOne.note.id, importedTwo.note.id].sort());
+
+    const repair = await requestJson('/api/notes?category=repair&source=notestation_import');
+    assert.ok(repair.notes.some((note) => note.id === importedOne.note.id));
+    assert.ok(repair.notes.some((note) => note.id === importedTwo.note.id));
+
+    const manualDetail = await requestJson('/api/notes?id=' + encodeURIComponent(manual.note.id));
+    assert.equal(manualDetail.notes[0].categoryId, 'uncategorized');
+  });
+
   test('switches current member and uses it for new notes by default', async () => {
     const switched = await requestJson('/api/members/current', {
       method: 'POST',
