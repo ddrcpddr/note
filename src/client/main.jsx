@@ -1218,14 +1218,14 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[25px] font-bold leading-none text-[#093f3e]">分类</h1>
-          <p className="mt-2 text-[15px] text-muted">按家里的事情慢慢整理</p>
+          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">分类</h1>
+          <p className="mt-2.5 text-[16px] text-muted">按家里的事情慢慢整理</p>
         </div>
-        <button className="grid h-12 w-12 place-items-center rounded-full bg-white text-teal-600 shadow-card">
+        <button className="grid h-[52px] w-[52px] place-items-center rounded-full bg-white text-teal-600 shadow-card">
           <Grid2X2 size={25} />
         </button>
       </header>
-      <section className="soft-card mt-6 flex h-[58px] w-full items-center gap-4 rounded-[20px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card">
+      <section className="soft-card mt-7 flex h-[62px] w-full items-center gap-4 rounded-[22px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card">
         <Search size={28} className="text-[#777b82]" />
         <input
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#8b8e94]"
@@ -1234,14 +1234,14 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
           placeholder="搜索分类"
         />
       </section>
-      <section className="soft-card mt-4 p-4">
+      <section className="soft-card mt-5 p-5">
         <div className="flex items-start gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600">
-            <Folder size={21} />
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600">
+            <Folder size={25} />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[17px] font-bold">导入记录待整理</h2>
-            <p className="mt-1 text-[14px] leading-relaxed text-muted">
+            <h2 className="text-[18px] font-bold">导入记录待整理</h2>
+            <p className="mt-1 text-[15px] leading-relaxed text-muted">
               {importedToReviewCount > 0 ? `${importedToReviewCount} 条 Note Station 导入记录还在未分类里，可以先批量放到一个常用分类。` : '当前没有 Note Station 导入记录停留在未分类。'}
             </p>
             {importedToReviewCount > 0 && (
@@ -1256,25 +1256,25 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
           </div>
         </div>
       </section>
-      <section className="mt-5 grid grid-cols-2 gap-3">
+      <section className="mt-6 grid grid-cols-2 gap-4">
         {visibleCategories.map((category) => {
           const Icon = category.icon;
           return (
-            <button className="soft-card flex min-h-[106px] w-full items-center gap-2.5 p-3 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-12 w-12 bg-white ${category.tone}`}>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={category.name} className="h-10 w-10" iconSize={27} />
+            <button className="soft-card flex min-h-[126px] w-full items-center gap-3 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
+              <div className={`circle-icon h-14 w-14 bg-white ${category.tone}`}>
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={category.name} className="h-12 w-12" iconSize={30} />
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-[17px] font-bold leading-tight">{category.name}</h2>
-                <p className="mt-2 text-[13px] font-medium text-teal-600">{category.count} 条记录</p>
-                <p className="mt-1 text-[12px] text-muted">{category.update}</p>
+                <h2 className="truncate text-[18px] font-bold leading-tight">{category.name}</h2>
+                <p className="mt-2 text-[14px] font-medium text-teal-600">{category.count} 条记录</p>
+                <p className="mt-1.5 truncate text-[13px] text-muted">{category.update}</p>
                 {category.id === 'uncategorized' && importedToReviewCount > 0 && (
                   <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
                     {importedToReviewCount} 条导入记录待整理
                   </p>
                 )}
               </div>
-              <ChevronRight className="shrink-0 text-muted" size={16} />
+              <ChevronRight className="shrink-0 text-muted" size={18} />
             </button>
           );
         })}
@@ -1756,12 +1756,12 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
   return (
     <>
-      <header className="relative min-h-[142px]">
+      <header className="relative min-h-[154px]">
         <div>
-          <h1 className="text-[25px] font-bold leading-none text-[#093f3e]">设置</h1>
-          <p className="mt-2 text-[15px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
+          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">设置</h1>
+          <p className="mt-2.5 text-[16px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
         </div>
-        <div className="absolute right-0 top-0 h-24 w-32">
+        <div className="absolute right-0 top-1 h-28 w-36">
           <div className="absolute bottom-0 left-4 h-14 w-16 rounded-[50%] bg-[#e9dfcf]" />
           <div className="absolute bottom-9 left-12 h-16 w-1 rounded-full bg-[#9aaa76]" />
           <div className="absolute bottom-16 left-9 h-4 w-8 rotate-[-28deg] rounded-full bg-[#9aaa76]" />
@@ -1770,12 +1770,12 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         </div>
       </header>
       <SectionTitle>数据备份</SectionTitle>
-      <section className="soft-card p-5">
+      <section className="soft-card p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-4">
-            <div className={`circle-icon ${nasOnline ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-500'}`}><Cloud size={35} /></div>
+            <div className={`circle-icon h-16 w-16 ${nasOnline ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-500'}`}><Cloud size={38} /></div>
             <div className="min-w-0">
-              <p className="text-[20px] font-semibold">上次备份：{lastBackup}</p>
+              <p className="text-[21px] font-semibold leading-snug">上次备份：{lastBackup}</p>
               <p className="mt-1 flex items-center gap-2 text-[16px] text-muted">
                 {nasOnline ? '备份成功，数据安全' : '暂时连不上家庭 NAS'}
                 {nasOnline ? <CheckCircle2 size={18} className="text-teal-600" /> : <AlertCircle size={18} className="text-amber-500" />}
@@ -1783,27 +1783,27 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
             </div>
           </div>
           <button
-            className={`shrink-0 rounded-2xl px-4 py-3 text-[17px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
+            className={`shrink-0 rounded-[18px] px-5 py-3.5 text-[17px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
             type="button"
             onClick={runBackup}
           >
             {backupState === 'running' ? '备份中' : '立即备份'}
           </button>
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-soft/80 px-4 py-3 text-[14px] text-muted">
+        <div className="mt-5 flex items-center justify-between rounded-[18px] bg-[#f6f4ef]/70 px-4 py-3 text-[13px] text-muted">
           <span>备份状态测试</span>
           <div className="flex gap-2">
-            <button className={`rounded-full border px-3 py-1.5 font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
+            <button className={`rounded-full border px-2.5 py-1 font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
               正常
             </button>
-            <button className={`rounded-full border px-3 py-1.5 font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
+            <button className={`rounded-full border px-2.5 py-1 font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
               离线
             </button>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between rounded-2xl bg-soft/80 px-4 py-3 text-[14px] text-muted">
+        <div className="mt-3 flex items-center justify-between rounded-[18px] bg-[#f6f4ef]/70 px-4 py-3 text-[13px] text-muted">
           <span>{storageProbe?.ok ? '存储目录读写正常' : '检查当前数据目录'}</span>
-          <button className="rounded-full border border-teal-600 bg-teal-50 px-3 py-1.5 font-medium text-teal-700" type="button" onClick={probeStorage}>
+          <button className="rounded-full border border-teal-600 bg-teal-50 px-2.5 py-1 font-medium text-teal-700" type="button" onClick={probeStorage}>
             检查
           </button>
         </div>
@@ -2078,14 +2078,14 @@ function SectionTitle({ children }) {
 function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClick }) {
   return (
     <button
-      className={`flex w-full items-center justify-between gap-4 p-5 text-left ${disabled ? 'opacity-55' : ''}`}
+      className={`flex w-full items-center justify-between gap-5 px-5 py-5 text-left ${disabled ? 'opacity-55' : ''}`}
       onClick={onClick}
       type="button"
     >
       <div className="flex items-center gap-4">
-        <div className="circle-icon bg-teal-50 text-teal-700"><Icon size={31} /></div>
+        <div className="circle-icon h-[58px] w-[58px] bg-teal-50 text-teal-700"><Icon size={31} /></div>
         <div className="min-w-0">
-          <p className="text-[18px] font-semibold">{title}</p>
+          <p className="text-[19px] font-semibold">{title}</p>
           <p className="mt-1 break-all text-[15px] leading-relaxed text-muted">{desc}</p>
         </div>
       </div>

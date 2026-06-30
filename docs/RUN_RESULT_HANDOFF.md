@@ -499,3 +499,13 @@ npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
 - `npm.cmd run test`：通过，10 个测试套件 / 33 项测试全部通过。
 - `npm.cmd run build`：通过。
 - 本轮只提交审计报告和项目文档，不提交本地截图或真实运行数据。
+## Gate 7 第一批视觉修复交接（2026-06-30）
+
+- 当前完成范围：分类页 + 设置页 V1 / Product Design 对齐第一批。
+- 修改文件：`src/client/main.jsx`，只调整 Tailwind class / 视觉层级，不改状态流、API、数据库、导入或真实数据。
+- 分类页：标题、副标题、搜索框、导入整理卡、分类卡片、图标和文本层级已增强。
+- 设置页：标题、顶部生活化装饰留白、备份卡、设置项层级已增强；备份状态测试和数据目录检查视觉权重已下调。
+- 移动端检查：使用 Codex bundled Playwright 点击底部导航进入分类 / 设置，390px 和 430px 均无横向溢出，`overflowCount=0`。
+- 验证命令：`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
+- 当前仍未做：Gate 7 第二批首页 + 搜索页；第三批新建 + 详情；第四批导入页和导航细节。
+- 注意：Playwright 检查不要再用失败的 `npx --package ... require(...)` 路径；这台机子稳定方式已写入 Codex 本地记忆。

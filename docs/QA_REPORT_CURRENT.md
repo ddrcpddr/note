@@ -1522,3 +1522,25 @@
 | `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`，`noteCount=113` |
 | `npm.cmd run test` | 通过，10 个测试套件 / 33 项测试全部通过 |
 | `npm.cmd run build` | 通过，Vite 生产构建成功 |
+## Gate 7：分类页 + 设置页 V1 视觉对齐第一批（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 测试时间 | 2026-06-30 22:32 +08:00 |
+| 当前范围 | Gate 7 第一批，只修分类页和设置页视觉层级 |
+| 复现步骤 | 对照 V1 / Product Design 7 张图和 `docs/PRODUCT_DESIGN_RESTORE_AUDIT.md`，分类页卡片偏紧、标题层级偏小；设置页备份卡片和技术信息仍偏后台感。 |
+| 问题原因 | 前一版为了手机可用性收敛了字号和密度，导致分类页 / 设置页相比 V1 少了一些留白和生活化层级。 |
+| 修复内容 | 增强分类页大标题、搜索框、导入整理卡、分类卡片、分类图标和文本层级；增强设置页大标题、顶部装饰留白、备份卡片、设置项图标和标题，并降低测试 / 探测信息视觉权重。 |
+| 运行命令 | `npm.cmd run check`; `npm.cmd run test`; `npm.cmd run build`; Codex bundled Playwright 390px / 430px 点击底部导航检查分类页和设置页。 |
+| 测试结果 | 全部通过；390px / 430px 分类页和设置页 `scrollWidth == innerWidth`，`overflowCount=0`。 |
+| 仍然存在的问题 | Gate 7 尚未修首页、搜索页、新建页、详情页、导入页；下一批应继续小步处理，不要一次性重做 UI。 |
+| 下一步建议 | Gate 7 第二批做“首页 + 搜索页”，重点记录卡标题、摘要、标签、来源和元信息层级。 |
+
+### Gate 7 验证命令结果
+
+| 命令 / 检查 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`、`categoryCount=11`、`noteCount=113` |
+| `npm.cmd run test` | 通过，10 个测试套件 / 33 项测试全部通过 |
+| `npm.cmd run build` | 通过 |
+| 390px / 430px Playwright 检查 | 分类页、设置页均无横向溢出，截图在 `C:\tmp\note-gate7-shots`，不提交 Git |

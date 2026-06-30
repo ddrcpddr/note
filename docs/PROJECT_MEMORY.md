@@ -962,3 +962,12 @@ MVP 需要覆盖：
 - `npm.cmd run test` 通过，10 个测试套件 / 33 项测试全部通过。
 - `npm.cmd run build` 通过。
 - 本轮不提交 `output/playwright/` 截图、不提交 `data/`、数据库、备份、导出、附件或真实导入内容。
+### Gate 7：分类页 + 设置页视觉对齐第一批（2026-06-30）
+
+- 用户要求进入 Gate 7，并指出不要再重复踩 Windows / Playwright 环境坑；已将该坑和正确解法写入 Codex 本地记忆扩展：Windows 沙箱 cap_sid 问题出现后直接使用 `require_escalated`，Playwright 交互检查使用 Codex bundled Node + pnpm module path。
+- 本轮只修 `src/client/main.jsx` 中分类页和设置页的视觉层级，不新增功能、不改业务逻辑、不改数据库、不触碰真实 Note Station 数据、不生成图片、不调用 Product Design。
+- 分类页修正：标题和副标题更接近 V1，搜索框更舒展，导入整理卡留白和图标增强，分类卡片高度、图标、标题、数量和更新时间层级增强，双列间距加大。
+- 设置页修正：标题和顶部装饰区域更接近 V1，备份卡片留白 / 图标 / 标题 / 按钮增强，备份状态测试和数据目录检查视觉权重下调，设置项图标和标题增强。
+- Playwright 390px / 430px 检查：通过底部导航真实进入分类页和设置页；四个组合均 `scrollWidth == innerWidth`，`overflowCount=0`；截图只保存在 `C:\tmp\note-gate7-shots`，不提交 Git。
+- 验证结果：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。
+- 下一步：Gate 7 第二批建议做“首页 + 搜索页”，只统一记录卡标题、摘要、标签和元信息层级；不要重做整体 UI。
