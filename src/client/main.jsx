@@ -1256,25 +1256,25 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
           </div>
         </div>
       </section>
-      <section className="mt-6 grid grid-cols-2 gap-4">
+      <section className="mt-6 grid grid-cols-2 gap-4 pb-28">
         {visibleCategories.map((category) => {
           const Icon = category.icon;
+          const displayName = category.id === 'uncategorized' ? '未分类' : category.name;
           return (
-            <button className="soft-card flex min-h-[126px] w-full items-center gap-3 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
+            <button className="soft-card flex min-h-[148px] w-full flex-col items-start justify-center gap-3 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
               <div className={`circle-icon h-14 w-14 bg-white ${category.tone}`}>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={category.name} className="h-12 w-12" iconSize={30} />
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-12 w-12" iconSize={30} />
               </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="truncate text-[18px] font-bold leading-tight">{category.name}</h2>
-                <p className="mt-2 text-[14px] font-medium text-teal-600">{category.count} 条记录</p>
-                <p className="mt-1.5 truncate text-[13px] text-muted">{category.update}</p>
+              <div className="min-w-0 w-full">
+                <h2 className="whitespace-nowrap text-[18px] font-bold leading-tight text-ink" data-category-title>{displayName}</h2>
+                <p className="mt-2 whitespace-nowrap text-[15px] font-medium text-teal-600" data-category-count>{category.count} 条记录</p>
+                <p className="mt-1.5 whitespace-nowrap text-[13px] text-muted" data-category-update>{category.update}</p>
                 {category.id === 'uncategorized' && importedToReviewCount > 0 && (
                   <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
                     {importedToReviewCount} 条导入记录待整理
                   </p>
                 )}
               </div>
-              <ChevronRight className="shrink-0 text-muted" size={18} />
             </button>
           );
         })}
