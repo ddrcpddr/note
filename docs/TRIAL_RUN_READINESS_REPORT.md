@@ -1,51 +1,70 @@
 # 真实手机与 NAS / Docker 试运行准备报告
 
-## 1. 当前 commit
+## 1. 当前状态
 
-- 当前最新提交：`4aa5cd8 Document Android wrapper decisions`
+- 当前阶段：Gate 0-4 已完成，等待真实手机 / NAS 人工试运行反馈。
 - 当前分支：`main`
-- 当前本地状态：`main...origin/main [ahead 11]`
-- 说明：本地已有 11 个提交尚未 push；等待用户明确批准后再推送 GitHub。
+- 当前最新提交：以 `git log --oneline -1` 为准；本报告刷新前基线为 `bb75fc7 Strengthen backup restore drill`。
+- 当前工作原则：不继续新增大功能，不重做 UI，不调用 Product Design，不生成新图片，不修改真实 Note Station 导入数据。
 
-## 2. 当前阶段结论
+## 2. 阶段结论
 
-当前 Web / PWA / Docker 代码和镜像可以运行，但本地正式数据库 `data/database/app.db` 已确认损坏，Docker 业务 API 暂不可用于试运行。需要先按 `docs/DATABASE_INTEGRITY_RECOVERY.md` 恢复到最近健康备份，再进入真实手机和家庭局域网试运行。Android 原生 App 封装仍排最后；在创建 Android 工程前，需要先按 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md` 确认包名、封装路线、最低 Android 版本、NAS 地址配置策略和签名方式。
+当前项目可以进入真实家庭局域网 / NAS 试运行。
 
-## 3. check / test / build 结果
+已完成的关键前置条件：
 
-| 命令 | 结果 |
+- 正式 SQLite 数据库已从健康备份恢复。
+- `npm.cmd run check` 已验证正式库 `integrityCheck: "ok"`。
+- Docker 使用真实 `./data:/data` 挂载后已通过 HTTP smoke。
+- 手机局域网试运行清单已准备。
+- 试运行反馈模板和日志已准备。
+- 备份 / 恢复演练已强化，恢复流程要求先 dry-run 再 `--confirm`。
+
+## 3. 最新验证结果
+
+最近一次 Gate 4 验证：
+
+| 命令 / 检查 | 结果 |
 | --- | --- |
-| `npm.cmd run check` | 通过，正式库 `categoryCount=11`，`noteCount=112` |
-| `npm.cmd run test` | 通过，26 项测试全部通过 |
+| `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`、`noteCount=113` |
+| `npm.cmd run test` | 通过，33 项测试全部通过 |
 | `npm.cmd run build` | 通过，Vite 生产构建成功 |
+| `git ls-files data` | 只跟踪 5 个 `.gitkeep` 占位文件 |
+| 敏感运行数据 | 正式数据库、备份、导出、附件、sandbox DB、真实导入目录均未被 Git 跟踪 |
 
-## 4. 当前 Docker 试运行状态
+最近一次 Docker 真实 data 验证：
 
-| 项目 | 结果 |
+| 检查项 | 结果 |
 | --- | --- |
-| `Dockerfile` | 存在，Node 22，构建前端并运行 Express 服务 |
-| `docker-compose.yml` | 存在，端口 `3300:3300`，`NOTE_DATA_DIR=/data`，`./data:/data` |
-| `.dockerignore` | 已排除 `data/`、`*.nsx`、数据库、备份、导出、附件、日志和 `output/` |
-| 当前容器 | `note` |
-| 当前状态 | 已停止；此前容器 healthcheck healthy，但业务 API 因数据库损坏返回 500 |
-| 当前端口 | `0.0.0.0:3300->3300/tcp` |
-| 健康接口 | 此前返回 200；该接口不验证业务查询或数据库完整性 |
-| 前端访问 | 此前 SPA 页面可打开；业务 API 暂不可用 |
-| 容器数据目录 | `/data/database/app.db`，确认 `NOTE_DATA_DIR=/data` 生效 |
+| `docker compose build` | 通过 |
+| `docker compose up -d` | 通过，容器 `note` healthy |
+| `NOTE_DATA_DIR` | 容器内指向 `/data` |
+| `/api/health` | 200 |
+| `/api/app-data` | 200 |
+| `/api/notes?limit=3` | 200 |
+| `/api/categories` | 200 |
+| `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` | 通过 |
 
-恢复数据库并重新启动 Docker 后，本机测试地址：
+## 4. 数据库恢复状态
 
-```text
-http://127.0.0.1:3300/
-```
+恢复前问题：
 
-恢复数据库并重新启动 Docker 后，手机同局域网测试地址：
+- `data/database/app.db` 曾出现 SQLite `database disk image is malformed`。
+- Docker healthcheck 曾显示 healthy，但业务 API 返回 500。
+- 旧的健康接口不足以证明数据库可用，因此后来新增了 `PRAGMA integrity_check`。
 
-```text
-http://<这台电脑或 NAS 的局域网 IP>:3300/
-```
+已执行恢复：
 
-不要把真实 NAS IP、域名、账号、密码或 token 写入仓库。
+- 使用健康备份：`data/backups/app-2026-06-29T05-40-32-597Z.db`。
+- 损坏库副本：`data/backups/app-before-restore-2026-06-30T08-31-44-809Z.db`。
+- 恢复后 `integrityCheck=ok`。
+- 恢复后没有从损坏库硬读或 salvage 数据。
+
+数据风险说明：
+
+- 恢复到健康备份时，损坏库中可能存在额外 1 条不可直接信任的记录。
+- 如未来必须找回该记录，只能在用户确认后做只读 salvage 评估。
+- 当前不要为了补记录去读取损坏库写回正式库。
 
 ## 5. 当前真实可用功能
 
@@ -67,24 +86,14 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 
 ## 6. 当前仍待确认或暂不实现
 
-- 真实 Android 原生 App 工程尚未创建；等待用户确认 Android 决策清单。
 - 新增家庭成员暂不开放；当前只保留“我 / 爱人”。
-- 附件删除、附件替换和更大文件上传体验仍待后续试运行反馈后决定。
+- 附件删除、附件替换和更大文件上传体验等待试运行反馈后决定。
 - 复杂权限系统、真实账号系统、外网访问、反向代理、内网穿透不在当前 MVP 范围。
 - 复杂离线同步 / 手机本地数据库不建议现在做。
 - 其他 Synology Note Station 导出变体仍需先 dry-run，不硬猜格式。
+- Android 原生 App 工程尚未创建；必须先完成真实 Android Web / PWA 试运行并确认 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md`。
 
-## 7. 当前阻塞问题
-
-- 正式数据库 `data/database/app.db` 已确认 `PRAGMA integrity_check` 失败。
-- Docker 业务 API `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 500。
-- 最近健康备份为 `data/backups/app-2026-06-29T05-40-32-597Z.db`，111 条记录。
-- 最新备份 `app-2026-06-30T04-06-15-239Z.db` 同样损坏，不建议恢复。
-- 当前已停止 Docker 容器，等待用户确认是否恢复数据库。
-
-详见：`docs/DATABASE_INTEGRITY_RECOVERY.md`。
-
-## 8. 当前已知风险
+## 7. 当前已知风险
 
 - Docker compose 默认把本地 `./data` 挂载到容器 `/data`；NAS 实机部署前必须确认 NAS 挂载目录可写。
 - SQLite 试运行中应避免多个服务长期同时写同一个 `app.db`。
@@ -92,7 +101,7 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 - `NOTE_ACCESS_PIN` 只是家庭局域网轻量入口保护，不是账号 / 权限系统。
 - Android WebView / TWA 工程启动前必须确认包名、签名和地址配置策略。
 
-## 9. 手机端待人工验收
+## 8. 手机端待人工验收
 
 详见：`docs/MOBILE_TRIAL_CHECKLIST.md`。
 
@@ -100,14 +109,41 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 
 1. 手机浏览器打开局域网地址。
 2. 添加到桌面 / PWA。
-3. 新建记录后刷新不丢。
-4. 手机端真实附件上传。
-5. 搜索、分类、成员、来源筛选。
-6. 查看一条 Note Station 导入记录详情。
-7. 设置页备份、JSON 导出、Markdown 导出。
-8. 设置页“检查当前数据目录”。
-9. `NOTE_ACCESS_PIN` 开启时的手机端解锁流程。
-10. 长标题、长正文、长链接是否横向溢出。
+3. 首页查看真实导入记录。
+4. 新建记录后刷新不丢。
+5. 手机端真实附件上传。
+6. 搜索、分类、成员、来源筛选。
+7. 查看一条 Note Station 导入记录详情。
+8. 设置页备份、JSON 导出、Markdown 导出。
+9. 设置页“检查当前数据目录”。
+10. `NOTE_ACCESS_PIN` 开启时的手机端解锁流程。
+11. 长标题、长正文、长链接是否横向溢出。
+12. 底部导航是否遮挡内容。
+
+## 9. NAS / Docker 试运行顺序
+
+1. 试运行前按 `docs/BACKUP_RESTORE_DRILL.md` 备份 `app.db` 和 `attachments/`。
+2. 在 NAS 或 Docker 主机准备数据目录，并挂载到容器 `/data`。
+3. 启动服务：
+
+```bash
+docker compose up -d --build
+```
+
+4. 打开健康接口，确认 `dataPaths` 指向 `/data/...`。
+5. 运行 HTTP smoke：
+
+```bash
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+6. 手机在同一局域网访问：
+
+```text
+http://<电脑或NAS局域网IP>:3300/
+```
+
+真实 IP 只在本机或 NAS 配置中使用，不写入仓库。
 
 ## 10. Android 封装前置状态
 
@@ -118,47 +154,13 @@ http://<这台电脑或 NAS 的局域网 IP>:3300/
 
 ## 11. 是否建议进入家庭局域网试运行
 
-暂不建议继续用当前正式库进入真实家庭局域网试运行。
+建议进入真实家庭局域网 / NAS 试运行，但只做人工验收和小 bug 修复。
 
-理由：
+进入试运行前请先完成：
 
-- `check/test/build` 已通过，但不能证明正式数据库完整。
-- Docker SPA 页面此前可打开，但业务 API 已因数据库损坏返回 500。
-- 当前 Docker 容器已停止，避免继续读写损坏库。
-- 必须先恢复或修复 `data/database/app.db`，并重新验证 `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 200。
-- 真实运行数据仍被 Git 忽略，没有进入提交。
+- 备份 `data/database/app.db`。
+- 备份 `data/attachments/`。
+- NAS 上保留数据目录快照。
+- 确认当前代码是最新 `main`。
 
-恢复后，再根据真实手机反馈决定是否进入 Android WebView 工程或继续修小问题。
-
-## 临时 Docker 可测实例（2026-06-30）
-
-在正式数据库尚未恢复前，已先启动一个不污染正式数据的 Docker 临时实例，供本机查看当前页面和基础 API：
-
-| 项目 | 结果 |
-| --- | --- |
-| 镜像 | `note-trial:current` |
-| 容器 | `note-trial` |
-| 地址 | `http://127.0.0.1:3310/` |
-| 数据卷 | `note-trial-data:/data` |
-| 是否挂载正式 `./data` | 否 |
-| 健康接口 | 通过 |
-| HTTP 烟测 | `npm.cmd run smoke -- --base-url http://127.0.0.1:3310` 通过 |
-
-这个临时实例可用于 UI 和 Docker 运行方式预览，但不代表正式库已恢复。正式家庭局域网试运行仍需先恢复 `data/database/app.db`，再使用默认 compose 或 NAS 挂载目录重新验收。
-## 正式数据库恢复完成（2026-06-30）
-
-- 恢复前状态：`npm.cmd run check` 对 `data/database/app.db` 执行 SQLite `PRAGMA integrity_check` 失败，错误包含 `database disk image is malformed` 相关的 B-tree / page 损坏信息。
-- 恢复前服务状态：已执行 `docker compose down`，并停止 `note-trial` 临时容器；未发现本地当前项目的 `node` / `npm` 服务进程占用数据库。
-- Git 安全状态：恢复前工作区干净；`data/` 下正式数据库、备份、附件、导出、真实导入文件仍被 `.gitignore` 忽略，Git 只跟踪 `.gitkeep`。
-- dry-run 命令：`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db`，结果 `ok=true`、`dryRun=true`、`restored=false`。
-- 确认恢复命令：`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm`。
-- 使用的健康备份：`data/backups/app-2026-06-29T05-40-32-597Z.db`，大小 `17526784` bytes。
-- 损坏库副本：恢复工具已自动保存到 `data/backups/app-before-restore-2026-06-30T08-31-44-809Z.db`，该文件属于运行备份数据，不提交 Git。
-- 恢复后 `npm.cmd run check` 通过，输出 `integrityCheck: "ok"`、`categoryCount: 11`、`noteCount: 111`。
-- 记录数说明：此前损坏库记忆中曾出现 112 条；本次恢复到最近健康备份后为 111 条。额外 1 条位于损坏库中，不能直接信任，本轮没有从损坏库硬读或 salvage。
-- 恢复后 `npm.cmd run test` 通过，32 项测试全部通过；`npm.cmd run build` 通过。
-- Docker 真实 data 验证：`docker compose build` 通过，`docker compose up -d` 后容器 `note` 为 healthy，使用默认 `./data:/data` 挂载。
-- 关键 API 验证：`/api/health`、`/api/app-data`、`/api/notes?limit=3`、`/api/categories` 均返回 200，不再返回 500。
-- HTTP 烟测：`npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过；app-data 返回 `notes: 111`，手动备份、JSON 导出和前端 shell 均通过。
-- 当前风险：最近健康备份之后、损坏发生之前的 1 条记录未恢复；如确实需要找回，必须单独做只读 salvage 评估，并在用户确认后进行，不能直接从损坏库写回。
-- 当前建议：可以继续进入真实手机 / NAS 试运行，但试运行前保留本次恢复用备份和 `app-before-restore` 损坏库副本，避免后续误删。
+试运行期间如果出现 P0 / P1 问题，按 `mvp-bugfix-qa` 流程处理：复现、定位、小修、check/test/build、更新 QA 和项目记忆、一个 bug 一个 `Fix:` commit。

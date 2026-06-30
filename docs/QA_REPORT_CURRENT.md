@@ -1466,3 +1466,20 @@
 | `npm.cmd run build` | 通过，Vite 生产构建成功 |
 | `git ls-files data` | 只跟踪 5 个 `.gitkeep` 占位文件 |
 | 敏感运行数据 | 正式数据库、备份、导出、附件、sandbox DB、真实导入目录均未被 Git 跟踪 |
+
+## 试运行准备报告去矛盾刷新（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | `docs/TRIAL_RUN_READINESS_REPORT.md` 当前状态刷新 |
+| 问题 | 报告前半段仍保留数据库损坏阶段的旧结论，后文才追加恢复完成，容易误导后续判断 |
+| 修复 | 重写报告为当前事实：数据库已恢复、Docker 真实 data smoke 已通过、建议进入真实家庭局域网 / NAS 人工试运行 |
+| 边界 | 只改文档，不改业务代码、不改数据库、不触碰真实运行数据 |
+
+### 试运行报告刷新验证结果
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`、`noteCount=113` |
+| `npm.cmd run test` | 通过，33 项测试全部通过 |
+| `npm.cmd run build` | 通过 |

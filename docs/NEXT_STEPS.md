@@ -171,3 +171,7 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 5. 出问题时先对目标备份运行 `npm.cmd run restore-db -- --backup <backup.db>` dry-run，确认 `ok=true` 后再追加 `--confirm`。
 
 当前仍建议继续真实手机试运行，只处理 P0 / P1 真实反馈；不要在未完成一轮稳定试用前继续扩展大功能、Android 工程或外网访问方案。
+
+## 试运行准备报告已刷新（2026-06-30）
+
+`docs/TRIAL_RUN_READINESS_REPORT.md` 已从旧的“数据库损坏阻塞”状态刷新为当前事实：正式库已恢复，Docker 真实 data smoke 已通过，下一步是按 `docs/MOBILE_TRIAL_CHECKLIST.md` 和 `docs/BACKUP_RESTORE_DRILL.md` 进入真实手机 / NAS 人工试运行。

@@ -926,3 +926,10 @@ MVP 需要覆盖：
 - 现有 `tests/database-restore.test.js` 已覆盖 dry-run 不替换正式库、`--confirm` 保留恢复前副本、坏备份拒绝；本轮无需新增重复测试。
 - 本轮验证结果：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。
 - 提交前安全检查：Git 仍只跟踪 `data/**/.gitkeep`；正式数据库、备份、导出、附件、sandbox DB 和真实导入目录均为 ignored 运行数据。
+
+### 试运行准备报告去矛盾刷新（2026-06-30）
+
+- 发现 `docs/TRIAL_RUN_READINESS_REPORT.md` 前半段仍保留数据库损坏阶段的“暂不建议试运行”旧结论，后文虽追加了恢复完成，但容易误导后续线程。
+- 本轮将该报告刷新为当前事实：Gate 0-4 已完成，正式库 `integrityCheck=ok`，Docker 真实 data smoke 已通过，当前建议进入真实家庭局域网 / NAS 人工试运行。
+- 本轮只更新文档，不改业务代码、不改数据库、不触碰真实运行数据。
+- 本轮报告刷新验证：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。
