@@ -375,3 +375,38 @@ npm.cmd run build
 - NAS 数据目录的真实挂载路径；只在本机 / NAS 配置中使用，不写入仓库。
 - 是否需要简单访问口令 / PIN。
 - 是否优先做真实附件上传，还是先做导入后分类整理。
+
+## 当前 Docker / Android 决策交接补充（2026-06-30）
+
+### 当前最新状态
+
+- 最新提交：`4aa5cd8 Document Android wrapper decisions`
+- 当前分支：`main`
+- 本地相对远程：`main...origin/main [ahead 11]`
+- Docker 容器：`note`，当前 `healthy`，端口 `3300:3300`
+- 本机测试地址：`http://127.0.0.1:3300/`
+- 健康接口：`http://127.0.0.1:3300/api/health`
+
+### 最新可用功能
+
+当前功能已不再停留在早期 MVP：真实附件上传、访问口令、成员资料编辑、导入后未分类整理、定时备份、Markdown 导出、NAS 数据目录探测都已经完成本地开发并通过自动化验证。
+
+### 最新验证
+
+- `npm.cmd run check` 通过，正式库记录数 112。
+- `npm.cmd run test` 通过，26 项测试全部通过。
+- `npm.cmd run build` 通过。
+- Docker 健康接口返回 200。
+
+### Android 封装状态
+
+Android 原生 App 封装仍排最后。当前已完成封装准备文档和决策清单：
+
+- `docs/ANDROID_WRAPPER_PLAN.md`
+- `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md`
+
+真正创建 Android 工程前，需要用户确认包名、App 名称、最低 Android 版本、封装路线、NAS 地址配置策略、签名方式和是否允许引入 Android / Gradle 相关依赖。
+
+### 安全状态
+
+运行数据仍由 `.gitignore` 保护；`data/` 下数据库、备份、导出、附件和真实 Note Station 导入内容均未进入 Git 跟踪。

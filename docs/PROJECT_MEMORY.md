@@ -824,3 +824,9 @@ MVP 需要覆盖：
 - 新增 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md`，把 Android 工程启动前必须确认的包名、App 名称、封装路线、最低 Android 版本、NAS 地址策略、签名方式和依赖授权整理为可执行清单。
 - 推荐路线继续保持为 Android WebView 壳：手机端只作为家庭 NAS Web 应用入口，正式数据仍保存在 NAS / Express / SQLite 服务端。
 - 当前暂停点明确为：用户确认决策清单之前，不创建 Android 工程、不安装 Android 依赖、不生成 keystore、不写真实 NAS 地址。
+
+### 试运行报告刷新（2026-06-30）
+
+- 刷新 `docs/TRIAL_RUN_READINESS_REPORT.md` 到当前真实状态：最新提交 `4aa5cd8`、本地领先远程 11 个提交、Docker 容器 `note` healthy、正式库记录数 112、自动化测试 26 项通过。
+- 同步 `docs/RUN_RESULT_HANDOFF.md`，追加当前 Docker / Android 决策交接补充，避免后续线程误读早期“16 项测试、附件上传/PIN 未实现”等历史状态。
+- 当前 Docker 测试地址为 `http://127.0.0.1:3300/`；手机试运行使用同局域网地址，不把真实 IP 或 NAS 地址写入仓库。
