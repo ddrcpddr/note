@@ -889,3 +889,11 @@ MVP 需要覆盖：
 - 已更新 `docs/MOBILE_TRIAL_CHECKLIST.md`，补充恢复后正式库前提、Docker 真实 `data/` 挂载、手机局域网访问、防火墙排查、Markdown 导出、小附件上传、PIN、存储目录探测、长链接和底部导航检查。
 - 当前局域网 IP 仅在聊天回复中提示，不写入仓库，避免把真实地址固化到 Git。
 - 下一步停止点：等待用户用 Android 手机访问 `http://<局域网IP>:3300/` 做真实试运行；在真实反馈前，不继续新增功能、Android 工程或视觉重做。
+### Fix：标签编辑和导入页文案收口（2026-06-30）
+
+- 用户在手机试运行中发现：编辑记录取消所有标签后，详情页仍强行显示 `待办`；编辑页 `+ 添加标签` 按钮无反应；Note Station 导入页初始文案把“导入”和“选择导出文件”混在一起，容易误解。
+- 根因：前端保存记录时把空标签数组兜底成 `['待办']`；添加标签控件只是静态 `span`；导入页文案沿用 `.nsx 导出文件` 表达。
+- 已修复：编辑已有记录时保留原始标签数组，保存时原样提交 `tags`，允许空数组；`+ 添加标签` 改为轻量输入，支持添加自定义标签；导入页初始文案统一为 `Note Station .nsx 文件`、`选择 .nsx 文件` 和 `预览导入记录`。
+- 已补回归：`tests/mvp-api.test.js` 在编辑记录测试中覆盖 `PATCH tags: []`，确认详情读取为空标签且旧标签筛选不再命中。
+- 已验证：`node --test tests/mvp-api.test.js` 通过 19 项；`npm.cmd run build` 通过；`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、记录数 112；`npm.cmd run test` 通过 32 项；`docker compose build`、`docker compose up -d` 和 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过。
+- 当前 Docker `http://127.0.0.1:3300/` 已重建为修复后的版本，用户可在手机同局域网地址刷新后复测。

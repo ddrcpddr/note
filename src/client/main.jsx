@@ -953,22 +953,34 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   const [title, setTitle] = useState(initialNote?.title || '');
   const [body, setBody] = useState(initialNote?.content || '');
   const [type, setType] = useState(initialNote ? recordTypeForNote(initialNote) : '家庭事务');
-  const [tags, setTags] = useState(initialNote?.tags?.length ? initialNote.tags.map((tag) => tag.label) : ['待办', '重要']);
+  const initialTags = initialNote ? initialNote.tags.map((tag) => tag.label).filter(Boolean) : ['待办', '重要'];
+  const [tags, setTags] = useState(initialTags);
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTag, setNewTag] = useState('');
   const [hasAttachment, setHasAttachment] = useState(Boolean(initialNote?.attachmentCount));
   const [attachmentFiles, setAttachmentFiles] = useState([]);
   const [selectedMemberId, setSelectedMemberId] = useState(initialNote?.memberId || currentMemberId);
   const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
   const tagOptions = ['待办', '重要', '维修', '购物', '账单'];
+  const visibleTagOptions = [...new Set([...tagOptions, ...tags])];
 
   function toggleTag(label) {
     setTags((current) => (current.includes(label) ? current.filter((item) => item !== label) : [...current, label]));
+  }
+
+  function addTag() {
+    const label = newTag.trim();
+    if (!label) return;
+    setTags((current) => (current.includes(label) ? current : [...current, label]));
+    setNewTag('');
+    setIsAddingTag(false);
   }
 
   async function save() {
     const originalType = initialNote ? recordTypeForNote(initialNote) : null;
     const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
     const attachments = isEditing ? [] : await Promise.all(attachmentFiles.map(fileToAttachmentPayload));
-    onSave({ id: initialNote?.id, title, body, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags: tags.length ? tags : ['待办'], hasAttachment: hasAttachment || attachments.length > 0, attachments });
+    onSave({ id: initialNote?.id, title, body, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, hasAttachment: hasAttachment || attachments.length > 0, attachments });
   }
 
   return (
@@ -1037,7 +1049,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
       </section>
       <SectionTitle>标签</SectionTitle>
       <section className="soft-card flex flex-wrap gap-3 p-4">
-        {tagOptions.map((label) => (
+        {visibleTagOptions.map((label) => (
           <button
             className={`tag ${tags.includes(label) ? tagTones[findTagTone(label)] : 'border border-line bg-white text-muted'}`}
             key={label}
@@ -1047,9 +1059,34 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
             {label} {tags.includes(label) && <X className="ml-1" size={14} />}
           </button>
         ))}
-        <span className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[15px] text-muted">
-          <Plus size={17} /> 添加标签
-        </span>
+        {isAddingTag ? (
+          <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-dashed border-teal-200 bg-white px-3 py-1.5">
+            <input
+              className="w-20 bg-transparent text-[15px] outline-none placeholder:text-muted"
+              value={newTag}
+              onChange={(event) => setNewTag(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') addTag();
+                if (event.key === 'Escape') {
+                  setNewTag('');
+                  setIsAddingTag(false);
+                }
+              }}
+              placeholder="标签名"
+              autoFocus
+            />
+            <button className="text-teal-600" type="button" onClick={addTag} aria-label="确认添加标签">
+              <Check size={16} />
+            </button>
+            <button className="text-muted" type="button" onClick={() => { setNewTag(''); setIsAddingTag(false); }} aria-label="取消添加标签">
+              <X size={16} />
+            </button>
+          </span>
+        ) : (
+          <button className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[15px] text-muted" type="button" onClick={() => setIsAddingTag(true)}>
+            <Plus size={17} /> 添加标签
+          </button>
+        )}
       </section>
       <SectionTitle>附件</SectionTitle>
       {!isEditing && (
@@ -1327,12 +1364,12 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[20px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 导出文件'}</h2>
-            <p className="mt-1 text-[15px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '先查看内容，再决定是否导入'}</p>
+            <h2 className="truncate text-[20px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 Note Station .nsx 文件'}</h2>
+            <p className="mt-1 text-[15px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '先预览记录，再决定是否导入'}</p>
           </div>
         </div>
         <span className="mt-4 inline-flex items-center gap-2 text-[16px] font-medium text-teal-600">
-          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 选择导出文件</>}
+          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 选择 .nsx 文件</>}
         </span>
       </section>
       {error && (
@@ -1408,7 +1445,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           {canPreview ? '重新选择文件' : '取消'}
         </button>
         <button className="rounded-2xl bg-teal-600 text-[17px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
-          {stage === 1 ? '预览记录' : stage === 2 ? '继续确认' : stage === 3 ? '开始导入' : '已完成'}
+          {stage === 1 ? '预览导入记录' : stage === 2 ? '继续确认' : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>
     </>

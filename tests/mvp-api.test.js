@@ -240,6 +240,18 @@ describe('MVP API', () => {
 
     const newTag = await requestJson(`/api/notes?tag=${encodeURIComponent('维修')}`);
     assert.ok(newTag.notes.some((note) => note.id === created.note.id));
+
+    const cleared = await requestJson(`/api/notes/${created.note.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ tags: [] })
+    });
+    assert.deepEqual(cleared.note.tags, []);
+
+    const detailAfterClear = await requestJson(`/api/notes?id=${encodeURIComponent(created.note.id)}`);
+    assert.deepEqual(detailAfterClear.notes[0].tags, []);
+
+    const clearedTag = await requestJson(`/api/notes?tag=${encodeURIComponent('维修')}`);
+    assert.ok(!clearedTag.notes.some((note) => note.id === created.note.id));
   });
   test('archives and soft deletes a note from normal lists', async () => {
     const created = await requestJson('/api/notes', {
