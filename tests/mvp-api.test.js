@@ -369,6 +369,41 @@ describe('MVP API', () => {
     assert.equal(manualDetail.notes[0].categoryId, 'uncategorized');
   });
 
+  test('updates default member display profile', async () => {
+    const updated = await requestJson('/api/members/partner', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: '家里那位',
+        avatar: '家',
+        color: 'amber'
+      })
+    });
+
+    const member = updated.members.find((item) => item.id === 'partner');
+    assert.equal(member.name, '家里那位');
+    assert.equal(member.avatar, '家');
+    assert.equal(member.color, 'amber');
+
+    const appData = await requestJson('/api/app-data');
+    const appMember = appData.members.find((item) => item.id === 'partner');
+    assert.equal(appMember.name, '家里那位');
+    assert.equal(appMember.avatar, '家');
+    assert.equal(appMember.color, 'amber');
+
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '成员资料更新后的记录',
+        content: '这条记录用于验证记录列表会使用更新后的成员名。',
+        categoryId: 'family',
+        memberId: 'partner'
+      })
+    });
+
+    assert.equal(created.note.memberId, 'partner');
+    assert.equal(created.note.memberName, '家里那位');
+  });
+
   test('switches current member and uses it for new notes by default', async () => {
     const switched = await requestJson('/api/members/current', {
       method: 'POST',

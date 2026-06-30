@@ -66,6 +66,26 @@ const categories = [
   { id: 'uncategorized', name: '未分类 / 待整理', count: 14, update: '5月12日 11:02 更新', icon: Inbox, imageSrc: categoryImageAssets.uncategorized, tone: 'bg-neutral-100 text-neutral-600' }
 ];
 
+const memberColorClasses = {
+  teal: 'bg-teal-50 text-teal-700 border-teal-100',
+  rose: 'bg-rose-50 text-rose-600 border-rose-100',
+  amber: 'bg-amber-50 text-amber-600 border-amber-100',
+  blue: 'bg-blue-50 text-blue-600 border-blue-100',
+  green: 'bg-green-50 text-green-700 border-green-100',
+  purple: 'bg-purple-50 text-purple-600 border-purple-100',
+  neutral: 'bg-neutral-100 text-neutral-600 border-neutral-200'
+};
+
+const memberColorOptions = [
+  ['teal', '松石'],
+  ['rose', '暖粉'],
+  ['amber', '暖黄'],
+  ['blue', '浅蓝'],
+  ['green', '青绿'],
+  ['purple', '淡紫'],
+  ['neutral', '灰白']
+];
+
 const memberToneClasses = [
   'bg-teal-50 text-teal-700 border-teal-100',
   'bg-rose-50 text-rose-600 border-rose-100',
@@ -88,8 +108,8 @@ const legacyMemberNames = {
 };
 
 const fallbackMembers = [
-  { id: 'self', name: '我', avatar: '我', avatarImage: memberAvatarAssets.self, colorClass: memberToneClasses[0], isCurrent: true },
-  { id: 'partner', name: '爱人', avatar: '爱', avatarImage: memberAvatarAssets.partner, colorClass: memberToneClasses[1] }
+  { id: 'self', name: '我', avatar: '我', color: 'teal', avatarImage: memberAvatarAssets.self, colorClass: memberColorClasses.teal, isCurrent: true },
+  { id: 'partner', name: '爱人', avatar: '爱', color: 'rose', avatarImage: memberAvatarAssets.partner, colorClass: memberColorClasses.rose }
 ];
 
 const initialNotes = [
@@ -515,6 +535,39 @@ function App() {
     removeNoteFromCurrentView(noteId, '记录已从当前页面移除');
   }
 
+  async function updateMemberProfile(memberId, profile) {
+    const nextName = profile.name.trim() || '家人';
+    const nextAvatar = profile.avatar.trim().slice(0, 2) || nextName.slice(0, 1);
+    const nextColor = profile.color || 'teal';
+
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/members/' + memberId, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: nextName, avatar: nextAvatar, color: nextColor })
+        });
+        if (!response.ok) throw new Error('member update failed');
+        const data = await response.json();
+        setMembers(keepDefaultMembers((data.members || []).map((member, index) => normalizeMember(member, index))));
+        setNotesData((current) => current.map((note) => (note.memberId === memberId ? { ...note, member: nextName, memberAvatar: nextAvatar } : note)));
+        showToast('成员资料已更新');
+        return;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，成员资料未保存');
+        return;
+      }
+    }
+
+    setMembers((current) => current.map((member) => (
+      member.id === memberId
+        ? { ...member, name: nextName, avatar: nextAvatar, color: nextColor, colorClass: memberColorClasses[nextColor] || member.colorClass }
+        : member
+    )));
+    setNotesData((current) => current.map((note) => (note.memberId === memberId ? { ...note, member: nextName, memberAvatar: nextAvatar } : note)));
+    showToast('成员资料已在当前页面更新');
+  }
+
   async function switchCurrentMember(memberId) {
     const nextMember = members.find((member) => member.id === memberId);
     if (!nextMember) return;
@@ -605,6 +658,7 @@ function App() {
           currentMemberId={currentMemberId}
           onBack={() => navigate('settings')}
           onSwitchMember={switchCurrentMember}
+          onUpdateMember={updateMemberProfile}
         />
       )}
 
@@ -648,7 +702,8 @@ function normalizeMember(member, index = 0) {
     originalName: member.name,
     avatar: member.avatar || displayName.slice(0, 1) || '家',
     avatarImage: member.avatarImage || memberAvatarAssets[member.id] || memberAvatarAssets[displayName === '爱人' ? 'partner' : 'self'],
-    colorClass: member.colorClass || memberToneClasses[index % memberToneClasses.length],
+    color: member.color || (member.id === 'partner' ? 'rose' : 'teal'),
+    colorClass: member.colorClass || memberColorClasses[member.color] || memberToneClasses[index % memberToneClasses.length],
     isCurrent: Boolean(member.isCurrent)
   };
 }
@@ -1470,7 +1525,24 @@ function formatStoragePath(value, fallback) {
   return fallback;
 }
 
-function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMember }) {
+function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMember, onUpdateMember }) {
+  const [editingMemberId, setEditingMemberId] = useState('');
+  const [draftName, setDraftName] = useState('');
+  const [draftAvatar, setDraftAvatar] = useState('');
+  const [draftColor, setDraftColor] = useState('teal');
+
+  function startEdit(member) {
+    setEditingMemberId(member.id);
+    setDraftName(member.name);
+    setDraftAvatar(member.avatar || member.name.slice(0, 1));
+    setDraftColor(member.color || 'teal');
+  }
+
+  async function saveEdit() {
+    await onUpdateMember(editingMemberId, { name: draftName, avatar: draftAvatar, color: draftColor });
+    setEditingMemberId('');
+  }
+
   return (
     <>
       <TopBar title="成员管理" onBack={onBack} />
@@ -1479,7 +1551,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
           <div className="circle-icon bg-teal-50 text-teal-600"><UserRound size={34} /></div>
           <div className="min-w-0 flex-1">
             <h1 className="text-[26px] font-bold leading-tight">家庭成员身份</h1>
-            <p className="mt-2 text-[16px] leading-relaxed text-muted">当前版本先固定“我”和“爱人”两个成员，并支持切换当前记录人。</p>
+            <p className="mt-2 text-[16px] leading-relaxed text-muted">当前版本先固定“我”和“爱人”两个成员，并支持切换、改名、头像字和颜色。</p>
           </div>
         </div>
       </section>
@@ -1500,6 +1572,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
       <section className="space-y-3">
         {members.map((member) => {
           const isCurrent = member.id === currentMemberId;
+          const isEditing = editingMemberId === member.id;
           return (
             <article className="soft-card p-4" key={member.id}>
               <div className="flex items-center gap-4">
@@ -1509,27 +1582,44 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
                     <h2 className="truncate text-[20px] font-bold">{member.name}</h2>
                     {isCurrent && <span className="tag bg-teal-50 text-teal-600">当前</span>}
                   </div>
-                  <p className="mt-1 text-[14px] leading-relaxed text-muted">当前先支持切换记录人；改名、头像和颜色稍后再开放。</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-muted">可以改名、换头像字和颜色；新增成员以后再开放。</p>
                 </div>
                 <button className="shrink-0 text-teal-600" type="button" onClick={() => onSwitchMember(member.id)} aria-label={`切换到${member.name}`}>
                   {isCurrent ? <CheckCircle2 size={25} /> : <ChevronRight size={24} />}
                 </button>
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted opacity-60" type="button" disabled>改名</button>
-                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted opacity-60" type="button" disabled>头像</button>
-                <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted opacity-60" type="button" disabled>颜色</button>
-              </div>
+              {isEditing ? (
+                <div className="mt-4 space-y-3">
+                  <input className="h-11 w-full rounded-2xl border border-line bg-white px-4 text-[16px] outline-none focus:border-teal-500" value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="成员名称" />
+                  <input className="h-11 w-full rounded-2xl border border-line bg-white px-4 text-[16px] outline-none focus:border-teal-500" value={draftAvatar} onChange={(event) => setDraftAvatar(event.target.value.slice(0, 2))} placeholder="头像字" />
+                  <div className="scroll-row flex gap-2 pb-1">
+                    {memberColorOptions.map(([color, label]) => (
+                      <button className={`inline-flex shrink-0 rounded-full border px-3 py-1.5 text-[14px] ${draftColor === color ? memberColorClasses[color] : 'border-line bg-white text-muted'}`} key={color} type="button" onClick={() => setDraftColor(color)}>{label}</button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => setEditingMemberId('')}>取消</button>
+                    <button className="rounded-2xl bg-teal-600 px-3 py-2 text-[14px] font-semibold text-white" type="button" onClick={saveEdit}>保存</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => startEdit(member)}>改名</button>
+                  <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => startEdit(member)}>头像</button>
+                  <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => startEdit(member)}>颜色</button>
+                </div>
+              )}
             </article>
           );
         })}
       </section>
       <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-4 text-[15px] leading-relaxed text-muted">
-        当前版本先固定使用“我”和“爱人”；新增成员、改名和头像颜色编辑以后再做。
+        当前版本先固定使用“我”和“爱人”；新增成员以后再做。
       </section>
     </>
   );
 }
+
 function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport, onOpenMembers }) {
   const [nasOnline, setNasOnline] = useState(true);
   const [lastBackup, setLastBackup] = useState('今天 09:30');

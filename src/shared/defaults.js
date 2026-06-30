@@ -23,8 +23,8 @@ export const noteTypes = [
 ];
 
 export const defaultMembers = [
-  { id: 'self', name: '我', avatar: '我', sortOrder: 10, isCurrent: true },
-  { id: 'partner', name: '爱人', avatar: '爱', sortOrder: 20, isCurrent: false }
+  { id: 'self', name: '我', avatar: '我', color: 'teal', sortOrder: 10, isCurrent: true },
+  { id: 'partner', name: '爱人', avatar: '爱', color: 'rose', sortOrder: 20, isCurrent: false }
 ];
 
 export const defaultTags = ['待办', '重要', '维修', '购物', '账单', '发票', '保修', 'NAS', '物业', '医院'];

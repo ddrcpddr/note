@@ -85,7 +85,7 @@ app.get('/api/app-data', (_request, response) => {
     .all();
   const members = db
     .prepare(
-      `SELECT id, name, avatar, sort_order AS sortOrder, is_current AS isCurrent, is_system AS isSystem
+      `SELECT id, name, avatar, color, sort_order AS sortOrder, is_current AS isCurrent, is_system AS isSystem
        FROM members
        ORDER BY sort_order ASC, name ASC`
     )

@@ -57,6 +57,7 @@ function initializeSchema(database) {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       avatar TEXT,
+      color TEXT,
       sort_order INTEGER NOT NULL DEFAULT 0,
       is_current INTEGER NOT NULL DEFAULT 0,
       is_system INTEGER NOT NULL DEFAULT 0,
@@ -173,6 +174,7 @@ function initializeSchema(database) {
 }
 
 function migrateSchema(database) {
+  addColumnIfMissing(database, 'members', 'color', 'TEXT');
   addColumnIfMissing(database, 'notes', 'member_id', 'TEXT');
   addColumnIfMissing(database, 'notes', 'save_status', "TEXT NOT NULL DEFAULT 'saved'");
   addColumnIfMissing(database, 'notes', 'visibility', "TEXT NOT NULL DEFAULT 'family'");
@@ -189,13 +191,13 @@ function addColumnIfMissing(database, tableName, columnName, definition) {
 function seedDefaults(database) {
   const insertMember = database.prepare(`
     INSERT OR IGNORE INTO members
-      (id, name, avatar, sort_order, is_current, is_system)
+      (id, name, avatar, color, sort_order, is_current, is_system)
     VALUES
-      (?, ?, ?, ?, ?, 1)
+      (?, ?, ?, ?, ?, ?, 1)
   `);
 
   for (const member of defaultMembers) {
-    insertMember.run(member.id, member.name, member.avatar, member.sortOrder, member.isCurrent ? 1 : 0);
+    insertMember.run(member.id, member.name, member.avatar, member.color || null, member.sortOrder, member.isCurrent ? 1 : 0);
   }
 
   const insertCategory = database.prepare(`
