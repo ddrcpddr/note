@@ -1544,3 +1544,15 @@
 | `npm.cmd run test` | 通过，10 个测试套件 / 33 项测试全部通过 |
 | `npm.cmd run build` | 通过 |
 | 390px / 430px Playwright 检查 | 分类页、设置页均无横向溢出，截图在 `C:\tmp\note-gate7-shots`，不提交 Git |
+
+## QA Update - Figma Category Page Rebuild (2026-07-01)
+
+- Test time: 2026-07-01 04:25:17 +08:00
+- Baseline commit: aedde76
+- Reproduction: current category page visual layer could drift from Product Design / Figma specs, especially around category card proportions and complete category names.
+- Root cause: previous implementation still used a hand-tuned category layout and an extra import-review card; the uncategorized card also shortened the label to `未分类`.
+- Fix summary: rebuilt only `CategoriesScreen` visual structure from `docs/FIGMA_IMPLEMENTATION_SPECS.md`; restored two-column category cards, complete labels, Figma-sized title/search/card typography, and Playwright data markers for card validation.
+- Commands run: `npm.cmd run check`; `npm.cmd run test`; `npm.cmd run build`; Playwright category check at 390px and 430px using `http://127.0.0.1:3311/`.
+- Test results: check passed with `integrityCheck=ok`, `categoryCount=11`, `noteCount=113`; test passed 33/33; build passed; Playwright category check passed for 390px and 430px with no horizontal overflow, no truncated category titles, no vertical record counts/updates, and no bottom-nav/FAB overlap.
+- Remaining issues: other pages are not changed in this round and still need separate page-by-page Figma rebuild if required.
+- Next recommendation: continue only after user confirms the next single page; do not resume broad CSS tuning.

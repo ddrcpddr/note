@@ -1203,10 +1203,8 @@ function SearchScreen({ notes, members, onOpenDetail }) {
   );
 }
 
-function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported }) {
+function CategoriesScreen({ notes, onSelectCategory }) {
   const [query, setQuery] = useState('');
-  const importedToReviewCount = notes.filter((note) => note.sourceType === 'notestation_import' && note.categoryId === 'uncategorized').length;
-  const reviewTargets = categories.filter((category) => ['family', 'repair', 'shopping', 'account', 'temporary'].includes(category.id));
   const visibleCategories = categories
     .map((category) => ({
       ...category,
@@ -1216,16 +1214,16 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
     .filter((category) => category.name.includes(query.trim()));
   return (
     <>
-      <header className="flex items-start justify-between">
+      <header className="mt-5 flex items-start justify-between">
         <div>
-          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">分类</h1>
-          <p className="mt-2.5 text-[16px] text-muted">按家里的事情慢慢整理</p>
+          <h1 className="text-[40px] font-bold leading-[46px] text-[#06483F]">分类</h1>
+          <p className="mt-2 text-[17px] text-muted">按家里的事情慢慢整理</p>
         </div>
-        <button className="grid h-[52px] w-[52px] place-items-center rounded-full bg-white text-teal-600 shadow-card">
-          <Grid2X2 size={25} />
+        <button className="grid h-12 w-12 place-items-center rounded-full bg-white text-teal-600 shadow-card">
+          <Grid2X2 size={24} />
         </button>
       </header>
-      <section className="soft-card mt-7 flex h-[62px] w-full items-center gap-4 rounded-[22px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card">
+      <section className="soft-card mt-7 flex h-[58px] w-full items-center gap-4 rounded-[18px] bg-white px-[18px] text-left text-[19px] text-[#8b8e94] shadow-card">
         <Search size={28} className="text-[#777b82]" />
         <input
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#8b8e94]"
@@ -1234,49 +1232,23 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
           placeholder="搜索分类"
         />
       </section>
-      <section className="soft-card mt-5 p-5">
-        <div className="flex items-start gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-amber-50 text-amber-600">
-            <Folder size={25} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[18px] font-bold">导入记录待整理</h2>
-            <p className="mt-1 text-[15px] leading-relaxed text-muted">
-              {importedToReviewCount > 0 ? `${importedToReviewCount} 条 Note Station 导入记录还在未分类里，可以先批量放到一个常用分类。` : '当前没有 Note Station 导入记录停留在未分类。'}
-            </p>
-            {importedToReviewCount > 0 && (
-              <div className="scroll-row mt-3 flex gap-2 pb-1">
-                {reviewTargets.map((category) => (
-                  <button className="chip shrink-0" key={category.id} type="button" onClick={() => onBulkCategorizeImported(category.id)}>
-                    整理到 {category.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-      <section className="-mx-2 mt-6 grid grid-cols-2 gap-2 pb-28">
+      <section className="mt-10 grid grid-cols-2 gap-x-[10px] gap-y-[14px] pb-[124px] min-[430px]:gap-x-[14px]" data-category-grid>
         {visibleCategories.map((category) => {
           const Icon = category.icon;
-          const displayName = category.id === 'uncategorized' ? '未分类' : category.name;
+          const displayName = category.name;
           const displayUpdate = category.update.replace(' 更新', '');
+          const countTone = category.tone.match(/text-[^\s]+/)?.[0] ?? 'text-teal-600';
           return (
-            <button className="soft-card relative flex min-h-[104px] w-full items-center gap-1.5 overflow-hidden px-2.5 py-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-11 w-11 bg-white ${category.tone}`}>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-10 w-10" iconSize={25} />
+            <button className="soft-card relative flex h-[102px] w-full items-center gap-1.5 overflow-hidden rounded-[16px] px-[9px] py-[14px] text-left shadow-[0_8px_24px_rgba(39,43,48,0.08)] min-[430px]:px-2.5" data-category-card key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
+              <div className={`circle-icon h-11 w-11 shrink-0 bg-white min-[430px]:h-[52px] min-[430px]:w-[52px] ${category.tone}`} data-category-icon>
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-[38px] w-[38px] min-[430px]:h-[42px] min-[430px]:w-[42px]" iconSize={28} />
               </div>
-              <div className="min-w-0 flex-1">
-                <h2 className="whitespace-nowrap text-[18px] font-bold leading-tight text-ink" data-category-title>{displayName}</h2>
-                <p className="mt-1.5 whitespace-nowrap text-[15px] font-medium text-teal-600" data-category-count>{category.count} 条记录</p>
-                <p className="mt-1 whitespace-nowrap text-[13px] leading-tight text-muted" data-category-update>{displayUpdate}</p>
-                {category.id === 'uncategorized' && importedToReviewCount > 0 && (
-                  <p className="mt-1.5 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                    {importedToReviewCount} 条待整理
-                  </p>
-                )}
+              <div className="min-w-0 flex-1 pr-2">
+                <h2 className="break-keep text-[18px] font-bold leading-[22px] text-ink" data-category-title>{displayName}</h2>
+                <p className={`mt-1 whitespace-nowrap text-[15px] font-medium leading-[18px] ${countTone}`} data-category-count>{category.count} 条记录</p>
+                <p className="mt-0.5 whitespace-nowrap text-[13px] leading-[16px] text-muted" data-category-update>{displayUpdate}</p>
               </div>
-              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 text-muted" size={15} />
+              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 text-muted" size={14} />
             </button>
           );
         })}
@@ -1285,7 +1257,6 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
     </>
   );
 }
-
 function ImportScreen({ currentMemberId, onBack, onImported }) {
   const [stage, setStage] = useState(1);
   const [preview, setPreview] = useState(null);

@@ -971,3 +971,12 @@ MVP 需要覆盖：
 - Playwright 390px / 430px 检查：通过底部导航真实进入分类页和设置页；四个组合均 `scrollWidth == innerWidth`，`overflowCount=0`；截图只保存在 `C:\tmp\note-gate7-shots`，不提交 Git。
 - 验证结果：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。
 - 下一步：Gate 7 第二批建议做“首页 + 搜索页”，只统一记录卡标题、摘要、标签和元信息层级；不要重做整体 UI。
+
+## 2026-07-01 - Figma 规格分类页重建
+
+- 当前前端视觉还原改为以 `docs/FIGMA_IMPLEMENTATION_SPECS.md` 和 `design/home-records-prototype/` 7 张最终图为准，不再用旧的“凭感觉微调 CSS”方式推进。
+- 本轮只修分类页视觉层：标题、副标题、搜索框、两列分类卡片、图标尺寸、分类标题、记录数、更新时间、底部留白。
+- 分类页已去掉与最终图不一致的额外“导入记录待整理”插卡；`未分类` 改回完整显示 `未分类 / 待整理`。
+- 390px / 430px Playwright 验收通过：11 个分类名完整显示，无 `家... / 房... / 维... / 购...`，无文字竖排，无记录数或更新时间竖排，无页面横向溢出；底部导航和浮动按钮不遮挡最后一行分类卡片。
+- 验收时发现 3300 被 Docker 服务占用且健康接口显示 `/data/...`，为避免看到旧容器前端，本轮截图验收使用本地构建产物临时端口 `3311`。后续若要用户在 3300 直接查看，需要重建 / 重启 Docker 或改用明确的本地端口。
+- 本轮运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
