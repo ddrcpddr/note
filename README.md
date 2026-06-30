@@ -93,7 +93,7 @@ npm.cmd run test
 
 ## 初始化数据
 
-第一次启动后端或运行检查脚本时，会自动创建数据库和默认数据。
+第一次启动后端或运行检查脚本时，会自动创建数据库和默认数据。检查脚本也会执行 SQLite `PRAGMA integrity_check`；如果正式数据库损坏，`npm run check` 会失败并提示先恢复备份。
 
 ```bash
 npm run check

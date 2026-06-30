@@ -65,3 +65,14 @@ Error: database disk image is malformed
 是否允许执行恢复操作：用最近健康备份 `app-2026-06-29T05-40-32-597Z.db` 替换当前 `data/database/app.db`。
 
 确认后再执行；执行前会先保存当前损坏库副本。
+## 9. 完整性检查加固
+
+`npm.cmd run check` 已加入 SQLite `PRAGMA integrity_check`。健康数据库会输出 `integrityCheck: "ok"`；当前损坏正式库会让 check 以非零状态退出，避免再次把损坏库误判为可试运行。
+
+恢复数据库后，第一步应重新运行：
+
+```bash
+npm.cmd run check
+```
+
+只有返回 `ok: true` 且 `integrityCheck: "ok"` 后，才继续 Docker API 和手机试运行验收。

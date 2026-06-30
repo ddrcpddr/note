@@ -837,3 +837,10 @@ MVP 需要覆盖：
 - Docker 日志显示 `database disk image is malformed`；主机和容器对 `data/database/app.db` 执行 `PRAGMA integrity_check` 均失败，说明正式 SQLite 文件已有损坏。
 - 扫描 `data/backups/` 后，最近健康备份为 `app-2026-06-29T05-40-32-597Z.db`，111 条记录；最新 `app-2026-06-30T04-06-15-239Z.db` 同样损坏，不建议恢复。
 - 已创建 `docs/DATABASE_INTEGRITY_RECOVERY.md` 记录诊断、恢复候选和安全步骤；已停止 Docker 容器，未自动替换正式库，等待用户确认。
+### SQLite 完整性检查加固（2026-06-30）
+
+- Docker 试运行暴露出 `npm.cmd run check` 旧逻辑只读 `COUNT(*)`，在 SQLite 局部损坏时仍可能返回 `ok: true`。
+- 已加固 `src/server/scripts/check.js`：如果数据库文件已存在，先用只读连接执行 `PRAGMA integrity_check`，确认通过后才初始化 / 迁移 / 读取统计；输出新增 `integrityCheck: "ok"`。
+- 新增 `tests/check-script.test.js`，用临时 `NOTE_DATA_DIR` 验证健康数据库下 check 通过且包含完整性结果。
+- 当前正式 `data/database/app.db` 仍然损坏，因此新的 `npm.cmd run check` 会正确失败；这不是代码回归，而是等待用户确认恢复最近健康备份。
+- 本轮验证：`node --test tests/check-script.test.js` 通过；`npm.cmd run test` 通过，27 项；`npm.cmd run build` 通过；临时健康数据目录下 `npm.cmd run check` 通过。

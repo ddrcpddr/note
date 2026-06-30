@@ -1270,3 +1270,16 @@
 | 当前处理 | 已停止 Docker 容器，未自动恢复，等待用户确认 |
 
 详见：`docs/DATABASE_INTEGRITY_RECOVERY.md`。
+## Fix: SQLite 完整性检查收敛（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 基线 commit | `666c783 Document database integrity recovery plan` |
+| 范围 | `npm run check` 对 SQLite 损坏库的检测能力 |
+| 复现步骤 | 在当前正式库损坏状态下运行 `npm.cmd run check`；旧逻辑只读取分类数和记录数，可能误报通过 |
+| 问题原因 | `src/server/scripts/check.js` 未执行 `PRAGMA integrity_check`，局部损坏但 `COUNT(*)` 仍可返回时无法发现问题 |
+| 修复内容 | `check.js` 在读取统计前先对现有数据库执行只读 `PRAGMA integrity_check`；新增 `tests/check-script.test.js` 覆盖健康临时数据目录输出 `integrityCheck: ok` |
+| 运行命令 | `node --test tests/check-script.test.js` 通过；`npm.cmd run test` 通过，27 项测试；`npm.cmd run build` 通过；临时健康 `NOTE_DATA_DIR` 下 `npm.cmd run check` 通过 |
+| 当前正式库结果 | `npm.cmd run check` 现在会正确失败，错误为 `SQLite integrity_check failed`，因为 `data/database/app.db` 已确认损坏 |
+| 仍然存在的问题 | 正式库恢复仍需用户确认是否用最近健康备份 `data/backups/app-2026-06-29T05-40-32-597Z.db` 替换当前损坏库 |
+| 下一步建议 | 用户确认后先备份当前损坏库副本，再恢复健康备份、重新运行 `npm.cmd run check/test/build` 和 Docker API 烟测 |
