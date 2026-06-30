@@ -810,3 +810,11 @@ MVP 需要覆盖：
 - 自动化测试覆盖：在临时 `NOTE_DATA_DIR` 下调用探测接口，确认四个目录均可写且返回的数据目录与测试目录一致。
 - 本轮验证：`npm.cmd run check` 通过，正式库记录数 112；`npm.cmd run test` 通过，26 项测试全部通过；`npm.cmd run build` 通过。
 - 完成本阶段后，除安卓原生封装外，当前 P1 功能顺序中的开发项已收口；下一步应进入真实家庭局域网人工试运行，Android 原生 App 继续排最后。
+
+### Android 原生封装前置评估（2026-06-30）
+
+- 当前已进入“安卓原生 App 封装排最后”的最后阶段前置评估；本轮不安装 Android / Capacitor / TWA 依赖，不生成签名文件，不写入真实 NAS 地址。
+- 新增 `docs/ANDROID_WRAPPER_PLAN.md`，明确当前项目的数据事实：正式数据保存在 NAS/Express/SQLite 服务端，Android 首选应作为 Web/PWA/WebView 入口，而不是把数据库迁移到手机本地。
+- 当前推荐顺序：先用真实 Android 手机完成 PWA / 添加到桌面试运行；若稳定，再由用户确认包名、封装路线、最低 Android 版本、NAS 地址配置策略和签名方式后进入 WebView / TWA 工程。
+- TWA 依赖公开 HTTPS 域名与 Digital Asset Links，不适合当前家庭局域网 HTTP 作为首选；真正原生 Android + 本地数据库 / 同步属于大架构变更，暂不建议。
+- 仍遵守安全边界：不提交真实 NAS 地址、账号、密码、token、签名密钥、数据库、备份、导出、附件、.nsx 或真实导入内容。
