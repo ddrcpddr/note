@@ -4,6 +4,16 @@
 
 它是一个移动端优先的家庭生活记录系统：家人可以通过手机浏览器或 PWA 访问，快速记录家庭事务、维修、购物、账号资料、老人健康、孩子教育、宠物事项和临时备忘。所有数据集中保存在本地 `data/` 目录，后续可整体放到家庭 NAS 上备份和长期保存。
 
+
+## MVP 试运行冻结版本
+
+当前已冻结为 MVP 家庭试运行版本。冻结说明见：
+
+- [MVP 试运行版本冻结说明](docs/RELEASE_MVP_TRIAL.md)
+- [手机端试运行验收清单](docs/MOBILE_TRIAL_CHECKLIST.md)
+- [备份与回滚演练](docs/BACKUP_RESTORE_DRILL.md)
+
+冻结后不继续盲目新增功能。下一步应先在真实手机 / NAS / Docker 环境中人工试运行；P0 / P1 问题按 `mvp-bugfix-qa` 流程小步修复。
 ## 当前状态
 
 当前已经是可运行 MVP：
@@ -378,4 +388,4 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 npm.cmd run smoke -- --base-url http://127.0.0.1:3300 --read-only
 ```
 
-当前如果正式 `data/database/app.db` 已损坏，先不要用默认 `docker-compose.yml` 挂载 `./data` 试运行；可以先用临时 Docker 命名卷做界面和基础 API 验收，正式试运行仍需恢复健康数据库后再进行。
+如果正式 `data/database/app.db` 损坏，先停止 Docker / Node 服务，按 `docs/BACKUP_RESTORE_DRILL.md` 使用健康备份 dry-run，再确认恢复。恢复后必须重新运行 `npm.cmd run check` 和 HTTP 烟测。

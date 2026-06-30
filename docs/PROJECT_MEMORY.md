@@ -933,3 +933,21 @@ MVP 需要覆盖：
 - 本轮将该报告刷新为当前事实：Gate 0-4 已完成，正式库 `integrityCheck=ok`，Docker 真实 data smoke 已通过，当前建议进入真实家庭局域网 / NAS 人工试运行。
 - 本轮只更新文档，不改业务代码、不改数据库、不触碰真实运行数据。
 - 本轮报告刷新验证：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。
+
+### Gate 9：MVP 试运行版本冻结（2026-06-30）
+
+- 用户确认“可以冻结 MVP 试运行版本”，本轮进入 Gate 9。
+- 新增 `docs/RELEASE_MVP_TRIAL.md`，记录当前版本能做什么、不能做什么、运行方式、Docker / NAS 部署方式、备份恢复方式、手机试运行方式、已知风险和后续路线。
+- README 已增加 MVP 试运行冻结版本入口，指向冻结说明、手机验收清单和备份恢复演练。
+- 冻结后项目不继续盲目新增功能；下一阶段只接收真实手机 / NAS 试运行反馈，并按 `mvp-bugfix-qa` 流程修 P0 / P1。
+
+### Gate 9 验证结果（2026-06-30）
+
+- 冻结前验证已完成：
+pm.cmd run check 通过，正式库 integrityCheck=ok，
+oteCount=113。
+-
+pm.cmd run test 通过，10 个测试套件 / 33 项测试全部通过。
+-
+pm.cmd run build 通过，Vite 生产构建成功。
+- 本轮冻结只提交代码和文档，不提交 data/、数据库、备份、导出、附件、.nsx、dry-run JSON 或日志。

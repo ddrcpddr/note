@@ -175,3 +175,12 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 ## 试运行准备报告已刷新（2026-06-30）
 
 `docs/TRIAL_RUN_READINESS_REPORT.md` 已从旧的“数据库损坏阻塞”状态刷新为当前事实：正式库已恢复，Docker 真实 data smoke 已通过，下一步是按 `docs/MOBILE_TRIAL_CHECKLIST.md` 和 `docs/BACKUP_RESTORE_DRILL.md` 进入真实手机 / NAS 人工试运行。
+
+## MVP 试运行版本已冻结（2026-06-30）
+
+当前下一步不是继续开发，而是进入真实家庭局域网 / NAS 人工试运行：
+
+1. 按 `docs/BACKUP_RESTORE_DRILL.md` 备份 `app.db`、`attachments/` 和 NAS 快照。
+2. 按 `docs/MOBILE_TRIAL_CHECKLIST.md` 在安卓手机上验收。
+3. 发现 P0 / P1 问题后，按 `docs/TRIAL_FEEDBACK_TEMPLATE.md` 记录，再用 `mvp-bugfix-qa` 修复。
+4. P2 功能、Android WebView、外网访问、附件增强等都等真实试运行反馈后再单项确认。

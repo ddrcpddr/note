@@ -469,3 +469,22 @@ npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
 - `npm.cmd run test` 通过，33 项测试全部通过。
 - `npm.cmd run build` 通过。
 - `git ls-files data` 只跟踪 5 个 `.gitkeep`；正式数据库、备份、导出、附件、sandbox DB 和真实导入目录均未进入 Git 跟踪。
+
+## MVP 试运行版本冻结（2026-06-30）
+
+- 用户已确认可以冻结 MVP 试运行版本。
+- 新增 `docs/RELEASE_MVP_TRIAL.md`，作为当前家庭局域网 / NAS 试运行版本的冻结说明。
+- 当前版本进入“真实手机 / NAS 人工试运行 + P0/P1 小步修复”阶段，不继续盲目新增功能。
+- 冻结前状态：Gate 0-4 已完成，正式库 `integrityCheck=ok`，Docker 真实 data smoke 已通过，手机试运行清单和备份恢复演练已准备。
+- 冻结后如果发现问题，先记录到 `docs/TRIAL_FEEDBACK_LOG.md`，再按 `mvp-bugfix-qa` 流程一个 bug 一个 `Fix:` commit 修复。
+
+### Gate 9 冻结验证结果
+
+-
+pm.cmd run check：通过，正式库 integrityCheck=ok，
+oteCount=113。
+-
+pm.cmd run test：通过，10 个测试套件 / 33 项测试全部通过。
+-
+pm.cmd run build：通过。
+- 本次冻结提交只包含文档和发布说明，不包含任何真实运行数据。

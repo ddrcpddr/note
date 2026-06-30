@@ -1483,3 +1483,26 @@
 | `npm.cmd run check` | 通过，正式库 `integrityCheck=ok`、`noteCount=113` |
 | `npm.cmd run test` | 通过，33 项测试全部通过 |
 | `npm.cmd run build` | 通过 |
+
+## Gate 9：MVP 试运行版本冻结（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 范围 | MVP 家庭局域网 / NAS 试运行版本冻结 |
+| 用户确认 | 已确认可以冻结 MVP 试运行版本 |
+| 新增文档 | `docs/RELEASE_MVP_TRIAL.md` |
+| 更新文档 | `README.md`、`docs/RUN_RESULT_HANDOFF.md`、`docs/PROJECT_MEMORY.md`、`docs/NEXT_STEPS.md`、`docs/QA_REPORT_CURRENT.md` |
+| 冻结边界 | 不新增功能、不重做 UI、不创建 Android 工程、不修改真实导入数据 |
+| 后续处理 | 真实试运行发现 P0 / P1 后，按 `mvp-bugfix-qa` 一个 bug 一个 `Fix:` commit 修复 |
+
+### Gate 9 验证命令结果
+
+| 命令 | 结果 |
+| --- | --- |
+|
+pm.cmd run check | 通过，正式库 integrityCheck=ok，
+oteCount=113 |
+|
+pm.cmd run test | 通过，10 个测试套件 / 33 项测试全部通过 |
+|
+pm.cmd run build | 通过，Vite 生产构建成功 |
