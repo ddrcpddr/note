@@ -1,4 +1,5 @@
 import express from 'express';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { getDataPaths, getDb, getDbPath } from './db/database.js';
@@ -10,6 +11,8 @@ import { storageRouter } from './routes/storage.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3300);
+const accessPin = String(process.env.NOTE_ACCESS_PIN || '').trim();
+const accessToken = accessPin ? createHash('sha256').update(accessPin).digest('hex') : '';
 
 getDb();
 
@@ -22,6 +25,43 @@ app.get('/api/health', (_request, response) => {
     dbPath: getDbPath(),
     dataPaths: getDataPaths()
   });
+});
+
+app.get('/api/access/status', (request, response) => {
+  response.json({
+    accessRequired: Boolean(accessPin),
+    unlocked: !accessPin || isAccessUnlocked(request)
+  });
+});
+
+app.post('/api/access/unlock', (request, response) => {
+  if (!accessPin) {
+    response.json({ accessRequired: false, unlocked: true });
+    return;
+  }
+
+  const pin = String(request.body?.pin || '').trim();
+  if (pin !== accessPin) {
+    response.status(401).json({ error: '访问口令不正确' });
+    return;
+  }
+
+  response.setHeader('Set-Cookie', `${accessCookieName}=${accessToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`);
+  response.json({ accessRequired: true, unlocked: true });
+});
+
+app.use((request, response, next) => {
+  if (!accessPin || !request.path.startsWith('/api/') || request.path.startsWith('/api/access/') || request.path === '/api/health') {
+    next();
+    return;
+  }
+
+  if (isAccessUnlocked(request)) {
+    next();
+    return;
+  }
+
+  response.status(401).json({ error: '需要访问口令' });
 });
 
 app.get('/api/app-data', (_request, response) => {
@@ -66,6 +106,27 @@ app.use('/api/members', membersRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/imports', importsRouter);
 app.use('/api/storage', storageRouter);
+
+const accessCookieName = 'note_access';
+
+function isAccessUnlocked(request) {
+  return parseCookies(request.headers.cookie || '')[accessCookieName] === accessToken;
+}
+
+function parseCookies(cookieHeader) {
+  return String(cookieHeader)
+    .split(';')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .reduce((cookies, item) => {
+      const separatorIndex = item.indexOf('=');
+      if (separatorIndex < 0) return cookies;
+      const key = item.slice(0, separatorIndex);
+      const value = item.slice(separatorIndex + 1);
+      cookies[key] = value;
+      return cookies;
+    }, {});
+}
 
 const distDir = path.resolve(process.cwd(), 'dist');
 if (existsSync(distDir)) {

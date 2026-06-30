@@ -763,3 +763,11 @@ MVP 需要覆盖：
 - 未引入 multipart 或大型依赖；当前采用 JSON base64 上传，Express 请求体上限调整为 `12mb`，适合家庭试运行先传小照片、截图、票据文件。
 - 编辑记录仍不支持修改附件，页面继续明确提示“附件暂不在编辑里修改”，附件删除后续再做。
 - 自动化测试已覆盖：附件文件真实落盘到临时 `NOTE_DATA_DIR/attachments`；较大手机照片级 payload 可通过；数据库返回附件元数据和相对路径。
+
+### 简单访问口令 / PIN 闭环（2026-06-30）
+
+- P1 第 4 项“简单访问口令 / PIN”已完成本地开发：默认关闭；设置 `NOTE_ACCESS_PIN` 后，前端首次打开显示轻量锁屏。
+- 后端新增 `GET /api/access/status` 和 `POST /api/access/unlock`，正确口令后写入 HttpOnly cookie；未解锁访问普通 API 会返回 401。
+- 该功能不是账号系统，不包含权限分级、不接真实账号密码、不写入真实 token；只用于家庭局域网试运行时的轻量入口保护。
+- `docker-compose.yml` 仅加入 `NOTE_ACCESS_PIN: "${NOTE_ACCESS_PIN:-}"` 占位，不提交真实口令。
+- 自动化测试已覆盖：开启 `NOTE_ACCESS_PIN` 后 app API 被拦截、错误口令失败、正确口令后可读取 app data。

@@ -187,6 +187,9 @@ function App() {
   const [homeMember, setHomeMember] = useState('all');
   const [homeCategory, setHomeCategory] = useState('all');
   const [toast, setToast] = useState('');
+  const [accessLocked, setAccessLocked] = useState(false);
+  const [accessMessage, setAccessMessage] = useState('');
+  const [accessNonce, setAccessNonce] = useState(0);
   const selectedNote = useMemo(() => notesData.find((note) => note.id === selectedId) ?? notesData[0], [notesData, selectedId]);
 
   useEffect(() => {
@@ -194,6 +197,17 @@ function App() {
 
     async function loadData() {
       try {
+        const accessResponse = await fetch('/api/access/status');
+        if (accessResponse.ok) {
+          const access = await accessResponse.json();
+          if (access.accessRequired && !access.unlocked) {
+            setAccessLocked(true);
+            setAccessMessage('');
+            setDataMode('locked');
+            return;
+          }
+        }
+
         const response = await fetch('/api/app-data');
         if (!response.ok) {
           throw new Error('app data unavailable');
@@ -211,6 +225,7 @@ function App() {
         setCurrentMemberId(currentMember.id);
         setNotesData(nextNotes);
         setSelectedId(nextNotes[0]?.id ?? 'leak');
+        setAccessLocked(false);
         setDataMode('sqlite');
       } catch {
         if (!isMounted) return;
@@ -223,7 +238,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [accessNonce]);
 
   function openDetail(id) {
     setSelectedId(id);
@@ -234,6 +249,27 @@ function App() {
   function openEdit() {
     setScreen('edit');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function unlockAccess(pin) {
+    try {
+      const response = await fetch('/api/access/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+
+      if (!response.ok) {
+        setAccessMessage('口令不正确，请再试一次');
+        return;
+      }
+
+      setAccessLocked(false);
+      setAccessMessage('');
+      setAccessNonce((value) => value + 1);
+    } catch {
+      setAccessMessage('暂时没有连上家庭记录服务');
+    }
   }
 
   function navigate(nextScreen) {
@@ -450,6 +486,10 @@ function App() {
         showToast('成员切换已在当前页面生效');
       }
     }
+  }
+
+  if (accessLocked) {
+    return <AccessLockScreen message={accessMessage} onUnlock={unlockAccess} />;
   }
 
   return (
@@ -725,6 +765,41 @@ function CategoryMark({ src, fallback: Fallback, label, className = 'h-6 w-6', i
 function IllustrationImage({ src, alt, className = 'mx-auto h-32 w-full max-w-[220px]' }) {
   if (!src) return null;
   return <img className={`${className} object-contain`} src={src} alt={alt} loading="lazy" />;
+}
+
+function AccessLockScreen({ message, onUnlock }) {
+  const [pin, setPin] = useState('');
+
+  async function submit(event) {
+    event.preventDefault();
+    await onUnlock(pin);
+  }
+
+  return (
+    <main className="mobile-shell flex min-h-screen flex-col justify-center">
+      <section className="soft-card p-6 text-center">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-teal-50 text-teal-600">
+          <ShieldCheck size={34} />
+        </div>
+        <h1 className="mt-5 text-[25px] font-bold text-[#153b37]">输入访问口令</h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-muted">这是家里的生活记录，只在家庭设备上输入一次即可继续使用。</p>
+        <form className="mt-6 space-y-4" onSubmit={submit}>
+          <input
+            className="h-14 w-full rounded-2xl border border-line bg-white px-4 text-center text-[22px] tracking-[0.24em] outline-none focus:border-teal-500"
+            inputMode="numeric"
+            type="password"
+            value={pin}
+            onChange={(event) => setPin(event.target.value)}
+            placeholder="••••"
+          />
+          {message && <p className="text-[14px] text-rose-500">{message}</p>}
+          <button className="h-14 w-full rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="submit">
+            进入家事记
+          </button>
+        </form>
+      </section>
+    </main>
+  );
 }
 
 function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch }) {

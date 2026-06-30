@@ -201,3 +201,16 @@ volumes:
 - 当前机器未在真实 NAS Docker daemon 上完成镜像构建和容器启动验证。
 - NAS 在线 / 离线开关仍是应用内测试状态，不会探测真实 NAS 连接。
 - 不要把真实 NAS IP、域名、账号、密码或 token 写入仓库。
+
+### 可选访问口令
+
+默认不启用访问口令，适合只在可信家庭内网临时试用。
+
+如果希望手机打开应用时先输入一个简单家庭口令，可以在部署环境设置：
+
+```yaml
+environment:
+  NOTE_ACCESS_PIN: "your-local-pin"
+```
+
+或在启动前设置环境变量 `NOTE_ACCESS_PIN`。不要把真实口令提交到 GitHub；`docker-compose.yml` 中只保留空占位。启用后，`/api/health` 和解锁接口仍可访问，其余 API 会在未解锁时返回 401。
