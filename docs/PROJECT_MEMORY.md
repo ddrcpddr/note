@@ -844,3 +844,11 @@ MVP 需要覆盖：
 - 新增 `tests/check-script.test.js`，用临时 `NOTE_DATA_DIR` 验证健康数据库下 check 通过且包含完整性结果。
 - 当前正式 `data/database/app.db` 仍然损坏，因此新的 `npm.cmd run check` 会正确失败；这不是代码回归，而是等待用户确认恢复最近健康备份。
 - 本轮验证：`node --test tests/check-script.test.js` 通过；`npm.cmd run test` 通过，27 项；`npm.cmd run build` 通过；临时健康数据目录下 `npm.cmd run check` 通过。
+### 数据库确认门恢复工具（2026-06-30）
+
+- 新增 `src/server/scripts/restore-database-backup.js` 和 `npm.cmd run restore-db`，用于从健康备份恢复 `data/database/app.db`。
+- 默认命令只做 dry-run：验证备份文件存在且 `PRAGMA integrity_check` 为 `ok`，输出目标路径和备份大小，不替换正式数据库。
+- 只有追加 `--confirm` 才会复制当前正式库到 `data/backups/app-before-restore-<timestamp>.db`，再用选定健康备份替换正式库，并对恢复后的正式库再次执行完整性检查。
+- 新增 `tests/database-restore.test.js` 覆盖 dry-run 不改库、confirm 会恢复并保留前库副本、坏备份会被拒绝。
+- 已对真实候选备份 `data/backups/app-2026-06-29T05-40-32-597Z.db` 执行 dry-run，结果 `ok=true`、`restored=false`；未执行 `--confirm`，未替换正式库。
+- 本轮验证：`npm.cmd run test` 通过 30 项；`npm.cmd run build` 通过；当前正式库下 `npm.cmd run check` 仍正确失败，等待用户确认恢复。

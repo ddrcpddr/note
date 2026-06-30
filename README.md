@@ -99,6 +99,14 @@ npm.cmd run test
 npm run check
 ```
 
+如果检查提示数据库损坏，先停止 Docker / Node 服务，再使用确认门恢复命令预检备份：
+
+```bash
+npm.cmd run restore-db -- --backup data/backups/your-healthy-backup.db
+```
+
+确认要替换正式库时再追加 `--confirm`。
+
 默认数据库：
 
 ```text
@@ -267,6 +275,14 @@ npm.cmd run server
 npm run check
 ```
 
+如果检查提示数据库损坏，先停止 Docker / Node 服务，再使用确认门恢复命令预检备份：
+
+```bash
+npm.cmd run restore-db -- --backup data/backups/your-healthy-backup.db
+```
+
+确认要替换正式库时再追加 `--confirm`。
+
 初始化会创建默认成员、分类、标签和示例记录。
 
 ### 如何确认当前数据目录？
@@ -294,6 +310,14 @@ data/database/app.db
 ```bash
 npm run check
 ```
+
+如果检查提示数据库损坏，先停止 Docker / Node 服务，再使用确认门恢复命令预检备份：
+
+```bash
+npm.cmd run restore-db -- --backup data/backups/your-healthy-backup.db
+```
+
+确认要替换正式库时再追加 `--confirm`。
 
 注意：这会清空当前本地记录。真实试用或 NAS 部署时，重置前请先备份 `data/`。
 

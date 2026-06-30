@@ -76,3 +76,18 @@ npm.cmd run check
 ```
 
 只有返回 `ok: true` 且 `integrityCheck: "ok"` 后，才继续 Docker API 和手机试运行验收。
+## 10. 确认门恢复命令
+
+已新增安全恢复脚本，默认只做 dry-run，不替换正式数据库：
+
+```bash
+npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
+```
+
+用户确认后才执行正式恢复：
+
+```bash
+npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm
+```
+
+正式恢复会先把当前 `data/database/app.db` 复制到 `data/backups/app-before-restore-<timestamp>.db`，再用通过 `PRAGMA integrity_check` 的备份替换正式库。恢复后必须重新运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`，再启动 Docker 复验业务 API。

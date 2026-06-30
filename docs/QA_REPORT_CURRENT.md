@@ -1283,3 +1283,16 @@
 | 当前正式库结果 | `npm.cmd run check` 现在会正确失败，错误为 `SQLite integrity_check failed`，因为 `data/database/app.db` 已确认损坏 |
 | 仍然存在的问题 | 正式库恢复仍需用户确认是否用最近健康备份 `data/backups/app-2026-06-29T05-40-32-597Z.db` 替换当前损坏库 |
 | 下一步建议 | 用户确认后先备份当前损坏库副本，再恢复健康备份、重新运行 `npm.cmd run check/test/build` 和 Docker API 烟测 |
+## Fix: 数据库确认门恢复工具（2026-06-30）
+
+| 项目 | 内容 |
+| --- | --- |
+| 基线 commit | `20879ca Fix: detect corrupted SQLite database in check` |
+| 范围 | SQLite 损坏后的安全恢复流程，不直接替换正式库 |
+| 复现步骤 | 当前正式库 `data/database/app.db` 损坏，`npm.cmd run check` 正确失败；需要一个不会误操作的恢复入口 |
+| 问题原因 | 只有文档化手工复制步骤，用户确认后仍容易手动选错备份或忘记先保存当前损坏库副本 |
+| 修复内容 | 新增 `npm.cmd run restore-db -- --backup <backup.db>` dry-run；只有追加 `--confirm` 才会先保存当前库到 `data/backups/app-before-restore-<timestamp>.db`，再用完整性检查通过的备份替换正式库 |
+| 运行命令 | `node --test tests/database-restore.test.js` 通过；`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db` dry-run 通过且 `restored=false`；`npm.cmd run test` 通过，30 项；`npm.cmd run build` 通过 |
+| 当前正式库结果 | `npm.cmd run check` 仍正确失败，说明尚未执行 `--confirm` 恢复，正式库仍等待用户确认 |
+| 仍然存在的问题 | 未经用户确认，不替换 `data/database/app.db`；Docker / 手机试运行仍需恢复后重新验证 |
+| 下一步建议 | 用户确认后执行 `npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm`，再运行 `check/test/build` 和 Docker API 烟测 |
