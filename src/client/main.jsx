@@ -1256,25 +1256,27 @@ function CategoriesScreen({ notes, onSelectCategory, onBulkCategorizeImported })
           </div>
         </div>
       </section>
-      <section className="mt-6 grid grid-cols-2 gap-4 pb-28">
+      <section className="-mx-2 mt-6 grid grid-cols-2 gap-2 pb-28">
         {visibleCategories.map((category) => {
           const Icon = category.icon;
           const displayName = category.id === 'uncategorized' ? '未分类' : category.name;
+          const displayUpdate = category.update.replace(' 更新', '');
           return (
-            <button className="soft-card flex min-h-[148px] w-full flex-col items-start justify-center gap-3 p-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-14 w-14 bg-white ${category.tone}`}>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-12 w-12" iconSize={30} />
+            <button className="soft-card relative flex min-h-[104px] w-full items-center gap-1.5 overflow-hidden px-2.5 py-4 text-left" key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
+              <div className={`circle-icon h-11 w-11 bg-white ${category.tone}`}>
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-10 w-10" iconSize={25} />
               </div>
-              <div className="min-w-0 w-full">
+              <div className="min-w-0 flex-1">
                 <h2 className="whitespace-nowrap text-[18px] font-bold leading-tight text-ink" data-category-title>{displayName}</h2>
-                <p className="mt-2 whitespace-nowrap text-[15px] font-medium text-teal-600" data-category-count>{category.count} 条记录</p>
-                <p className="mt-1.5 whitespace-nowrap text-[13px] text-muted" data-category-update>{category.update}</p>
+                <p className="mt-1.5 whitespace-nowrap text-[15px] font-medium text-teal-600" data-category-count>{category.count} 条记录</p>
+                <p className="mt-1 whitespace-nowrap text-[13px] leading-tight text-muted" data-category-update>{displayUpdate}</p>
                 {category.id === 'uncategorized' && importedToReviewCount > 0 && (
-                  <p className="mt-2 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
-                    {importedToReviewCount} 条导入记录待整理
+                  <p className="mt-1.5 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                    {importedToReviewCount} 条待整理
                   </p>
                 )}
               </div>
+              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 text-muted" size={15} />
             </button>
           );
         })}
