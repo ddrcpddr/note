@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { createId, getDb, slugifyTag } from '../db/database.js';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { createId, getDataPaths, getDb, slugifyTag } from '../db/database.js';
 
 export const notesRouter = Router();
 
@@ -48,16 +50,16 @@ notesRouter.post('/', (request, response) => {
     }
 
     for (const [index, attachment] of attachments.entries()) {
-      const originalName = String(attachment.originalName || attachment.fileName || `附件-${index + 1}`);
-      const fileName = String(attachment.fileName || originalName);
+      const attachmentId = createId('attachment');
+      const savedAttachment = prepareAttachment(noteId, attachmentId, attachment, index);
       insertAttachment.run(
-        createId('attachment'),
+        attachmentId,
         noteId,
-        fileName,
-        originalName,
-        attachment.mimeType || null,
-        Number(attachment.fileSize || 0),
-        String(attachment.storagePath || `attachments/${fileName}`),
+        savedAttachment.fileName,
+        savedAttachment.originalName,
+        savedAttachment.mimeType,
+        savedAttachment.fileSize,
+        savedAttachment.storagePath,
         sourceType
       );
     }
@@ -280,6 +282,42 @@ export function listNotes(query = {}) {
       tags: JSON.parse(row.tags || '[]'),
       attachments: JSON.parse(row.attachments || '[]')
     }));
+}
+
+function prepareAttachment(noteId, attachmentId, attachment, index) {
+  const originalName = sanitizeAttachmentName(attachment.originalName || attachment.fileName, `附件-${index + 1}`);
+  const mimeType = attachment.mimeType || null;
+  const contentBase64 = typeof attachment.contentBase64 === 'string' ? attachment.contentBase64 : '';
+
+  if (!contentBase64) {
+    return {
+      fileName: sanitizeAttachmentName(attachment.fileName || originalName, originalName),
+      originalName,
+      mimeType,
+      fileSize: Number(attachment.fileSize || 0),
+      storagePath: String(attachment.storagePath || `attachments/${originalName}`)
+    };
+  }
+
+  const buffer = Buffer.from(contentBase64.replace(/^data:.*;base64,/, ''), 'base64');
+  const fileName = `${attachmentId}-${originalName}`;
+  const storagePath = `attachments/${noteId}/${fileName}`;
+  const targetDir = path.join(getDataPaths().attachmentsDir, noteId);
+  mkdirSync(targetDir, { recursive: true });
+  writeFileSync(path.join(targetDir, fileName), buffer);
+
+  return {
+    fileName,
+    originalName,
+    mimeType,
+    fileSize: buffer.length,
+    storagePath
+  };
+}
+
+function sanitizeAttachmentName(value, fallback) {
+  const name = String(value || fallback).split(/[\/]/).pop().replace(/[<>:"|?* -]/g, '_').trim();
+  return name || fallback;
 }
 
 function getCurrentMemberId() {

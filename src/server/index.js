@@ -13,7 +13,7 @@ const port = Number(process.env.PORT || 3300);
 
 getDb();
 
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '12mb' }));
 
 app.get('/api/health', (_request, response) => {
   response.json({

@@ -149,6 +149,57 @@ describe('MVP API', () => {
     assert.equal(detail.notes[0].title, title);
   });
 
+  test('stores uploaded attachment file under NOTE_DATA_DIR', async () => {
+    const content = '这是一份测试附件内容，只写入临时测试目录。';
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '附件上传测试记录',
+        content: '这条记录用于验证真实附件写入。',
+        categoryId: 'account',
+        memberId: 'self',
+        attachments: [
+          {
+            fileName: 'receipt.txt',
+            originalName: '水费凭证.txt',
+            mimeType: 'text/plain',
+            contentBase64: Buffer.from(content, 'utf8').toString('base64')
+          }
+        ]
+      })
+    });
+
+    assert.equal(created.note.attachments.length, 1);
+    const attachment = created.note.attachments[0];
+    assert.equal(attachment.originalName, '水费凭证.txt');
+    assert.ok(attachment.storagePath.startsWith('attachments/'));
+    assert.equal(readFileSync(path.join(tempDataDir, attachment.storagePath), 'utf8'), content);
+  });
+
+  test('accepts a mobile photo-sized attachment payload', async () => {
+    const content = 'x'.repeat(2_200_000);
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '较大附件上传测试记录',
+        content: '这条记录用于验证手机照片大小的附件上传。',
+        categoryId: 'account',
+        memberId: 'self',
+        attachments: [
+          {
+            fileName: 'mobile-photo.txt',
+            originalName: '手机照片.txt',
+            mimeType: 'text/plain',
+            contentBase64: Buffer.from(content, 'utf8').toString('base64')
+          }
+        ]
+      })
+    });
+
+    assert.equal(created.note.attachments.length, 1);
+    assert.equal(created.note.attachments[0].fileSize, Buffer.byteLength(content));
+  });
+
   test('updates an existing note and refreshes its tags', async () => {
     const created = await requestJson('/api/notes', {
       method: 'POST',

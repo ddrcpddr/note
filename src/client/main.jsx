@@ -275,7 +275,7 @@ function App() {
             memberId: currentMember.id,
             noteType: draft.type,
             tags: draft.tags,
-            attachments: draft.hasAttachment ? [{ fileName: '家庭记录附件.jpg', originalName: '家庭记录附件.jpg' }] : []
+            attachments: draft.attachments?.length ? draft.attachments : draft.hasAttachment ? [{ fileName: '家庭记录附件.jpg', originalName: '家庭记录附件.jpg' }] : []
           })
         });
 
@@ -310,12 +310,12 @@ function App() {
       time: '刚刚',
       member: currentMember.name,
       memberId: currentMember.id,
-      attachmentCount: draft.hasAttachment ? 1 : 0,
+      attachmentCount: draft.attachments?.length || (draft.hasAttachment ? 1 : 0),
       status: '仅当前页面可见',
       source: '手动创建',
       createdAt: '今天 刚刚',
       updatedAt: '刚刚',
-      attachments: draft.hasAttachment ? ['家庭记录附件.jpg'] : []
+      attachments: draft.attachments?.length ? draft.attachments.map((attachment) => attachment.originalName || attachment.fileName) : draft.hasAttachment ? ['家庭记录附件.jpg'] : []
     };
 
     setNotesData((current) => [note, ...current]);
@@ -644,6 +644,32 @@ function findCategoryForType(type) {
   return categories.find((item) => item.name === type) ?? categories[0];
 }
 
+function attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment) {
+  if (isEditing) return `附件暂不在编辑里修改（${initialNote?.attachmentCount || 0}）`;
+  if (attachmentFiles.length === 1) return attachmentFiles[0].name;
+  if (attachmentFiles.length > 1) return `已选择 ${attachmentFiles.length} 个附件`;
+  if (hasAttachment) return '已添加附件';
+  return '添加照片 / 文件';
+}
+
+function fileToAttachmentPayload(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      resolve({
+        fileName: file.name,
+        originalName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        contentBase64: result.includes(',') ? result.split(',')[1] : result
+      });
+    };
+    reader.onerror = () => reject(reader.error || new Error('attachment read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function recordTypeForNote(note) {
   if (note.categoryId === 'repair') return '维修维护';
   if (note.categoryId === 'shopping') return '购物消费';
@@ -752,6 +778,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   const [type, setType] = useState(initialNote ? recordTypeForNote(initialNote) : '家庭事务');
   const [tags, setTags] = useState(initialNote?.tags?.length ? initialNote.tags.map((tag) => tag.label) : ['待办', '重要']);
   const [hasAttachment, setHasAttachment] = useState(Boolean(initialNote?.attachmentCount));
+  const [attachmentFiles, setAttachmentFiles] = useState([]);
   const [selectedMemberId, setSelectedMemberId] = useState(initialNote?.memberId || currentMemberId);
   const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
   const tagOptions = ['待办', '重要', '维修', '购物', '账单'];
@@ -760,10 +787,11 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
     setTags((current) => (current.includes(label) ? current.filter((item) => item !== label) : [...current, label]));
   }
 
-  function save() {
+  async function save() {
     const originalType = initialNote ? recordTypeForNote(initialNote) : null;
     const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
-    onSave({ id: initialNote?.id, title, body, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags: tags.length ? tags : ['待办'], hasAttachment });
+    const attachments = isEditing ? [] : await Promise.all(attachmentFiles.map(fileToAttachmentPayload));
+    onSave({ id: initialNote?.id, title, body, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags: tags.length ? tags : ['待办'], hasAttachment: hasAttachment || attachments.length > 0, attachments });
   }
 
   return (
@@ -847,12 +875,26 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
         </span>
       </section>
       <SectionTitle>附件</SectionTitle>
-      <button className="soft-card flex h-[72px] w-full items-center justify-between px-5 text-left" type="button" onClick={() => !isEditing && setHasAttachment((value) => !value)} disabled={Boolean(isEditing)}>
-        <span className="inline-flex items-center gap-4 text-[17px] text-muted">
-          <Paperclip className="text-teal-600" size={28} /> {isEditing ? `附件暂不在编辑里修改（${initialNote?.attachmentCount || 0}）` : hasAttachment ? '已添加 1 个附件占位' : '添加照片 / 文件'}
+      {!isEditing && (
+        <input
+          className="hidden"
+          id="record-attachment-input"
+          multiple
+          type="file"
+          onChange={(event) => {
+            const files = Array.from(event.target.files || []);
+            setAttachmentFiles(files);
+            setHasAttachment(files.length > 0);
+          }}
+        />
+      )}
+      <label className={`soft-card flex min-h-[72px] w-full items-center justify-between px-5 py-4 text-left ${isEditing ? 'opacity-75' : 'cursor-pointer'}`} htmlFor={isEditing ? undefined : 'record-attachment-input'}>
+        <span className="inline-flex min-w-0 items-center gap-4 text-[17px] text-muted">
+          <Paperclip className="shrink-0 text-teal-600" size={28} />
+          <span className="min-w-0">{attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment)}</span>
         </span>
-        {hasAttachment ? <CheckCircle2 className="text-teal-600" /> : <ChevronRight className="text-muted" />}
-      </button>
+        {hasAttachment ? <CheckCircle2 className="shrink-0 text-teal-600" /> : <ChevronRight className="shrink-0 text-muted" />}
+      </label>
       <div className="bottom-action-bar flex h-[92px] items-center gap-4 px-5 py-4">
         <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-medium text-teal-600" type="button">
           <FileText size={22} /> {isEditing ? '保留原附件' : '存为模板'}
