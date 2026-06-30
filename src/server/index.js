@@ -7,7 +7,7 @@ import { categoriesRouter } from './routes/categories.js';
 import { importsRouter } from './routes/imports.js';
 import { membersRouter } from './routes/members.js';
 import { listNotes, notesRouter } from './routes/notes.js';
-import { storageRouter } from './routes/storage.js';
+import { startAutomaticBackups, storageRouter } from './routes/storage.js';
 
 const app = express();
 const port = Number(process.env.PORT || 3300);
@@ -15,6 +15,7 @@ const accessPin = String(process.env.NOTE_ACCESS_PIN || '').trim();
 const accessToken = accessPin ? createHash('sha256').update(accessPin).digest('hex') : '';
 
 getDb();
+startAutomaticBackups();
 
 app.use(express.json({ limit: '12mb' }));
 

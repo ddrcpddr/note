@@ -214,3 +214,16 @@ environment:
 ```
 
 或在启动前设置环境变量 `NOTE_ACCESS_PIN`。不要把真实口令提交到 GitHub；`docker-compose.yml` 中只保留空占位。启用后，`/api/health` 和解锁接口仍可访问，其余 API 会在未解锁时返回 401。
+
+### 可选定时自动备份
+
+默认不启用定时自动备份，避免本地开发时频繁生成备份文件。
+
+家庭 NAS 试运行时，可以设置：
+
+```yaml
+environment:
+  NOTE_AUTO_BACKUP_INTERVAL_HOURS: "24"
+```
+
+启用后，服务进程会按间隔复制当前 `app.db` 到 `/data/backups/`，并在 `backups` 表记录最新备份状态。测试环境可使用 `NOTE_AUTO_BACKUP_INTERVAL_MS`，生产部署建议使用小时级配置。
