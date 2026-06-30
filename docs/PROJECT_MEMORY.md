@@ -865,3 +865,20 @@ MVP 需要覆盖：
 - 对 `http://127.0.0.1:3310` 执行 `npm.cmd run smoke -- --base-url http://127.0.0.1:3310` 通过；临时容器返回 2 个成员、11 个分类和测试记录，备份与 JSON 导出均可用。
 - `node --test tests/http-smoke.test.js`、`npm.cmd run test`（32 项）和 `npm.cmd run build` 通过。
 - `npm.cmd run check` 当前仍正确失败，原因是正式 `data/database/app.db` 的 SQLite `integrity_check` 不通过；尚未执行 `restore-db --confirm`，等待用户确认是否用最近健康备份恢复正式库。
+## 正式数据库恢复完成（2026-06-30）
+
+- 恢复前状态：`npm.cmd run check` 对 `data/database/app.db` 执行 SQLite `PRAGMA integrity_check` 失败，错误包含 `database disk image is malformed` 相关的 B-tree / page 损坏信息。
+- 恢复前服务状态：已执行 `docker compose down`，并停止 `note-trial` 临时容器；未发现本地当前项目的 `node` / `npm` 服务进程占用数据库。
+- Git 安全状态：恢复前工作区干净；`data/` 下正式数据库、备份、附件、导出、真实导入文件仍被 `.gitignore` 忽略，Git 只跟踪 `.gitkeep`。
+- dry-run 命令：`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db`，结果 `ok=true`、`dryRun=true`、`restored=false`。
+- 确认恢复命令：`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm`。
+- 使用的健康备份：`data/backups/app-2026-06-29T05-40-32-597Z.db`，大小 `17526784` bytes。
+- 损坏库副本：恢复工具已自动保存到 `data/backups/app-before-restore-2026-06-30T08-31-44-809Z.db`，该文件属于运行备份数据，不提交 Git。
+- 恢复后 `npm.cmd run check` 通过，输出 `integrityCheck: "ok"`、`categoryCount: 11`、`noteCount: 111`。
+- 记录数说明：此前损坏库记忆中曾出现 112 条；本次恢复到最近健康备份后为 111 条。额外 1 条位于损坏库中，不能直接信任，本轮没有从损坏库硬读或 salvage。
+- 恢复后 `npm.cmd run test` 通过，32 项测试全部通过；`npm.cmd run build` 通过。
+- Docker 真实 data 验证：`docker compose build` 通过，`docker compose up -d` 后容器 `note` 为 healthy，使用默认 `./data:/data` 挂载。
+- 关键 API 验证：`/api/health`、`/api/app-data`、`/api/notes?limit=3`、`/api/categories` 均返回 200，不再返回 500。
+- HTTP 烟测：`npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过；app-data 返回 `notes: 111`，手动备份、JSON 导出和前端 shell 均通过。
+- 当前风险：最近健康备份之后、损坏发生之前的 1 条记录未恢复；如确实需要找回，必须单独做只读 salvage 评估，并在用户确认后进行，不能直接从损坏库写回。
+- 当前建议：可以继续进入真实手机 / NAS 试运行，但试运行前保留本次恢复用备份和 `app-before-restore` 损坏库副本，避免后续误删。
