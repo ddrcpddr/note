@@ -818,3 +818,9 @@ MVP 需要覆盖：
 - 当前推荐顺序：先用真实 Android 手机完成 PWA / 添加到桌面试运行；若稳定，再由用户确认包名、封装路线、最低 Android 版本、NAS 地址配置策略和签名方式后进入 WebView / TWA 工程。
 - TWA 依赖公开 HTTPS 域名与 Digital Asset Links，不适合当前家庭局域网 HTTP 作为首选；真正原生 Android + 本地数据库 / 同步属于大架构变更，暂不建议。
 - 仍遵守安全边界：不提交真实 NAS 地址、账号、密码、token、签名密钥、数据库、备份、导出、附件、.nsx 或真实导入内容。
+
+### Android 封装决策清单（2026-06-30）
+
+- 新增 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md`，把 Android 工程启动前必须确认的包名、App 名称、封装路线、最低 Android 版本、NAS 地址策略、签名方式和依赖授权整理为可执行清单。
+- 推荐路线继续保持为 Android WebView 壳：手机端只作为家庭 NAS Web 应用入口，正式数据仍保存在 NAS / Express / SQLite 服务端。
+- 当前暂停点明确为：用户确认决策清单之前，不创建 Android 工程、不安装 Android 依赖、不生成 keystore、不写真实 NAS 地址。

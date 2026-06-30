@@ -93,6 +93,10 @@ Android 封装完成后，应至少验证：
 - 断网或 NAS 不可用时有可理解提示。
 - 不包含真实 NAS 地址、密码、token、数据库、备份、附件或导出文件。
 
-## 6. 当前结论
+## 6. 决策清单
+
+真正创建 Android 工程前，按 `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md` 确认包名、封装路线、最低 Android 版本、NAS 地址配置策略和签名方式。
+
+## 7. 当前结论
 
 当前最合理的下一步不是直接创建 Android 工程，而是先用真实 Android 手机完成 Web / PWA 试运行。试运行稳定后，再选择 WebView 壳或 TWA。若用户明确批准引入 Android 封装依赖和确认包名等信息，再进入实际 Android 工程创建阶段。
