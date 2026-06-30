@@ -1413,3 +1413,18 @@
 | `TodayCard` 点击 handler 指向 `onCreateNote` | 通过 |
 | Docker 服务 | 通过，容器 `note` 已用修复后的前端 bundle 重建并启动 |
 | 数据安全 | 仅代码和文档改动；smoke 生成的备份 / 导出仍在 `data/` 忽略目录，不提交 Git |
+
+## Gate 3: 试运行反馈模板与日志（2026-06-30 20:18 +08:00）
+
+| 项目 | 内容 |
+| --- | --- |
+| 当前 commit | 文档创建前基线 `98ad2c9` |
+| 测试时间 | `2026-06-30 20:18:28 +08:00` |
+| 范围 | 真实手机 / Docker / NAS 试运行反馈模板和反馈日志 |
+| 复现步骤 | 用户已经开始真实手机试运行，并通过截图反馈了两个 P1 小 bug；后续需要结构化记录，避免零散反馈导致误改或大改。 |
+| 问题原因 | 试运行反馈此前只存在于聊天截图和临时说明中，没有项目内固定模板和日志。 |
+| 修复内容 | 新增 `docs/TRIAL_FEEDBACK_TEMPLATE.md`；新增 `docs/TRIAL_FEEDBACK_LOG.md`；登记已修复反馈 `TF-20260630-001` 和 `TF-20260630-002`。 |
+| 运行命令 | `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`。 |
+| 测试结果 | `npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 33 项；`npm.cmd run build` 通过。 |
+| 仍然存在的问题 | 当前无未处理反馈；继续等待真实手机试运行反馈。 |
+| 下一步建议 | 后续每个真实反馈先按模板登记，再按 P0/P1/P2/P3 排序处理；P1 继续一个 bug 一个 `Fix:` commit。 |

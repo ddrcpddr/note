@@ -148,3 +148,14 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3310
 - 新增前端静态回归测试 `tests/frontend-ui.test.js`，防止首页快捷入口再次退化为纯展示卡片。
 - 本轮验证：`npm.cmd run build`、`npm.cmd run check`、`npm.cmd run test`、Docker 重建和 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 均通过。
 - 下一步仍建议继续真实手机试运行，只修实际反馈的小 bug；不要在未完成一轮试用前扩展新功能或重做 UI。
+
+## Gate 3：试运行反馈管理（2026-06-30）
+
+已新增：
+
+- `docs/TRIAL_FEEDBACK_TEMPLATE.md`
+- `docs/TRIAL_FEEDBACK_LOG.md`
+
+下一步真实手机试运行时，请尽量按模板记录：页面、操作步骤、预期结果、实际结果、截图路径、是否影响数据和严重程度。当前已登记并关闭两条反馈：标签编辑 / 导入页文案、首页今天要记无响应。
+
+当前仍不建议新增大功能。继续真实试用，出现 P0 / P1 问题时按 `mvp-bugfix-qa` 流程小步修复。

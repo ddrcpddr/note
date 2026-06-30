@@ -906,3 +906,13 @@ MVP 需要覆盖：
 - 已新增 `tests/frontend-ui.test.js`，覆盖首页今天要记卡片必须连接到新建记录 screen，防止以后退回纯展示卡片。
 - 已验证：`node --test tests/frontend-ui.test.js` 先红灯后转绿；`npm.cmd run build` 通过；`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、记录数 113；`npm.cmd run test` 通过 33 项；`docker compose build`、`docker compose up -d` 和 `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过。
 - 当前 Docker `http://127.0.0.1:3300/` 已重建为修复后的版本，用户可在手机同局域网地址刷新后复测。
+
+### Gate 3：真实试运行反馈模板与日志（2026-06-30）
+
+- 根据 `docs/CODEX_CONTINUOUS_DEVELOPMENT_PLAN.md` 的 Gate 3，新增 `docs/TRIAL_FEEDBACK_TEMPLATE.md` 和 `docs/TRIAL_FEEDBACK_LOG.md`。
+- 反馈模板规定字段：日期、测试人、设备型号、Android 版本、浏览器、访问方式、页面、操作步骤、预期结果、实际结果、截图路径、是否影响数据、严重程度 P0/P1/P2/P3、是否已复现、是否已修复、对应 commit。
+- 反馈日志已登记两条真实手机试运行反馈：
+  - `TF-20260630-001`：标签清空 / 添加标签 / 导入页文案，已由 `0a52001` 修复。
+  - `TF-20260630-002`：首页“今天要记 / 快速记录”点击无反应，已由 `98ad2c9` 修复。
+- 本阶段只做文档和流程收口，不新增功能、不重做 UI、不调用 Product Design、不生成图片、不创建 Android 工程。
+- 后续真实手机反馈应先写入 `docs/TRIAL_FEEDBACK_LOG.md` 或按模板提供，再按 `mvp-bugfix-qa` 流程一个 bug 一个 `Fix:` commit 处理。
