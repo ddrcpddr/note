@@ -73,6 +73,64 @@ notesRouter.post('/', (request, response) => {
   response.status(201).json({ note });
 });
 
+notesRouter.patch('/:id', (request, response) => {
+  const db = getDb();
+  const noteId = String(request.params.id || '').trim();
+  const existing = listNotes({ id: noteId })[0];
+
+  if (!existing) {
+    response.status(404).json({ error: '记录不存在' });
+    return;
+  }
+
+  const payload = request.body || {};
+  const nextContent = String(payload.content ?? existing.content ?? '').trim();
+  const generatedTitle = nextContent.slice(0, 28) || existing.title || '未命名记录';
+  const nextTitle = String(payload.title ?? existing.title ?? '').trim() || generatedTitle;
+  const nextCategoryId = String(payload.categoryId ?? existing.categoryId ?? 'uncategorized');
+  const nextMemberId = String(payload.memberId ?? existing.memberId ?? getCurrentMemberId());
+  const nextNoteType = String(payload.noteType ?? existing.noteType ?? 'normal');
+  const nextSummary = String(payload.summary ?? nextContent.slice(0, 56) ?? nextTitle).trim() || nextTitle;
+  const nextTags = Array.isArray(payload.tags)
+    ? payload.tags.map((tag) => String(tag).trim()).filter(Boolean)
+    : existing.tags.map((tag) => tag.label).filter(Boolean);
+
+  const updateNote = db.prepare(`
+    UPDATE notes
+    SET title = ?,
+        content = ?,
+        summary = ?,
+        category_id = ?,
+        member_id = ?,
+        note_type = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ? AND is_deleted = 0
+  `);
+  const deleteNoteTags = db.prepare('DELETE FROM note_tags WHERE note_id = ?');
+  const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
+  const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
+
+  db.exec('BEGIN');
+  try {
+    updateNote.run(nextTitle, nextContent || nextTitle, nextSummary, nextCategoryId, nextMemberId, nextNoteType, noteId);
+    deleteNoteTags.run(noteId);
+
+    for (const tagName of nextTags) {
+      const tagId = slugifyTag(tagName);
+      insertTag.run(tagId, tagName, tagId);
+      insertNoteTag.run(noteId, tagId);
+    }
+
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK');
+    response.status(400).json({ error: error.message });
+    return;
+  }
+
+  const note = listNotes({ id: noteId })[0];
+  response.json({ note });
+});
 export function listNotes(query = {}) {
   const search = String(query.search || '').trim();
   const id = String(query.id || '').trim();

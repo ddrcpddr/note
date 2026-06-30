@@ -149,6 +149,47 @@ describe('MVP API', () => {
     assert.equal(detail.notes[0].title, title);
   });
 
+  test('updates an existing note and refreshes its tags', async () => {
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '待编辑记录',
+        content: '原始正文',
+        categoryId: 'family',
+        memberId: 'self',
+        tags: ['待办']
+      })
+    });
+
+    const updated = await requestJson(`/api/notes/${created.note.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: '已经编辑的记录',
+        content: '更新后的正文，用来验证编辑功能。',
+        categoryId: 'repair',
+        memberId: 'partner',
+        tags: ['维修', '重要']
+      })
+    });
+
+    assert.equal(updated.note.id, created.note.id);
+    assert.equal(updated.note.title, '已经编辑的记录');
+    assert.equal(updated.note.content, '更新后的正文，用来验证编辑功能。');
+    assert.equal(updated.note.categoryId, 'repair');
+    assert.equal(updated.note.memberId, 'partner');
+    assert.deepEqual(updated.note.tags.map((tag) => tag.label).sort(), ['维修', '重要']);
+
+    const detail = await requestJson(`/api/notes?id=${encodeURIComponent(created.note.id)}`);
+    assert.equal(detail.notes.length, 1);
+    assert.equal(detail.notes[0].title, '已经编辑的记录');
+    assert.equal(detail.notes[0].categoryId, 'repair');
+
+    const oldTag = await requestJson(`/api/notes?tag=${encodeURIComponent('待办')}`);
+    assert.ok(!oldTag.notes.some((note) => note.id === created.note.id));
+
+    const newTag = await requestJson(`/api/notes?tag=${encodeURIComponent('维修')}`);
+    assert.ok(newTag.notes.some((note) => note.id === created.note.id));
+  });
   test('supports search, category, member, tag and source filters', async () => {
     const title = `筛选测试记录 ${Date.now()}`;
     const created = await requestJson('/api/notes', {

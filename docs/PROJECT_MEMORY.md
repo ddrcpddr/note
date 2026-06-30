@@ -737,3 +737,13 @@ MVP 需要覆盖：
 - Docker 验收：当前电脑 Docker daemon 可用；`docker compose build` 通过，`docker compose up -d` 通过，容器 `note` 为 healthy；`http://localhost:3300/api/health` 返回 `dbPath=/data/database/app.db`，确认 `NOTE_DATA_DIR=/data` 生效。
 - 新增试运行文档：`docs/MOBILE_TRIAL_CHECKLIST.md`、`docs/BACKUP_RESTORE_DRILL.md`、`docs/TRIAL_RUN_READINESS_REPORT.md`。
 - 下一步建议：进入真实家庭局域网试运行，优先由用户和家人用安卓手机验收首页、新建、刷新持久化、搜索 / 分类 / 成员筛选、导入记录详情、备份、JSON 导出和 PWA 添加到桌面；试运行后再决定附件上传、简单访问口令、成员编辑或安卓封装。
+
+### P1 功能开发顺序与编辑记录闭环（2026-06-30）
+
+- 用户明确：安卓原生 App 封装排到最后；除安卓封装外，后续功能由主控 Agent 自行排序并依次推进。
+- 当前优先级顺序：1 编辑已有记录，2 删除 / 归档，3 真实附件上传，4 简单访问口令 / PIN，5 导入后批量整理未分类，6 成员改名 / 头像 / 颜色，7 定时备份，8 Markdown 导出，9 NAS 真实状态探测，10 安卓原生封装最后。
+- 本轮先实现第 1 项“编辑已有记录”：详情页右上角“编辑”进入复用的新建记录表单，可修改标题、正文、记录类型 / 分类、标签和当前成员。
+- 后端新增 `PATCH /api/notes/:id`，按 TDD 先补失败测试，再实现最小更新逻辑；更新时替换标签关系，保留附件元数据和 Note Station 原始来源字段，不修改真实导入原文、附件文件或数据库结构。
+- 前端编辑模式保留 V1 风格，不重做 UI；编辑已有记录时附件区提示“附件暂不在编辑里修改”，避免误导用户以为当前已支持附件上传 / 删除。
+- 对不在记录类型卡片里的原分类（例如未分类、房屋 / 设备），编辑页直接保存会保留原分类，只有用户主动切换记录类型时才改分类。
+- 最终验证：`npm.cmd run check` 通过；`npm.cmd run test` 通过，17 项测试全部通过；`npm.cmd run build` 通过。正式运行数据仍只存在于被 Git 忽略的 `data/` 中。

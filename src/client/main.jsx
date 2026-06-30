@@ -229,6 +229,11 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function openEdit() {
+    setScreen('edit');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function navigate(nextScreen) {
     setScreen(nextScreen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -323,6 +328,68 @@ function App() {
     }, 900);
   }
 
+  async function updateExistingNote(draft) {
+    const category = draft.categoryId ? categories.find((item) => item.id === draft.categoryId) ?? findCategoryForType(draft.type) : findCategoryForType(draft.type);
+    const body = draft.body.trim() || draft.title.trim() || '未命名记录';
+    const title = draft.title.trim() || body.slice(0, 24);
+    const selectedMemberId = draft.memberId || currentMemberId;
+    const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
+
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch(`/api/notes/${draft.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content: body,
+            categoryId: category.id,
+            memberId: currentMember.id,
+            noteType: draft.type,
+            tags: draft.tags
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('update failed');
+        }
+
+        const data = await response.json();
+        const note = normalizeNote(data.note);
+        setNotesData((current) => current.map((item) => (item.id === note.id ? note : item)));
+        setSelectedId(note.id);
+        setScreen('detail');
+        showToast('记录已更新');
+        return;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，修改未保存');
+        return;
+      }
+    }
+
+    setNotesData((current) => current.map((item) => (
+      item.id === draft.id
+        ? {
+            ...item,
+            title,
+            summary: body.slice(0, 42),
+            content: body,
+            category: category.name,
+            categoryId: category.id,
+            categoryIcon: category.icon,
+            icon: category.icon,
+            iconTone: category.tone,
+            tags: draft.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
+            member: currentMember.name,
+            memberId: currentMember.id,
+            updatedAt: '刚刚'
+          }
+        : item
+    )));
+    setScreen('detail');
+    showToast('记录已在当前页面更新');
+  }
+
   async function switchCurrentMember(memberId) {
     const nextMember = members.find((member) => member.id === memberId);
     if (!nextMember) return;
@@ -367,7 +434,17 @@ function App() {
           onSave={createMockNote}
         />
       )}
-      {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} />}
+      {screen === 'edit' && selectedNote && (
+        <NewRecordScreen
+          mode="edit"
+          initialNote={selectedNote}
+          members={members}
+          currentMemberId={currentMemberId}
+          onBack={() => navigate('detail')}
+          onSave={updateExistingNote}
+        />
+      )}
+      {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} onEdit={openEdit} />}
       {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
       {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} />}
       {screen === 'import' && (
@@ -414,7 +491,7 @@ function App() {
         </button>
       )}
 
-      {!['detail', 'new', 'import', 'members'].includes(screen) && <BottomNav active={screen} onChange={navigate} />}
+      {!['detail', 'new', 'edit', 'import', 'members'].includes(screen) && <BottomNav active={screen} onChange={navigate} />}
       {toast && (
         <div className="fixed bottom-[96px] left-1/2 z-50 -translate-x-1/2 rounded-full bg-[#173f3b] px-5 py-3 text-[15px] font-medium text-white shadow-float">
           {toast}
@@ -524,6 +601,14 @@ function findCategoryForType(type) {
   return categories.find((item) => item.name === type) ?? categories[0];
 }
 
+function recordTypeForNote(note) {
+  if (note.categoryId === 'repair') return '维修维护';
+  if (note.categoryId === 'shopping') return '购物消费';
+  if (note.categoryId === 'account') return '账号资料';
+  if (note.categoryId === 'temporary') return '临时想法';
+  return recordTypes.some((recordType) => recordType.label === note.category) ? note.category : '家庭事务';
+}
+
 function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', query = '', tag = 'all', source = 'all' }) {
   const keyword = query.trim().toLowerCase();
   const categoryItem = categories.find((item) => item.id === category);
@@ -617,13 +702,14 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
   );
 }
 
-function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [type, setType] = useState('家庭事务');
-  const [tags, setTags] = useState(['待办', '重要']);
-  const [hasAttachment, setHasAttachment] = useState(false);
-  const [selectedMemberId, setSelectedMemberId] = useState(currentMemberId);
+function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'create', initialNote = null }) {
+  const isEditing = mode === 'edit' && initialNote;
+  const [title, setTitle] = useState(initialNote?.title || '');
+  const [body, setBody] = useState(initialNote?.content || '');
+  const [type, setType] = useState(initialNote ? recordTypeForNote(initialNote) : '家庭事务');
+  const [tags, setTags] = useState(initialNote?.tags?.length ? initialNote.tags.map((tag) => tag.label) : ['待办', '重要']);
+  const [hasAttachment, setHasAttachment] = useState(Boolean(initialNote?.attachmentCount));
+  const [selectedMemberId, setSelectedMemberId] = useState(initialNote?.memberId || currentMemberId);
   const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
   const tagOptions = ['待办', '重要', '维修', '购物', '账单'];
 
@@ -632,12 +718,14 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
   }
 
   function save() {
-    onSave({ title, body, type, memberId: currentMember.id, tags: tags.length ? tags : ['待办'], hasAttachment });
+    const originalType = initialNote ? recordTypeForNote(initialNote) : null;
+    const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
+    onSave({ id: initialNote?.id, title, body, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags: tags.length ? tags : ['待办'], hasAttachment });
   }
 
   return (
     <>
-      <TopBar title="新记录" onBack={onBack} action="保存" onAction={save} />
+      <TopBar title={isEditing ? "编辑记录" : "新记录"} onBack={onBack} action="保存" onAction={save} />
       <section className="soft-card mt-5 flex h-[58px] items-center gap-4 px-5 text-[19px] text-muted">
         <span className="text-[28px]">T</span>
         <input
@@ -716,18 +804,18 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave }) {
         </span>
       </section>
       <SectionTitle>附件</SectionTitle>
-      <button className="soft-card flex h-[72px] w-full items-center justify-between px-5 text-left" type="button" onClick={() => setHasAttachment((value) => !value)}>
+      <button className="soft-card flex h-[72px] w-full items-center justify-between px-5 text-left" type="button" onClick={() => !isEditing && setHasAttachment((value) => !value)} disabled={Boolean(isEditing)}>
         <span className="inline-flex items-center gap-4 text-[17px] text-muted">
-          <Paperclip className="text-teal-600" size={28} /> {hasAttachment ? '已添加 1 个附件占位' : '添加照片 / 文件'}
+          <Paperclip className="text-teal-600" size={28} /> {isEditing ? `附件暂不在编辑里修改（${initialNote?.attachmentCount || 0}）` : hasAttachment ? '已添加 1 个附件占位' : '添加照片 / 文件'}
         </span>
         {hasAttachment ? <CheckCircle2 className="text-teal-600" /> : <ChevronRight className="text-muted" />}
       </button>
       <div className="bottom-action-bar flex h-[92px] items-center gap-4 px-5 py-4">
         <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-medium text-teal-600" type="button">
-          <FileText size={22} /> 存为模板
+          <FileText size={22} /> {isEditing ? '保留原附件' : '存为模板'}
         </button>
         <button className="flex h-14 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={save}>
-          <Check size={24} /> 保存记录
+          <Check size={24} /> {isEditing ? '保存修改' : '保存记录'}
         </button>
       </div>
     </>
@@ -1042,12 +1130,12 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   );
 }
 
-function DetailScreen({ note, onBack }) {
+function DetailScreen({ note, onBack, onEdit }) {
   const Icon = note.icon;
   const CategoryIcon = note.categoryIcon;
   return (
     <>
-      <TopBar title="记录详情" onBack={onBack} action="编辑" />
+      <TopBar title="记录详情" onBack={onBack} action="编辑" onAction={onEdit} />
       <section className="soft-card mt-5 p-4">
         <div className="flex gap-4">
           <div className={`circle-icon h-[72px] w-[72px] bg-white ${note.iconTone}`}>
