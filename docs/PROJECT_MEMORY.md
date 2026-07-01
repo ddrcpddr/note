@@ -980,3 +980,13 @@ MVP 需要覆盖：
 - 390px / 430px Playwright 验收通过：11 个分类名完整显示，无 `家... / 房... / 维... / 购...`，无文字竖排，无记录数或更新时间竖排，无页面横向溢出；底部导航和浮动按钮不遮挡最后一行分类卡片。
 - 验收时发现 3300 被 Docker 服务占用且健康接口显示 `/data/...`，为避免看到旧容器前端，本轮截图验收使用本地构建产物临时端口 `3311`。后续若要用户在 3300 直接查看，需要重建 / 重启 Docker 或改用明确的本地端口。
 - 本轮运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
+
+## 2026-07-01 - 富文本只读渲染第一阶段
+
+- 本轮进入“富文本能力第一阶段：只读渲染与数据兼容”，不开发完整富文本编辑器、不引入块编辑器、不重构正文数据结构、不修改真实 Note Station 导入数据。
+- 已梳理正文存储现状：`notes.content` 继续保存纯文本正文，用于页面 fallback、搜索、JSON 导出和 Markdown 导出；Note Station 导入时保留的原始 HTML 位于 `notes.raw_metadata.originalContent`，格式标记位于 `raw_metadata.originalContentFormat`。
+- 新增 `docs/RICH_TEXT_PLAN.md`，明确只读优先、XSS 风险、允许/禁止标签、链接协议规则、图片降级为附件占位、以及后续进入富文本编辑器阶段前需要确认的决策。
+- 服务端新增轻量 HTML sanitizer，不引入新依赖；默认 `listNotes()` 不返回 `richContent`，只有 `/api/app-data` 和 `/api/notes` 这类页面/API读取路径 opt-in，避免 JSON / Markdown 导出形状被扩大。
+- 详情页仅对 Note Station 导入且存在安全 HTML 的记录显示 `原始格式 / 纯文本` 切换；首页卡片、搜索、分类、成员筛选仍使用纯文本摘要和 `notes.content`。
+- 新增 `tests/rich-text.test.js`，覆盖恶意 `script/iframe/on*` 清理、危险链接移除、图片占位、纯文本 fallback、搜索仍基于纯文本、默认导出查询不包含 `richContent`。
+- 验证结果：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过，11 个测试套件 / 36 项测试全部通过；`npm.cmd run build` 通过。

@@ -742,6 +742,7 @@ function normalizeNote(note) {
     originalCategory: displayCategoryName(note.originalCategory || '', note.categoryId),
     originalCreatedAt: note.originalCreatedAt ? formatLongTime(note.originalCreatedAt) : '',
     originalUpdatedAt: note.originalUpdatedAt ? formatLongTime(note.originalUpdatedAt) : '',
+    richContent: note.richContent || null,
     createdAt: formatLongTime(note.createdAt),
     updatedAt: formatShortTime(note.updatedAt),
     attachments: attachments.map((attachment) => attachment.originalName || attachment.fileName || attachment)
@@ -1426,9 +1427,24 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   );
 }
 
+function hasSafeRichContent(note) {
+  return Boolean(note?.sourceType === 'notestation_import' && note.richContent?.format === 'html' && note.richContent?.html);
+}
+
+function RichTextContent({ html }) {
+  return <div className="rich-text-content mt-4" dangerouslySetInnerHTML={{ __html: html }} />;
+}
 function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
   const [showActions, setShowActions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const hasRichContent = hasSafeRichContent(note);
+  const [contentMode, setContentMode] = useState(hasRichContent ? 'rich' : 'plain');
+  const showRichContent = hasRichContent && contentMode === 'rich';
+
+  useEffect(() => {
+    setContentMode(hasRichContent ? 'rich' : 'plain');
+  }, [note.id, hasRichContent]);
+
   const Icon = note.icon;
   const CategoryIcon = note.categoryIcon;
   return (
@@ -1474,8 +1490,16 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
         )}
       </section>
       <section className="soft-card mt-4 p-5">
-        <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><ListChecks size={22} /> 内容</h2>
-        <p className="mt-4 text-[18px] leading-[1.8]">{note.content}</p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><ListChecks size={22} /> 内容</h2>
+          {hasRichContent && (
+            <div className="inline-flex shrink-0 rounded-full border border-line bg-white p-1 text-[13px] font-medium text-muted">
+              <button className={`rounded-full px-3 py-1 ${showRichContent ? 'bg-teal-50 text-teal-700' : ''}`} type="button" onClick={() => setContentMode('rich')}>原始格式</button>
+              <button className={`rounded-full px-3 py-1 ${!showRichContent ? 'bg-teal-50 text-teal-700' : ''}`} type="button" onClick={() => setContentMode('plain')}>纯文本</button>
+            </div>
+          )}
+        </div>
+        {showRichContent ? <RichTextContent html={note.richContent.html} /> : <p className="mt-4 whitespace-pre-line text-[18px] leading-[1.8]">{note.content}</p>}
       </section>
       <section className="soft-card mt-4 p-5">
         <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Paperclip size={23} /> 附件（{note.attachments.length}）</h2>

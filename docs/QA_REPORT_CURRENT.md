@@ -1556,3 +1556,16 @@
 - Test results: check passed with `integrityCheck=ok`, `categoryCount=11`, `noteCount=113`; test passed 33/33; build passed; Playwright category check passed for 390px and 430px with no horizontal overflow, no truncated category titles, no vertical record counts/updates, and no bottom-nav/FAB overlap.
 - Remaining issues: other pages are not changed in this round and still need separate page-by-page Figma rebuild if required.
 - Next recommendation: continue only after user confirms the next single page; do not resume broad CSS tuning.
+
+## 富文本只读渲染第一阶段（2026-07-01）
+
+| 项目 | 内容 |
+| --- | --- |
+| 测试范围 | Note Station 原始 HTML 的安全只读展示、纯文本 fallback、搜索和导出兼容性 |
+| 复现步骤 | 读取导入记录详情时，当前页面只能显示 `notes.content` 纯文本；`raw_metadata.originalContent` 中保留的 HTML 未用于安全展示。 |
+| 问题原因 | API 未暴露已清理的富文本展示字段，详情页也没有安全渲染入口。 |
+| 修复内容 | 新增服务端 sanitizer 和可选 `richContent` 字段；详情页增加 `原始格式 / 纯文本` 切换；默认 `listNotes()` 不返回富文本，避免影响 JSON / Markdown 导出。 |
+| 运行命令 | `npm.cmd run check`；`npm.cmd run test`；`npm.cmd run build` |
+| 测试结果 | `check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`test` 通过，11 个测试套件 / 36 项测试全部通过；`build` 通过。 |
+| 仍然存在的问题 | 本阶段不实现富文本编辑器；导入 HTML 中图片先显示附件占位，不直接渲染外链或未映射图片。 |
+| 下一步建议 | 真实手机试运行中优先检查一条 Note Station 导入详情页的 `原始格式 / 纯文本` 切换，再决定是否进入富文本编辑器方案设计。 |

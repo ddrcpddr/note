@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createId, getDataPaths, getDb, slugifyTag } from '../db/database.js';
+import { buildRichContentFromMetadata } from '../rich-text.js';
 
 export const notesRouter = Router();
 
 notesRouter.get('/', (request, response) => {
-  response.json({ notes: listNotes(request.query) });
+  response.json({ notes: listNotes({ ...request.query, includeRichText: 'true' }) });
 });
 
 notesRouter.post('/', (request, response) => {
@@ -214,6 +215,8 @@ export function listNotes(query = {}) {
   const tag = String(query.tag || '').trim();
   const source = String(query.source || '').trim();
   const includeArchived = ['1', 'true', 'yes'].includes(String(query.includeArchived || '').toLowerCase());
+  const includeRichText = ['1', 'true', 'yes'].includes(String(query.includeRichText || '').toLowerCase());
+  const rawMetadataSelect = includeRichText ? 'n.raw_metadata AS rawMetadata,' : 'NULL AS rawMetadata,';
   const params = [];
   const where = ['n.is_deleted = 0'];
 
@@ -294,6 +297,7 @@ export function listNotes(query = {}) {
         n.original_category AS originalCategory,
         n.original_created_at AS originalCreatedAt,
         n.original_updated_at AS originalUpdatedAt,
+        ${rawMetadataSelect}
         COALESCE((
           SELECT json_group_array(json_object('id', t.id, 'label', t.name))
           FROM note_tags nt
@@ -320,12 +324,24 @@ export function listNotes(query = {}) {
        ${limitClause}`
     )
     .all(...params)
-    .map((row) => ({
-      ...row,
-      isArchived: Boolean(row.isArchived),
-      tags: JSON.parse(row.tags || '[]'),
-      attachments: JSON.parse(row.attachments || '[]')
-    }));
+    .map((row) => {
+      const tags = JSON.parse(row.tags || '[]');
+      const attachments = JSON.parse(row.attachments || '[]');
+      const note = {
+        ...row,
+        isArchived: Boolean(row.isArchived),
+        tags,
+        attachments
+      };
+      delete note.rawMetadata;
+
+      if (includeRichText) {
+        const richContent = buildRichContentFromMetadata(row.rawMetadata);
+        if (richContent) note.richContent = richContent;
+      }
+
+      return note;
+    });
 }
 
 function prepareAttachment(noteId, attachmentId, attachment, index) {

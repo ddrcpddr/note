@@ -89,4 +89,60 @@
   .bottom-action-bar {
     @apply fixed bottom-3 left-1/2 z-30 w-[calc(100%-24px)] max-w-[398px] -translate-x-1/2 rounded-[28px] border border-line/75 bg-white/95 shadow-[0_8px_26px_rgba(39,43,48,0.12)] backdrop-blur;
   }
+
+  .rich-text-content {
+    @apply text-[18px] leading-[1.8] text-ink;
+    overflow-wrap: anywhere;
+  }
+
+  .rich-text-content p {
+    @apply mb-3 last:mb-0;
+  }
+
+  .rich-text-content strong,
+  .rich-text-content b {
+    @apply font-semibold;
+  }
+
+  .rich-text-content em,
+  .rich-text-content i {
+    @apply italic;
+  }
+
+  .rich-text-content ul,
+  .rich-text-content ol {
+    @apply my-3 pl-6;
+  }
+
+  .rich-text-content ul {
+    @apply list-disc;
+  }
+
+  .rich-text-content ol {
+    @apply list-decimal;
+  }
+
+  .rich-text-content li {
+    @apply my-1;
+  }
+
+  .rich-text-content blockquote {
+    @apply my-3 border-l-4 border-teal-500 bg-teal-50/70 py-2 pl-4 text-muted;
+  }
+
+  .rich-text-content a {
+    @apply font-medium text-teal-700 underline underline-offset-4;
+  }
+
+  .rich-text-content code {
+    @apply rounded bg-soft px-1.5 py-0.5 text-[0.92em];
+  }
+
+  .rich-text-content pre {
+    @apply my-3 overflow-x-auto rounded-2xl bg-soft p-3 text-[14px] leading-relaxed;
+  }
+
+  .rich-text-attachment-placeholder {
+    @apply my-1 inline-flex max-w-full items-center rounded-full border border-dashed border-line bg-soft px-3 py-1 text-[14px] text-muted;
+  }
 }
