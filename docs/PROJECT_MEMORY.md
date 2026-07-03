@@ -1066,3 +1066,18 @@ MVP 需要覆盖：
 - Playwright 验收使用临时本地端口 `3312`：首页和分类页生成 390px / 430px 截图；分类页 11 个分类完整存在，无页面横向溢出，无分类标题省略号、溢出或异常竖排；分类卡实测约 `173 x 70`，符合新版两列紧凑卡片方向。
 - 验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=114`；`npm.cmd run test` 通过 11 个测试套件 / 40 项测试；`npm.cmd run build` 通过。
 - 本轮只提交代码和文档，不提交 `data/`、数据库、备份、导出、附件、`.nsx`、日志或临时截图。
+
+## 2026-07-03 - 修复设置页与导入页新版 Figma Make 漏调
+
+- 用户在 Docker 3300 页面截图指出：设置页没有真正调整，备份卡仍把 上次备份 文案挤成竖排；导入 Note Station 页也仍有旧版文件卡和标题截断。
+- 本轮使用项目 mvp-bugfix-qa 流程做小步修复，只改设置页和导入页视觉层，不改业务逻辑、不改数据库、不改真实 Note Station 数据。
+- 设置页已收敛为新版 390 x 844 密度：20px 标题、紧凑右侧装饰、42px 备份状态图标、13px 状态文字、84px 立即备份 按钮，导出/目录/成员区也同步缩小，避免竖排和挤压。
+- 导入页已收敛步骤条和文件卡：步骤圆点 36px，文件卡标题 16px，待选择状态显示 等待选择 .nsx 文件，移除 	runcate，底部操作栏高度缩小。
+- 验证结果：
+pm.cmd run check 通过，integrityCheck=ok、
+oteCount=114；
+pm.cmd run test 通过 11 suites / 40 tests；
+pm.cmd run build 通过；docker compose up -d --build 后 
+pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
+- Playwright 390px / 430px 验证：设置页和导入页均无页面级横向溢出；设置页 上次备份 文案高度 18px，不再竖排；导入页 .nsx 标题完整显示且不再使用 	runcate。
+- 临时截图和测试文件已从 output/playwright/ 删除；Docker smoke 生成的备份/导出文件仍位于 data/ 下并被 .gitignore 忽略。

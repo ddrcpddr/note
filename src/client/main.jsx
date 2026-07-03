@@ -1436,28 +1436,28 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   return (
     <>
       <TopBar title="导入 Note Station" onBack={onBack} />
-      <section className="mt-6 flex items-start justify-between gap-1">
+      <section className="mt-5 flex items-start justify-between gap-1">
         {steps.map(([num, label], index) => (
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center" key={num}>
-            <div className={`grid h-11 w-11 place-items-center rounded-full border text-[18px] ${stage === index + 1 ? 'border-teal-600 bg-teal-600 text-white' : stage > index + 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}>
-              {stage > index + 1 ? <Check size={20} /> : num}
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center" key={num}>
+            <div className={`grid h-9 w-9 place-items-center rounded-full border text-[15px] font-medium ${stage === index + 1 ? 'border-teal-600 bg-teal-600 text-white' : stage > index + 1 ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}>
+              {stage > index + 1 ? <Check size={17} /> : num}
             </div>
-            <p className={stage >= index + 1 ? 'text-[13px] leading-tight text-teal-600' : 'text-[13px] leading-tight text-muted'}>{label}</p>
+            <p className={stage >= index + 1 ? 'text-[12px] leading-tight text-teal-600' : 'text-[12px] leading-tight text-muted'}>{label}</p>
           </div>
         ))}
       </section>
-      <section className="soft-card mt-5 p-4">
-        <div className="flex items-center gap-4">
-          <div className="grid h-[72px] w-14 shrink-0 place-items-center rounded-xl bg-teal-600 text-[20px] font-bold text-white">
+      <section className="soft-card mt-4 p-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-[60px] w-12 shrink-0 place-items-center rounded-xl bg-teal-600 text-[18px] font-bold text-white">
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-[20px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 Note Station .nsx 文件'}</h2>
-            <p className="mt-1 text-[12px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '先预览记录，再决定是否导入'}</p>
+            <h2 className="text-[16px] font-bold leading-snug text-ink" style={{ overflowWrap: 'anywhere' }}>{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 文件'}</h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted">{canPreview ? '已完成 dry-run 预览' : '先预览导入记录，再决定是否写入'}</p>
           </div>
         </div>
-        <span className="mt-4 inline-flex items-center gap-2 text-[16px] font-medium text-teal-600">
-          {canPreview ? <><CheckCircle2 size={22} /> 已解析</> : <><Upload size={22} /> 选择 .nsx 文件</>}
+        <span className="mt-4 inline-flex items-center gap-2 text-[14px] font-medium text-teal-600">
+          {canPreview ? <><CheckCircle2 size={18} /> 已解析</> : <><Upload size={18} /> 选择 .nsx 文件</>}
         </span>
       </section>
       {error && (
@@ -1528,11 +1528,11 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </section>
         </>
       )}
-      <div className="bottom-action-bar grid h-[88px] grid-cols-2 gap-4 px-4 py-4">
+      <div className="bottom-action-bar grid h-[80px] grid-cols-2 gap-3 px-4 py-3">
         <button className="rounded-2xl border border-teal-600 text-[14px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
           {canPreview ? '重新选择文件' : '取消'}
         </button>
-        <button className="rounded-2xl bg-teal-600 text-[17px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
+        <button className="rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
           {stage === 1 ? '预览导入记录' : stage === 2 ? '继续确认' : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>
@@ -1866,84 +1866,92 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
   return (
     <>
-      <header className="relative min-h-[154px]">
-        <div>
-          <h1 className="text-[30px] font-bold leading-none text-[#093f3e]">设置</h1>
-          <p className="mt-2.5 text-[16px] text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
+      <header className="flex min-h-[92px] items-start justify-between gap-4">
+        <div className="min-w-0 pt-1">
+          <h1 className="text-[20px] font-bold leading-none text-[#093f3e]">设置</h1>
+          <p className="mt-2 text-[12px] leading-relaxed text-muted">数据在自己手里更安心 <span className="text-[#ff8a4d]">♥</span></p>
         </div>
-        <div className="absolute right-0 top-1 h-28 w-36">
-          <div className="absolute bottom-0 left-4 h-14 w-16 rounded-[50%] bg-[#e9dfcf]" />
-          <div className="absolute bottom-9 left-12 h-16 w-1 rounded-full bg-[#9aaa76]" />
-          <div className="absolute bottom-16 left-9 h-4 w-8 rotate-[-28deg] rounded-full bg-[#9aaa76]" />
-          <div className="absolute bottom-20 left-14 h-4 w-8 rotate-[22deg] rounded-full bg-[#9aaa76]" />
-          <div className="absolute right-0 top-8 h-16 w-14 rounded-sm border-[6px] border-[#d6a979] bg-[#f7f0e2]" />
+        <div className="relative h-[72px] w-[108px] shrink-0 overflow-hidden rounded-2xl bg-white/50">
+          <div className="absolute bottom-3 left-7 h-9 w-10 rounded-[50%] bg-[#e9dfcf]" />
+          <div className="absolute bottom-8 left-12 h-10 w-1 rounded-full bg-[#9aaa76]" />
+          <div className="absolute bottom-12 left-9 h-3 w-7 rotate-[-25deg] rounded-full bg-[#9aaa76]" />
+          <div className="absolute bottom-14 left-14 h-3 w-7 rotate-[22deg] rounded-full bg-[#9aaa76]" />
+          <div className="absolute right-2 top-5 h-10 w-9 rounded-sm border-[4px] border-[#d6a979] bg-[#f7f0e2]" />
         </div>
       </header>
+
       <SectionTitle>数据备份</SectionTitle>
-      <section className="soft-card p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className={`circle-icon h-16 w-16 ${nasOnline ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-500'}`}><Cloud size={38} /></div>
-            <div className="min-w-0">
-              <p className="text-[21px] font-semibold leading-snug">上次备份：{lastBackup}</p>
-              <p className="mt-1 flex items-center gap-2 text-[16px] text-muted">
-                {nasOnline ? '备份成功，数据安全' : '暂时连不上家庭 NAS'}
-                {nasOnline ? <CheckCircle2 size={18} className="text-teal-600" /> : <AlertCircle size={18} className="text-amber-500" />}
-              </p>
-            </div>
+      <section className="soft-card p-4">
+        <div className="grid grid-cols-[42px_minmax(0,1fr)_84px] items-center gap-3">
+          <div className={`grid h-[42px] w-[42px] place-items-center rounded-2xl ${nasOnline ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-500'}`}>
+            <Cloud size={24} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold leading-snug text-ink">上次备份：{lastBackup}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-[12px] leading-snug text-muted">
+              <span>{nasOnline ? '数据已安全' : '暂时连不上 NAS'}</span>
+              {nasOnline ? <CheckCircle2 size={13} className="shrink-0 text-teal-600" /> : <AlertCircle size={13} className="shrink-0 text-amber-500" />}
+            </p>
           </div>
           <button
-            className={`shrink-0 rounded-[18px] px-5 py-3.5 text-[17px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
+            className={`h-10 rounded-xl text-[13px] font-semibold shadow-card ${nasOnline ? 'bg-teal-600 text-white' : 'bg-amber-50 text-amber-600'}`}
             type="button"
             onClick={runBackup}
           >
             {backupState === 'running' ? '备份中' : '立即备份'}
           </button>
         </div>
-        <div className="mt-5 flex items-center justify-between rounded-[18px] bg-[#f6f4ef]/70 px-4 py-3 text-[13px] text-muted">
-          <span>备份状态测试</span>
-          <div className="flex gap-2">
-            <button className={`rounded-full border px-2.5 py-1 font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
-              正常
-            </button>
-            <button className={`rounded-full border px-2.5 py-1 font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
-              离线
+
+        <div className="mt-4 space-y-2 text-[12px] text-muted">
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-soft px-3 py-2.5">
+            <span className="min-w-0 truncate">备份状态测试</span>
+            <div className="flex shrink-0 gap-2">
+              <button className={`rounded-full border px-3 py-1 font-medium ${nasOnline ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(true)}>
+                正常
+              </button>
+              <button className={`rounded-full border px-3 py-1 font-medium ${!nasOnline ? 'border-amber-400 bg-amber-50 text-amber-600' : 'border-line bg-white text-muted'}`} type="button" onClick={() => setNasOnline(false)}>
+                离线
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 rounded-2xl bg-soft px-3 py-2.5">
+            <span className="min-w-0 truncate">{storageProbe?.ok ? '存储目录读写正常' : '检查当前数据目录'}</span>
+            <button className="shrink-0 rounded-full border border-teal-600 bg-teal-50 px-3 py-1 font-medium text-teal-700" type="button" onClick={probeStorage}>
+              检查
             </button>
           </div>
         </div>
-        <div className="mt-3 flex items-center justify-between rounded-[18px] bg-[#f6f4ef]/70 px-4 py-3 text-[13px] text-muted">
-          <span>{storageProbe?.ok ? '存储目录读写正常' : '检查当前数据目录'}</span>
-          <button className="rounded-full border border-teal-600 bg-teal-50 px-2.5 py-1 font-medium text-teal-700" type="button" onClick={probeStorage}>
-            检查
-          </button>
-        </div>
+
         {backupState === 'done' && (
-          <div className="mt-4 rounded-2xl bg-teal-50 px-4 py-4 text-center">
-            <IllustrationImage src={illustrationAssets.backupSuccess} alt="备份成功" className="mx-auto h-28 w-full max-w-[200px]" />
-            <p className="mt-2 text-[15px] font-medium text-teal-600">已完成一次备份。</p>
+          <div className="mt-3 rounded-2xl bg-teal-50 px-3 py-3 text-center">
+            <IllustrationImage src={illustrationAssets.backupSuccess} alt="备份成功" className="mx-auto h-20 w-full max-w-[160px]" />
+            <p className="mt-2 text-[13px] font-medium text-teal-600">已完成一次备份。</p>
           </div>
         )}
         {backupState === 'failed' && (
-          <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-4 text-center">
-            <IllustrationImage src={illustrationAssets.backupUnavailable} alt="备份不可用" className="mx-auto h-28 w-full max-w-[200px]" />
-            <p className="mt-2 text-[15px] font-medium text-amber-600">当前没有连上家庭 NAS，请恢复局域网连接后再试。</p>
+          <div className="mt-3 rounded-2xl bg-amber-50 px-3 py-3 text-center">
+            <IllustrationImage src={illustrationAssets.backupUnavailable} alt="备份不可用" className="mx-auto h-20 w-full max-w-[160px]" />
+            <p className="mt-2 text-[13px] font-medium text-amber-600">当前没有连上家庭 NAS，请恢复局域网连接后再试。</p>
           </div>
         )}
-        {storageMessage && <p className="mt-4 break-all text-[14px] leading-relaxed text-muted">{storageMessage}</p>}
-        <div className="mt-5 flex items-start gap-3 rounded-2xl bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
-          <ShieldCheck size={20} className="shrink-0" />
+        {storageMessage && <p className="mt-3 break-words text-[12px] leading-relaxed text-muted">{storageMessage}</p>}
+        <div className="mt-4 flex items-start gap-2 rounded-2xl bg-teal-50 px-3 py-3 text-[12px] leading-relaxed text-teal-700">
+          <ShieldCheck size={16} className="mt-0.5 shrink-0" />
           <span>定期备份可以防止意外丢失，建议每天或每周备份一次。</span>
         </div>
       </section>
+
       <SectionTitle>导出</SectionTitle>
       <section className="soft-card divide-y divide-line">
         <SettingsRow title="导出 JSON" desc="导出所有记录为 JSON 文件" icon={FileText} action="导出" onClick={exportJson} />
         <SettingsRow title="导出 Markdown" desc="导出所有记录为 Markdown 文件" icon={FileText} action="导出" onClick={exportMarkdown} />
       </section>
+
       <SectionTitle>附件目录</SectionTitle>
       <section className="soft-card">
         <SettingsRow title="附件目录" desc={formatStoragePath(storageStatus?.dataPaths?.attachmentsDir, 'data/attachments/')} icon={Folder} action=">" />
       </section>
+
       <SectionTitle>数据库位置</SectionTitle>
       <section className="soft-card divide-y divide-line">
         <SettingsRow title="数据库位置" desc={formatStoragePath(storageStatus?.dataPaths?.dbPath, 'data/database/app.db')} icon={Database} action=">" />
@@ -1951,43 +1959,44 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         <SettingsRow title="导出目录" desc={formatStoragePath(storageStatus?.dataPaths?.exportsDir, 'data/exports/')} icon={Folder} action=">" />
         <SettingsRow title="导入 Note Station" desc="导入旧记录并保留来源信息" icon={FileText} action=">" onClick={onOpenImport} />
       </section>
+
       <SectionTitle>家庭成员</SectionTitle>
-      <section className="soft-card p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[20px] font-semibold">当前记录人</p>
-            <p className="mt-1 text-[12px] text-muted">新建记录会默认归到当前成员名下</p>
+      <section className="soft-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[15px] font-semibold text-ink">当前记录人</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted">新建记录默认归到当前成员名下</p>
           </div>
-          <UserRound className="text-teal-600" size={32} />
+          <UserRound className="shrink-0 text-teal-600" size={24} />
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {members.map((member) => (
             <button
-              className={`rounded-2xl border px-4 py-3 text-left ${currentMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
+              className={`rounded-2xl border px-3 py-2 text-left ${currentMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
               key={member.id}
               type="button"
               onClick={() => onSwitchMember(member.id)}
             >
-              <span className="inline-flex items-center gap-2 text-[14px] font-medium">
-                <AvatarMark src={member.avatarImage} label={member.name} className="h-7 w-7" />
-                {member.name}
+              <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-medium">
+                <AvatarMark src={member.avatarImage} label={member.name} className="h-6 w-6" />
+                <span className="truncate">{member.name}</span>
               </span>
             </button>
           ))}
         </div>
-        <p className="mt-4 text-[14px] leading-relaxed text-muted">当前默认成员固定为“我”和“爱人”；改名、头像和颜色编辑以后再做。</p>
-        <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[14px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
+        <p className="mt-3 text-[12px] leading-relaxed text-muted">当前默认成员固定为“我”和“爱人”；改名、头像和颜色编辑以后再做。</p>
+        <button className="mt-3 flex h-10 w-full items-center justify-between rounded-2xl border border-line bg-white px-3 text-left text-[13px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
           成员管理
-          <ChevronRight size={19} />
+          <ChevronRight size={17} />
         </button>
       </section>
-      <div className="mt-6 rounded-2xl border border-orange-200 bg-amber-50 px-4 py-3 text-[12px] leading-relaxed text-[#a35b00]">
+
+      <div className="mt-5 rounded-2xl border border-orange-200 bg-amber-50 px-3 py-2.5 text-[12px] leading-relaxed text-[#a35b00]">
         所有数据仅保存在家庭 NAS 或局域网服务器中，家事记不会上传任何内容。
       </div>
     </>
   );
 }
-
 function SearchPill({ placeholder, onClick }) {
   return (
     <button className="mt-6 flex h-[58px] w-full items-center gap-4 rounded-[20px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card" type="button" onClick={onClick}>
@@ -2188,18 +2197,18 @@ function SectionTitle({ children }) {
 function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClick }) {
   return (
     <button
-      className={`flex w-full items-center justify-between gap-5 px-5 py-5 text-left ${disabled ? 'opacity-55' : ''}`}
+      className={`flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left ${disabled ? 'opacity-55' : ''}`}
       onClick={onClick}
       type="button"
     >
-      <div className="flex items-center gap-4">
-        <div className="circle-icon h-[58px] w-[58px] bg-teal-50 text-teal-700"><Icon size={31} /></div>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-teal-50 text-teal-700"><Icon size={19} /></div>
         <div className="min-w-0">
-          <p className="text-[19px] font-semibold">{title}</p>
-          <p className="mt-1 break-all text-[12px] leading-relaxed text-muted">{desc}</p>
+          <p className="text-[14px] font-semibold leading-snug text-ink">{title}</p>
+          <p className="mt-0.5 break-words text-[12px] leading-relaxed text-muted">{desc}</p>
         </div>
       </div>
-      {action === '>' ? <ChevronRight className="shrink-0 text-muted" size={20} /> : <span className="shrink-0 text-[12px] text-muted">{action}</span>}
+      {action === '>' ? <ChevronRight className="shrink-0 text-muted" size={17} /> : <span className="shrink-0 rounded-full bg-teal-50 px-2.5 py-1 text-[12px] font-medium text-teal-700">{action}</span>}
     </button>
   );
 }
