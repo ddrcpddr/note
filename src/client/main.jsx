@@ -76,6 +76,12 @@ import {
 import { categoryImageAssets, illustrationAssets, memberAvatarAssets } from './assetMap.js';
 import './styles.css';
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
 const tagTones = {
   todo: 'bg-amber-50 text-amber-500 border border-orange-100',
   important: 'bg-rose-50 text-rose-500 border border-red-100',

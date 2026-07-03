@@ -31,6 +31,18 @@ describe('PWA and NAS deployment config', () => {
     }
   });
 
+  test('registers an app-shell service worker without caching API data', () => {
+    const source = readText('src/client/main.jsx');
+    const sw = readText('public/sw.js');
+
+    assert.ok(source.includes("navigator.serviceWorker.register('/sw.js')"));
+    assert.ok(sw.includes("const APP_CACHE = 'home-notes-app-shell-v1'"));
+    assert.ok(sw.includes("'/manifest.webmanifest'"));
+    assert.ok(sw.includes("url.pathname.startsWith('/api/')"));
+    assert.ok(sw.includes("networkThenCache(request, '/')"));
+    assert.ok(sw.includes('cacheFirst(request)'));
+  });
+
   test('keeps Docker build context free from private runtime data patterns', () => {
     const dockerignore = readText('.dockerignore');
 

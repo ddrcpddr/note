@@ -876,3 +876,13 @@ npm.cmd run build
 - `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过。
 - 当前 Docker 测试库仍为干净状态：2 个成员、11 个分类、0 条记录。
 - 明早人工测试重点：新增分类、新建记录选择分类、停 Docker 后新建离线记录、恢复 Docker 后确认自动同步。
+
+
+## 2026-07-04 - PWA 离线前端壳补充
+
+- 新增 public/sw.js，并在前端注册 /sw.js。
+- Service Worker 缓存前端 app shell、manifest、图标和构建后的静态资源。
+- Service Worker 明确跳过 /api/，避免离线时使用过期 API 数据。
+- 这使得用户已访问过页面或添加到桌面后，在 Docker/NAS 短暂不可用时仍能打开前端壳并写入本地待同步队列。
+- 冷启动前提：浏览器至少需要在在线状态成功访问过一次页面，让 Service Worker 完成安装和缓存。
+- 验证：npm.cmd run check 通过；npm.cmd run test 通过，59 tests；npm.cmd run build 通过。
