@@ -1,3 +1,63 @@
+测试时间：2026-07-03
+
+当前目标：修复富文本编辑器中“斜体不明显 / 多个控件点击后不立即显示选中态”的真实使用问题。本轮不改数据库、不改导入数据、不新增功能，只修富文本编辑器状态反馈和斜体显示。
+
+## 复现步骤
+
+1. 打开 Docker 服务 `http://127.0.0.1:3300/`。
+2. 进入新建记录页，聚焦富文本编辑器。
+3. 点击“斜体”，观察按钮是否立即变为选中态。
+4. 输入临时文本，检查编辑器 HTML 和 computed style。
+5. 切换到“更多”，点击“高亮”，检查是否立即显示选中态。
+
+## 复现结果
+
+- 修复前：点击“斜体”后，按钮 class 仍是未选中态；只有继续输入后，按钮才变为选中态。
+- 修复前：斜体底层实际会生成 `<em>`，但中文字体默认 `italic` 的视觉倾斜不明显，用户容易判断为“不生效”。
+
+## 问题原因
+
+- 工具栏按钮直接读取 `editor.isActive()`，但组件没有订阅 Tiptap 的 transaction / selection / focus 状态变化；点击工具按钮后编辑器状态变了，React 没有立即重渲染，所以按钮反馈滞后到下一次输入。
+- 富文本编辑区没有和详情展示一起定义更明确的 `em/i` 样式，依赖浏览器默认中文 italic，视觉反馈偏弱。
+
+## 修复内容
+
+- 给富文本编辑器增加 `toolbarRevision` 状态，并在 `onUpdate`、`onSelectionUpdate`、`onTransaction`、`onFocus`、`onBlur` 中刷新工具栏。
+- 工具按钮增加 `onMouseDown.preventDefault`，避免点击按钮时破坏编辑器焦点和当前选择。
+- 为表格、对齐、文字色、高亮补齐 active 判断，点击后能显示当前状态。
+- 编辑区和详情区的 `em/i` 统一使用 `oblique 12deg`，让中文斜体更明显。
+- 新增静态回归测试，覆盖工具栏状态刷新和斜体样式。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker compose up -d --build
+```
+
+## 测试结果
+
+- `node --test tests/frontend-ui.test.js`：通过，4 项测试通过。
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=114`。
+- `npm.cmd run test`：通过，11 suites / 44 tests / 44 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap bundle size warning。
+- Docker 3300：容器 healthy，`/api/health` 返回 `ok=true`；`npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过，health、app-data、notes-list、note-detail、search、category-filter、member-filter、backup、JSON export、frontend shell 均为 ok。
+- Playwright 复测：点击“斜体”后不输入文字也立即选中；输入后 HTML 为 `<p><em>斜体测试abc</em></p>`，computed style 为 `oblique 12deg`；“高亮”点击后也立即显示选中态。
+
+## 仍然存在的问题
+
+- 富文本颜色目前仍是固定文字色和固定高亮色，还没有做颜色面板。
+- 表格行列增删、图片尺寸调整等更完整的 DS note 级体验仍是后续增强，不在本轮修复范围。
+
+## 下一步建议
+
+- 用户在 `http://127.0.0.1:3300/` 强制刷新后，优先测试：斜体、加粗、下划线、高亮、对齐、待办这几类按钮是否点击即有反馈。
+
+---
+
 # 当前 QA 报告
 
 测试时间：2026-07-03 12:06:51 +08:00

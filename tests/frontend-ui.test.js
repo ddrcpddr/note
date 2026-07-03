@@ -21,6 +21,25 @@ describe('Frontend mobile interactions', () => {
     assert.ok(!source.includes('scroll-row -mx-1 mb-3 flex gap-2 px-1 pb-1'));
   });
 
+  test('refreshes rich text toolbar state immediately after editor transactions', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('const [toolbarRevision, setToolbarRevision] = useState(0)'));
+    assert.ok(source.includes('function refreshToolbarState()'));
+    assert.ok(source.includes('onSelectionUpdate()'));
+    assert.ok(source.includes('onTransaction()'));
+    assert.ok(source.includes('data-toolbar-revision={toolbarRevision}'));
+    assert.ok(source.includes('onMouseDown={(event) => event.preventDefault()}'));
+  });
+
+  test('styles italic text inside both rich text display and editor surfaces', () => {
+    const styles = readText('src/client/styles.css');
+
+    assert.ok(styles.includes('.rich-text-content em,'));
+    assert.ok(styles.includes('.rich-text-editor em,'));
+    assert.ok(styles.includes('font-style: oblique 12deg;'));
+  });
+
   test('wires the home today card to the new-record screen', () => {
     const source = readText('src/client/main.jsx');
 

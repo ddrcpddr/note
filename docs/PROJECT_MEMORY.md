@@ -1117,3 +1117,11 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 修复方式：不改数据库、不改导入逻辑、不重做 UI，只把富文本工具栏改为分组面板：`常用`、`列表`、`插入`、`更多`。每组按钮显示图标和短文字，默认显示常用组；插入组显示链接、图片、附件、表格；更多组显示对齐、文字色、高亮、清格式。新增前端静态回归测试，防止工具栏退回一条长横向图标条。
 
 验证结果：Playwright 390px 复测分组按钮可见、插入/更多组可切换、页面无横向溢出；输入文字后选中并点击“加粗”，HTML 为 `<p><strong>工具栏分组测试</strong></p>`。`npm.cmd run check` 通过，`npm.cmd run test` 通过 42 项，`npm.cmd run build` 通过。临时截图和视频抽帧已删除，不提交 `data/` 或真实隐私内容。
+
+## 2026-07-03 - 修复富文本斜体可见性与工具栏即时反馈
+
+用户反馈富文本中斜体不生效，并且很多控件点击后不会立即显示选中态，要继续输入文字后才出现反馈。本轮按 bugfix 流程复现：斜体底层实际会生成 `<em>`，但默认中文 italic 视觉不明显；工具栏按钮直接读取 `editor.isActive()`，却没有订阅 Tiptap transaction / selection / focus 状态，导致点击后 React 不立即重渲染。
+
+修复内容：富文本编辑器新增 `toolbarRevision` 状态，并在 `onUpdate`、`onSelectionUpdate`、`onTransaction`、`onFocus`、`onBlur` 刷新工具栏；工具按钮使用 `onMouseDown.preventDefault` 保持编辑器焦点和选择；补齐表格、对齐、文字色、高亮的 active 判断；编辑区和详情区的 `em/i` 统一使用 `oblique 12deg`，让中文斜体更明显。新增前端静态回归测试防止状态刷新和斜体样式回退。
+
+验证结果：`node --test tests/frontend-ui.test.js` 通过；`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=114`；`npm.cmd run test` 通过 11 suites / 44 tests；`npm.cmd run build` 通过；Docker 3300 重建后 healthy，HTTP smoke 通过。Playwright 复测确认点击“斜体”后无需输入就立即选中，输入后 HTML 为 `<p><em>斜体测试abc</em></p>`，computed style 为 `oblique 12deg`；“高亮”按钮也能立即显示选中态。本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。

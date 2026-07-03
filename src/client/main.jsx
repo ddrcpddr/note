@@ -1043,6 +1043,7 @@ const RichImageExtension = ImageExtension.extend({
 function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallback = '', onChange, onAttachmentDraft }) {
   const imageInputRef = useRef(null);
   const attachmentInputRef = useRef(null);
+  const [toolbarRevision, setToolbarRevision] = useState(0);
   const initialContent = useMemo(() => {
     if (initialJson) {
       try {
@@ -1053,6 +1054,10 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
     }
     return initialHtml || clientPlainTextToRichTextHtml(plainTextFallback);
   }, [initialHtml, initialJson, plainTextFallback]);
+
+  function refreshToolbarState() {
+    setToolbarRevision((revision) => revision + 1);
+  }
 
   const editor = useEditor({
     extensions: [
@@ -1080,6 +1085,19 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
     },
     onUpdate({ editor: activeEditor }) {
       emitEditorChange(activeEditor);
+      refreshToolbarState();
+    },
+    onSelectionUpdate() {
+      refreshToolbarState();
+    },
+    onTransaction() {
+      refreshToolbarState();
+    },
+    onFocus() {
+      refreshToolbarState();
+    },
+    onBlur() {
+      refreshToolbarState();
     }
   });
 
@@ -1165,18 +1183,18 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
         ['link', '链接', Link, setLink, () => editor?.isActive('link')],
         ['image', '图片', Upload, () => imageInputRef.current?.click()],
         ['attach', '附件', Paperclip, () => attachmentInputRef.current?.click()],
-        ['table', '表格', Table2, () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()]
+        ['table', '表格', Table2, () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), () => editor?.isActive('table')]
       ]
     },
     {
       id: 'style',
       label: '更多',
       tools: [
-        ['left', '左对齐', AlignLeft, () => editor?.chain().focus().setTextAlign('left').run()],
-        ['center', '居中', AlignCenter, () => editor?.chain().focus().setTextAlign('center').run()],
-        ['right', '右对齐', AlignRight, () => editor?.chain().focus().setTextAlign('right').run()],
-        ['color', '文字色', Palette, () => editor?.chain().focus().setColor('#0F766E').run()],
-        ['highlight', '高亮', Highlighter, () => editor?.chain().focus().toggleHighlight({ color: '#FEF3C7' }).run()],
+        ['left', '左对齐', AlignLeft, () => editor?.chain().focus().setTextAlign('left').run(), () => editor?.isActive({ textAlign: 'left' })],
+        ['center', '居中', AlignCenter, () => editor?.chain().focus().setTextAlign('center').run(), () => editor?.isActive({ textAlign: 'center' })],
+        ['right', '右对齐', AlignRight, () => editor?.chain().focus().setTextAlign('right').run(), () => editor?.isActive({ textAlign: 'right' })],
+        ['color', '文字色', Palette, () => editor?.chain().focus().setColor('#0F766E').run(), () => editor?.isActive('textStyle', { color: '#0F766E' })],
+        ['highlight', '高亮', Highlighter, () => editor?.chain().focus().toggleHighlight({ color: '#FEF3C7' }).run(), () => editor?.isActive('highlight', { color: '#FEF3C7' })],
         ['clear', '清格式', X, () => editor?.chain().focus().unsetAllMarks().clearNodes().run()]
       ]
     }
@@ -1186,7 +1204,7 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
 
   return (
     <div className="min-w-0 flex-1">
-      <div className="mb-3 rounded-2xl border border-line/80 bg-white/90 p-2 shadow-[0_6px_18px_rgba(39,43,48,0.04)]">
+      <div className="mb-3 rounded-2xl border border-line/80 bg-white/90 p-2 shadow-[0_6px_18px_rgba(39,43,48,0.04)]" data-toolbar-revision={toolbarRevision}>
         <div className="grid grid-cols-4 gap-1.5">
           {toolbarGroups.map((group) => (
             <button
@@ -1206,6 +1224,7 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
               className={`flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 text-[10px] font-medium active:bg-teal-50 active:text-teal-700 ${isActive?.() ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}
               key={key}
               type="button"
+              onMouseDown={(event) => event.preventDefault()}
               onClick={action}
               title={label}
             >

@@ -112,8 +112,11 @@
   }
 
   .rich-text-content em,
-  .rich-text-content i {
-    @apply italic;
+  .rich-text-content i,
+  .rich-text-editor em,
+  .rich-text-editor i {
+    font-style: italic;
+    font-style: oblique 12deg;
   }
 
   .rich-text-content ul,
