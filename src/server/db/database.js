@@ -91,6 +91,7 @@ function initializeSchema(database) {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
+      content_html TEXT,
       summary TEXT,
       category_id TEXT,
       member_id TEXT,
@@ -179,6 +180,7 @@ function migrateSchema(database) {
   addColumnIfMissing(database, 'notes', 'save_status', "TEXT NOT NULL DEFAULT 'saved'");
   addColumnIfMissing(database, 'notes', 'visibility', "TEXT NOT NULL DEFAULT 'family'");
   addColumnIfMissing(database, 'notes', 'raw_metadata', 'TEXT');
+  addColumnIfMissing(database, 'notes', 'content_html', 'TEXT');
 }
 
 function addColumnIfMissing(database, tableName, columnName, definition) {

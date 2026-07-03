@@ -1042,3 +1042,16 @@ MVP 需要覆盖：
 - `docs/PROJECT_MEMORY.md`
 
 本轮路线调整验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`，`noteCount=113`，`categoryCount=11`；`npm.cmd run test` 通过 11 suites / 36 tests；`npm.cmd run build` 通过。
+
+## 2026-07-03 - 富文本编辑功能补齐
+
+- 用户确认富文本实施方案后，本轮开始实现日常可用的富文本编辑能力，不做 Android、不重做 UI、不调用 Figma / Product Design、不生成新图片。
+- 数据结构新增 `notes.content_html TEXT` 可空字段；`notes.content` 继续作为纯文本核心字段，用于搜索、摘要、旧记录 fallback、JSON / Markdown 导出兼容。
+- 新建记录和编辑记录页已接入轻量 `contenteditable` 编辑器，支持段落、换行、粗体、斜体、H2 / H3 标题、有序 / 无序列表、引用、链接、分隔线，以及浏览器原生撤销 / 重做。
+- 服务端统一清理 `contentHtml`，禁止 `script`、`iframe`、事件属性和危险链接；正文中的图片暂不直接渲染，降级为附件占位提示。
+- 详情页现在优先展示用户编辑后的 `content_html`；没有用户富文本时继续展示 Note Station 导入元数据中的安全 HTML；再没有则回退到 `notes.content` 纯文本。
+- 旧纯文本记录未编辑前保持原样；进入编辑页会转换成基础段落 HTML，保存后写入 `content_html`，不会破坏纯文本搜索。
+- JSON 导出继续包含纯文本字段；有用户富文本时额外包含清理后的 `contentHtml`。Markdown 导出优先把 `contentHtml` 转成基础 Markdown，无富文本则继续使用纯文本。
+- 新增测试覆盖：富文本创建、编辑、安全清理、危险链接处理、搜索仍基于纯文本、JSON 导出、Markdown 导出、旧纯文本转编辑器 HTML、用户富文本优先于 Note Station 原始 HTML。
+- 验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 11 个测试套件 / 40 项测试；`npm.cmd run build` 通过。
+- 本轮不提交 `data/`、数据库、备份、导出、附件、`.nsx`、日志或真实隐私数据。

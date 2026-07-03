@@ -253,6 +253,60 @@ describe('MVP API', () => {
     const clearedTag = await requestJson(`/api/notes?tag=${encodeURIComponent('维修')}`);
     assert.ok(!clearedTag.notes.some((note) => note.id === created.note.id));
   });
+  test('creates, edits and exports rich text notes safely', async () => {
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '富文本创建测试',
+        content: '富文本创建测试纯文本',
+        contentHtml: '<h2 onclick="bad()">家庭事项</h2><p>今天需要 <strong>重点记录</strong>。</p><script>alert(1)</script>',
+        categoryId: 'family',
+        memberId: 'self',
+        tags: ['富文本']
+      })
+    });
+
+    assert.equal(created.note.content, '家庭事项\n今天需要 重点记录。');
+    assert.match(created.note.contentHtml, /<h2>家庭事项<\/h2>/);
+    assert.match(created.note.contentHtml, /<strong>重点记录<\/strong>/);
+    assert.doesNotMatch(created.note.contentHtml, /script|onclick/i);
+    assert.equal(created.note.richContent.source, 'content_html');
+
+    const updated = await requestJson(`/api/notes/${created.note.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        content: '备用纯文本',
+        contentHtml: '<blockquote>编辑后的 <em>富文本</em></blockquote><a href="javascript:alert(1)">危险</a>',
+        tags: []
+      })
+    });
+
+    assert.equal(updated.note.content, '编辑后的 富文本\n危险');
+    assert.match(updated.note.contentHtml, /<blockquote>编辑后的 <em>富文本<\/em><\/blockquote>/);
+    assert.doesNotMatch(updated.note.contentHtml, /javascript:/i);
+    assert.deepEqual(updated.note.tags, []);
+
+    const metadataOnly = await requestJson(`/api/notes/${created.note.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ tags: ['重要'] })
+    });
+    assert.match(metadataOnly.note.contentHtml, /<blockquote>编辑后的 <em>富文本<\/em><\/blockquote>/);
+    assert.equal(metadataOnly.note.content, '编辑后的 富文本\n危险');
+
+    const search = await requestJson(`/api/notes?search=${encodeURIComponent('编辑后的')}`);
+    assert.ok(search.notes.some((note) => note.id === created.note.id));
+
+    const exportedJson = await requestJson('/api/storage/export-json', { method: 'POST' });
+    const jsonPayload = JSON.parse(readFileSync(exportedJson.export.filePath, 'utf8'));
+    const exportedNote = jsonPayload.notes.find((note) => note.id === created.note.id);
+    assert.ok(exportedNote);
+    assert.match(exportedNote.contentHtml, /<blockquote>/);
+    assert.doesNotMatch(exportedNote.contentHtml, /javascript:/i);
+
+    const exportedMarkdown = await requestJson('/api/storage/export-markdown', { method: 'POST' });
+    const markdown = readFileSync(exportedMarkdown.export.filePath, 'utf8');
+    assert.match(markdown, /> 编辑后的 \*富文本\*/);
+  });
   test('archives and soft deletes a note from normal lists', async () => {
     const created = await requestJson('/api/notes', {
       method: 'POST',

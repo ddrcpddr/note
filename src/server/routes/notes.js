@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createId, getDataPaths, getDb, slugifyTag } from '../db/database.js';
-import { buildRichContentFromMetadata } from '../rich-text.js';
+import { buildRichContentFromNote, richTextHtmlToPlainText, sanitizeRichTextHtml } from '../rich-text.js';
 
 export const notesRouter = Router();
 
@@ -13,7 +13,8 @@ notesRouter.get('/', (request, response) => {
 notesRouter.post('/', (request, response) => {
   const db = getDb();
   const payload = request.body || {};
-  const content = String(payload.content || '').trim();
+  const richText = prepareRichTextPayload(payload);
+  const content = richText.content;
   const generatedTitle = content.slice(0, 28) || '未命名记录';
   const title = String(payload.title || '').trim() || generatedTitle;
   const noteId = createId('note');
@@ -27,9 +28,9 @@ notesRouter.post('/', (request, response) => {
 
   const insertNote = db.prepare(`
     INSERT INTO notes
-      (id, title, content, summary, category_id, member_id, note_type, source_type, save_status, visibility, occurred_at)
+      (id, title, content, content_html, summary, category_id, member_id, note_type, source_type, save_status, visibility, occurred_at)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, 'saved', 'family', CURRENT_TIMESTAMP)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, 'saved', 'family', CURRENT_TIMESTAMP)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
@@ -42,7 +43,7 @@ notesRouter.post('/', (request, response) => {
 
   db.exec('BEGIN');
   try {
-    insertNote.run(noteId, title, content || title, summary || title, categoryId, memberId, noteType, sourceType);
+    insertNote.run(noteId, title, content || title, richText.contentHtml, summary || title, categoryId, memberId, noteType, sourceType);
 
     for (const tagName of tags) {
       const tagId = slugifyTag(tagName);
@@ -72,7 +73,7 @@ notesRouter.post('/', (request, response) => {
     return;
   }
 
-  const note = listNotes({ id: noteId })[0];
+  const note = listNotes({ id: noteId, includeRichText: 'true' })[0];
   response.status(201).json({ note });
 });
 
@@ -81,7 +82,7 @@ notesRouter.post('/bulk-categorize', (request, response) => {
   const payload = request.body || {};
   const categoryId = String(payload.categoryId || '').trim();
   const noteIds = Array.isArray(payload.noteIds)
-    ? [...new Set(payload.noteIds.map((id) => String(id).trim()).filter(Boolean))]
+    ? [...new Set(noteIdsFromPayload(payload.noteIds))]
     : [];
 
   if (!categoryId || noteIds.length === 0) {
@@ -116,7 +117,7 @@ notesRouter.post('/bulk-categorize', (request, response) => {
   response.json({
     updatedCount: updatedNoteIds.length,
     updatedNoteIds,
-    notes: updatedNoteIds.length ? listNotes({ includeArchived: 'true' }).filter((note) => updatedNoteIds.includes(note.id)) : []
+    notes: updatedNoteIds.length ? listNotes({ includeArchived: 'true', includeRichText: 'true' }).filter((note) => updatedNoteIds.includes(note.id)) : []
   });
 });
 
@@ -131,7 +132,7 @@ notesRouter.post('/:id/archive', (request, response) => {
   }
 
   db.prepare('UPDATE notes SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0').run(noteId);
-  const note = listNotes({ id: noteId, includeArchived: 'true' })[0];
+  const note = listNotes({ id: noteId, includeArchived: 'true', includeRichText: 'true' })[0];
   response.json({ note });
 });
 
@@ -160,7 +161,8 @@ notesRouter.patch('/:id', (request, response) => {
   }
 
   const payload = request.body || {};
-  const nextContent = String(payload.content ?? existing.content ?? '').trim();
+  const richText = prepareRichTextPayload(payload, existing.content, existing.contentHtml);
+  const nextContent = richText.content;
   const generatedTitle = nextContent.slice(0, 28) || existing.title || '未命名记录';
   const nextTitle = String(payload.title ?? existing.title ?? '').trim() || generatedTitle;
   const nextCategoryId = String(payload.categoryId ?? existing.categoryId ?? 'uncategorized');
@@ -175,6 +177,7 @@ notesRouter.patch('/:id', (request, response) => {
     UPDATE notes
     SET title = ?,
         content = ?,
+        content_html = ?,
         summary = ?,
         category_id = ?,
         member_id = ?,
@@ -188,7 +191,7 @@ notesRouter.patch('/:id', (request, response) => {
 
   db.exec('BEGIN');
   try {
-    updateNote.run(nextTitle, nextContent || nextTitle, nextSummary, nextCategoryId, nextMemberId, nextNoteType, noteId);
+    updateNote.run(nextTitle, nextContent || nextTitle, richText.contentHtml, nextSummary, nextCategoryId, nextMemberId, nextNoteType, noteId);
     deleteNoteTags.run(noteId);
 
     for (const tagName of nextTags) {
@@ -204,9 +207,10 @@ notesRouter.patch('/:id', (request, response) => {
     return;
   }
 
-  const note = listNotes({ id: noteId })[0];
+  const note = listNotes({ id: noteId, includeRichText: 'true' })[0];
   response.json({ note });
 });
+
 export function listNotes(query = {}) {
   const search = String(query.search || '').trim();
   const id = String(query.id || '').trim();
@@ -216,7 +220,6 @@ export function listNotes(query = {}) {
   const source = String(query.source || '').trim();
   const includeArchived = ['1', 'true', 'yes'].includes(String(query.includeArchived || '').toLowerCase());
   const includeRichText = ['1', 'true', 'yes'].includes(String(query.includeRichText || '').toLowerCase());
-  const rawMetadataSelect = includeRichText ? 'n.raw_metadata AS rawMetadata,' : 'NULL AS rawMetadata,';
   const params = [];
   const where = ['n.is_deleted = 0'];
 
@@ -276,6 +279,7 @@ export function listNotes(query = {}) {
         n.id,
         n.title,
         n.content,
+        n.content_html AS contentHtml,
         n.summary,
         n.category_id AS categoryId,
         c.name AS categoryName,
@@ -297,7 +301,7 @@ export function listNotes(query = {}) {
         n.original_category AS originalCategory,
         n.original_created_at AS originalCreatedAt,
         n.original_updated_at AS originalUpdatedAt,
-        ${rawMetadataSelect}
+        ${includeRichText ? 'n.raw_metadata AS rawMetadata' : 'NULL AS rawMetadata'},
         COALESCE((
           SELECT json_group_array(json_object('id', t.id, 'label', t.name))
           FROM note_tags nt
@@ -336,12 +340,39 @@ export function listNotes(query = {}) {
       delete note.rawMetadata;
 
       if (includeRichText) {
-        const richContent = buildRichContentFromMetadata(row.rawMetadata);
+        const richContent = buildRichContentFromNote(row);
         if (richContent) note.richContent = richContent;
       }
 
       return note;
     });
+}
+
+function noteIdsFromPayload(noteIds) {
+  return noteIds.map((id) => String(id).trim()).filter(Boolean);
+}
+
+function prepareRichTextPayload(payload, fallbackContent = '', fallbackContentHtml = null) {
+  const hasContent = Object.prototype.hasOwnProperty.call(payload, 'content');
+  const hasContentHtml = Object.prototype.hasOwnProperty.call(payload, 'contentHtml');
+  if (!hasContent && !hasContentHtml && fallbackContentHtml) {
+    const sanitizedFallbackHtml = sanitizeRichTextHtml(fallbackContentHtml);
+    return {
+      content: String(fallbackContent || richTextHtmlToPlainText(sanitizedFallbackHtml) || '').trim(),
+      contentHtml: sanitizedFallbackHtml || null
+    };
+  }
+
+  const rawHtml = typeof payload.contentHtml === 'string' ? payload.contentHtml : '';
+  const sanitizedHtml = rawHtml.trim() ? sanitizeRichTextHtml(rawHtml) : '';
+  const plainFromHtml = sanitizedHtml ? richTextHtmlToPlainText(sanitizedHtml) : '';
+  const plainContent = String(payload.content ?? fallbackContent ?? '').trim();
+  const content = (plainFromHtml || plainContent).trim();
+
+  return {
+    content,
+    contentHtml: sanitizedHtml && content ? sanitizedHtml : null
+  };
 }
 
 function prepareAttachment(noteId, attachmentId, attachment, index) {
@@ -376,7 +407,7 @@ function prepareAttachment(noteId, attachmentId, attachment, index) {
 }
 
 function sanitizeAttachmentName(value, fallback) {
-  const name = String(value || fallback).split(/[\/]/).pop().replace(/[<>:"|?* -]/g, '_').trim();
+  const name = String(value || fallback).split(/[\\/]/).pop().replace(/[<>:"|?*\u0000-\u001f]/g, '_').trim();
   return name || fallback;
 }
 
@@ -384,4 +415,3 @@ function getCurrentMemberId() {
   const member = getDb().prepare('SELECT id FROM members WHERE is_current = 1 ORDER BY sort_order LIMIT 1').get();
   return member?.id || 'self';
 }
-

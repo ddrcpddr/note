@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   AlertCircle,
   Archive,
+  Bold,
   ArrowLeft,
   Briefcase,
   CalendarDays,
@@ -17,15 +18,23 @@ import {
   Folder,
   Grid2X2,
   HeartPulse,
+  Heading2,
+  Heading3,
   Home,
   Inbox,
+  Italic,
   KeyRound,
   Lightbulb,
+  Link,
+  List,
   ListChecks,
+  ListOrdered,
+  Minus,
   MoreHorizontal,
   Paperclip,
   PawPrint,
   Plus,
+  Quote,
   RotateCw,
   Search,
   Settings,
@@ -362,6 +371,7 @@ function App() {
   async function createMockNote(draft) {
     const category = findCategoryForType(draft.type);
     const body = draft.body.trim() || '刚刚新建的一条家庭记录，稍后可以继续补充细节。';
+    const bodyHtml = draft.bodyHtml || '';
     const title = draft.title.trim() || body.slice(0, 24);
     const selectedMemberId = draft.memberId || currentMemberId;
     const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
@@ -374,6 +384,7 @@ function App() {
           body: JSON.stringify({
             title,
             content: body,
+            contentHtml: bodyHtml || undefined,
             categoryId: category.id,
             memberId: currentMember.id,
             noteType: draft.type,
@@ -403,6 +414,8 @@ function App() {
       title,
       summary: body.slice(0, 42),
       content: body,
+      contentHtml: bodyHtml || null,
+      richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : null,
       category: category.name,
       categoryId: category.id,
       categoryIcon: category.icon,
@@ -436,6 +449,7 @@ function App() {
   async function updateExistingNote(draft) {
     const category = draft.categoryId ? categories.find((item) => item.id === draft.categoryId) ?? findCategoryForType(draft.type) : findCategoryForType(draft.type);
     const body = draft.body.trim() || draft.title.trim() || '未命名记录';
+    const bodyHtml = draft.bodyHtml || '';
     const title = draft.title.trim() || body.slice(0, 24);
     const selectedMemberId = draft.memberId || currentMemberId;
     const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
@@ -448,6 +462,7 @@ function App() {
           body: JSON.stringify({
             title,
             content: body,
+            contentHtml: bodyHtml || undefined,
             categoryId: category.id,
             memberId: currentMember.id,
             noteType: draft.type,
@@ -479,6 +494,8 @@ function App() {
             title,
             summary: body.slice(0, 42),
             content: body,
+            contentHtml: bodyHtml || null,
+            richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : item.richContent,
             category: category.name,
             categoryId: category.id,
             categoryIcon: category.icon,
@@ -742,6 +759,7 @@ function normalizeNote(note) {
     originalCategory: displayCategoryName(note.originalCategory || '', note.categoryId),
     originalCreatedAt: note.originalCreatedAt ? formatLongTime(note.originalCreatedAt) : '',
     originalUpdatedAt: note.originalUpdatedAt ? formatLongTime(note.originalUpdatedAt) : '',
+    contentHtml: note.contentHtml || null,
     richContent: note.richContent || null,
     createdAt: formatLongTime(note.createdAt),
     updatedAt: formatShortTime(note.updatedAt),
@@ -950,10 +968,103 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
   );
 }
 
+function clientPlainTextToRichTextHtml(value) {
+  const text = String(value || '').replace(/\r\n/g, '\n').trim();
+  if (!text) return '';
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => '<p>' + escapeClientHtml(paragraph).replace(/\n/g, '<br>') + '</p>')
+    .join('');
+}
+
+function escapeClientHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function RichTextEditor({ initialHtml = '', plainTextFallback = '', onChange }) {
+  const editorRef = useRef(null);
+  const initialValue = useMemo(
+    () => initialHtml || clientPlainTextToRichTextHtml(plainTextFallback),
+    [initialHtml, plainTextFallback]
+  );
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    editorRef.current.innerHTML = initialValue;
+    emitChange();
+  }, [initialValue]);
+
+  function emitChange() {
+    const element = editorRef.current;
+    const html = element?.innerHTML || '';
+    const text = (element?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+    onChange({ html, text });
+  }
+
+  function runCommand(command, value = null) {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    emitChange();
+  }
+
+  function addLink() {
+    const href = window.prompt('输入链接地址');
+    if (!href) return;
+    runCommand('createLink', href);
+  }
+
+  const tools = [
+    ['bold', '加粗', Bold, () => runCommand('bold')],
+    ['italic', '斜体', Italic, () => runCommand('italic')],
+    ['h2', '标题', Heading2, () => runCommand('formatBlock', 'h2')],
+    ['h3', '小标题', Heading3, () => runCommand('formatBlock', 'h3')],
+    ['ul', '无序列表', List, () => runCommand('insertUnorderedList')],
+    ['ol', '有序列表', ListOrdered, () => runCommand('insertOrderedList')],
+    ['quote', '引用', Quote, () => runCommand('formatBlock', 'blockquote')],
+    ['link', '链接', Link, addLink],
+    ['hr', '分隔线', Minus, () => runCommand('insertHTML', '<hr>')]
+  ];
+
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="scroll-row -mx-1 mb-3 flex gap-2 px-1 pb-1">
+        {tools.map(([key, label, Icon, action]) => (
+          <button
+            aria-label={label}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-white text-muted active:bg-teal-50 active:text-teal-700"
+            key={key}
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={action}
+            title={label}
+          >
+            <Icon size={18} />
+          </button>
+        ))}
+      </div>
+      <div
+        aria-label="记录正文"
+        className="rich-text-editor min-h-[156px] outline-none"
+        contentEditable
+        data-placeholder="写下家里的小事、账单、维修、临时备忘..."
+        onInput={emitChange}
+        ref={editorRef}
+        suppressContentEditableWarning
+      />
+    </div>
+  );
+}
 function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'create', initialNote = null }) {
   const isEditing = mode === 'edit' && initialNote;
   const [title, setTitle] = useState(initialNote?.title || '');
-  const [body, setBody] = useState(initialNote?.content || '');
+  const initialRichHtml = initialNote?.contentHtml || initialNote?.richContent?.html || '';
+  const [bodyText, setBodyText] = useState(initialNote?.content || '');
+  const [bodyHtml, setBodyHtml] = useState(initialRichHtml);
   const [type, setType] = useState(initialNote ? recordTypeForNote(initialNote) : '家庭事务');
   const initialTags = initialNote ? initialNote.tags.map((tag) => tag.label).filter(Boolean) : ['待办', '重要'];
   const [tags, setTags] = useState(initialTags);
@@ -982,7 +1093,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
     const originalType = initialNote ? recordTypeForNote(initialNote) : null;
     const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
     const attachments = isEditing ? [] : await Promise.all(attachmentFiles.map(fileToAttachmentPayload));
-    onSave({ id: initialNote?.id, title, body, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, hasAttachment: hasAttachment || attachments.length > 0, attachments });
+    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, hasAttachment: hasAttachment || attachments.length > 0, attachments });
   }
 
   return (
@@ -997,17 +1108,19 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           placeholder="标题（可选）"
         />
       </section>
-      <section className="soft-card mt-4 min-h-[214px] p-5">
+      <section className="soft-card mt-4 min-h-[246px] p-5">
         <div className="flex gap-4 text-[17px] text-muted">
           <FileText className="mt-1 shrink-0" size={25} />
-          <textarea
-            className="min-h-[156px] min-w-0 flex-1 resize-none bg-transparent leading-relaxed outline-none placeholder:text-muted"
-            value={body}
-            onChange={(event) => setBody(event.target.value)}
-            placeholder="写下家里的小事、账单、维修、临时备忘..."
+          <RichTextEditor
+            initialHtml={initialRichHtml}
+            plainTextFallback={initialNote?.content || ''}
+            onChange={({ text, html }) => {
+              setBodyText(text);
+              setBodyHtml(html);
+            }}
           />
         </div>
-        <div className="mt-4 text-right text-[15px] text-muted">{body.length}/1000</div>
+        <div className="mt-4 text-right text-[15px] text-muted">{bodyText.length}/1000</div>
       </section>
       <section className="mt-5 flex items-center justify-between gap-3 rounded-[20px] border border-line/70 bg-white/80 px-4 py-3 shadow-[0_6px_18px_rgba(39,43,48,0.045)]">
         <div className="flex min-w-0 items-center gap-3">
@@ -1428,7 +1541,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
 }
 
 function hasSafeRichContent(note) {
-  return Boolean(note?.sourceType === 'notestation_import' && note.richContent?.format === 'html' && note.richContent?.html);
+  return Boolean(note?.richContent?.format === 'html' && note.richContent?.html);
 }
 
 function RichTextContent({ html }) {
@@ -1494,7 +1607,7 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
           <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><ListChecks size={22} /> 内容</h2>
           {hasRichContent && (
             <div className="inline-flex shrink-0 rounded-full border border-line bg-white p-1 text-[13px] font-medium text-muted">
-              <button className={`rounded-full px-3 py-1 ${showRichContent ? 'bg-teal-50 text-teal-700' : ''}`} type="button" onClick={() => setContentMode('rich')}>原始格式</button>
+              <button className={`rounded-full px-3 py-1 ${showRichContent ? 'bg-teal-50 text-teal-700' : ''}`} type="button" onClick={() => setContentMode('rich')}>格式</button>
               <button className={`rounded-full px-3 py-1 ${!showRichContent ? 'bg-teal-50 text-teal-700' : ''}`} type="button" onClick={() => setContentMode('plain')}>纯文本</button>
             </div>
           )}

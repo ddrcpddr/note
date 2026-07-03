@@ -2,6 +2,7 @@ import { copyFileSync, readFileSync, statSync, unlinkSync, writeFileSync } from 
 import path from 'node:path';
 import { Router } from 'express';
 import { createId, getDataPaths, getDb } from '../db/database.js';
+import { htmlToMarkdownSubset } from '../rich-text.js';
 import { listNotes } from './notes.js';
 
 export const storageRouter = Router();
@@ -103,7 +104,7 @@ function renderNotesMarkdown(notes) {
     if (note.attachments?.length) lines.push(`- 附件：${note.attachments.map((attachment) => attachment.originalName || attachment.fileName).join('、')}`);
     if (note.originalPath) lines.push(`- 原始路径：${note.originalPath}`);
     lines.push('');
-    lines.push(note.content || note.summary || '');
+    lines.push(note.contentHtml ? htmlToMarkdownSubset(note.contentHtml, note.content || note.summary || '') : note.content || note.summary || '');
     lines.push('');
   }
 
@@ -182,4 +183,3 @@ export function getStorageStatus() {
     latestBackup: latestBackup || null
   };
 }
-

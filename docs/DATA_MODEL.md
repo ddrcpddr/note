@@ -1,6 +1,6 @@
 # 数据模型
 
-本阶段实现的是 MVP 本地持久化数据层。应用使用 Node 内置 SQLite，数据库默认位置为：
+应用使用 Node 内置 SQLite，数据库默认位置为：
 
 ```text
 data/database/app.db
@@ -12,11 +12,12 @@ data/database/app.db
 
 ### members
 
-家庭成员表。MVP 阶段不做复杂权限隔离，成员用于记录创建人和筛选。
+家庭成员表。当前不做复杂权限隔离，成员用于记录创建人和筛选。
 
 - `id`
 - `name`
 - `avatar`
+- `color`
 - `sort_order`
 - `is_current`
 - `is_system`
@@ -43,7 +44,8 @@ data/database/app.db
 
 - `id`
 - `title`
-- `content`
+- `content`：纯文本正文，用于搜索、摘要和导出 fallback。
+- `content_html`：可空，保存服务端清理后的用户富文本 HTML。
 - `summary`
 - `category_id`
 - `member_id`
@@ -87,7 +89,7 @@ data/database/app.db
 
 ### attachments
 
-附件元数据表。阶段 2 只保存附件元数据，不做真实文件上传。
+附件元数据表。当前支持保存上传附件文件，并在表中记录元数据和相对路径。
 
 - `id`
 - `note_id`
@@ -148,18 +150,31 @@ data/database/app.db
 - 常用标签：待办、重要、维修、购物、账单、发票、保修、NAS、物业、医院。
 - 三条示例记录。
 
+## 正文和富文本
+
+- `notes.content` 是唯一必须存在的正文字段，保存纯文本。
+- `notes.content_html` 只保存用户新建 / 编辑时产生的安全 HTML，可为空。
+- Note Station 导入的原始 HTML 不写入 `content_html`，仍保留在 `raw_metadata.originalContent` 中。
+- 详情页展示顺序：用户富文本 `content_html` -> 导入原始 HTML -> 纯文本 `content`。
+- 搜索始终基于纯文本 `content`。
+
 ## API
 
-阶段 2 已实现：
+当前已实现：
 
 - `GET /api/app-data`：读取成员、分类、标签、记录和数据目录。
-- `GET /api/notes`：读取记录，支持搜索、分类、成员和标签筛选。
-- `POST /api/notes`：创建记录，标题为空时从正文自动生成。
+- `GET /api/notes`：读取记录，支持搜索、分类、成员、标签和来源筛选。
+- `POST /api/notes`：创建记录，支持纯文本和 `contentHtml` 富文本输入，标题为空时从纯文本正文自动生成。
+- `PATCH /api/notes/:id`：编辑记录，支持同步更新纯文本和富文本。
 - `GET /api/categories`：读取分类和记录数量。
+- `POST /api/storage/backup`：手动备份数据库。
+- `POST /api/storage/export-json`：导出 JSON。
+- `POST /api/storage/export-markdown`：导出 Markdown。
+- `POST /api/import/notestation/*`：Note Station dry-run、sandbox / 正式导入相关流程。
 
-## 阶段 2 限制
+## 当前限制
 
-- 不接真实 NAS。
-- 不做真实附件上传。
-- 不做复杂登录或权限隔离。
-- Note Station 导入仅预留表结构，真实导入框架在阶段 3 实现。
+- 不接入真实外网账号系统。
+- 不做复杂权限隔离。
+- 富文本暂不支持表格、协同编辑、块拖拽或正文内图片排版。
+- Note Station 新样例仍必须先 dry-run，再考虑导入。

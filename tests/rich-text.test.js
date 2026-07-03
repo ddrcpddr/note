@@ -9,7 +9,14 @@ process.env.NOTE_DATA_DIR = tempDataDir;
 
 const { getDb } = await import('../src/server/db/database.js');
 const { listNotes } = await import('../src/server/routes/notes.js');
-const { buildRichContentFromMetadata, sanitizeRichTextHtml } = await import('../src/server/rich-text.js');
+const {
+  buildRichContentFromMetadata,
+  buildRichContentFromNote,
+  htmlToMarkdownSubset,
+  plainTextToRichTextHtml,
+  richTextHtmlToPlainText,
+  sanitizeRichTextHtml
+} = await import('../src/server/rich-text.js');
 const db = getDb();
 
 after(() => {
@@ -84,5 +91,53 @@ describe('Safe rich text read-only rendering', () => {
 
     assert.equal(richContent, null);
     assert.equal(sanitizeRichTextHtml('普通纯文本'), '普通纯文本');
+  });
+  test('sanitizes user rich text, extracts plain text and renders markdown', () => {
+    const html = `
+      <h2 onclick="bad()">小标题</h2>
+      <p>今天记一条 <strong>重要</strong> 事情。</p>
+      <ul><li>买灯泡</li><li><a href="https://example.com?a=1&b=2">保修链接</a></li></ul>
+      <hr>
+      <script>alert('bad')</script>
+      <a href="javascript:alert(1)">坏链接</a>
+    `;
+
+    const sanitized = sanitizeRichTextHtml(html);
+    assert.match(sanitized, /<h2>小标题<\/h2>/);
+    assert.match(sanitized, /<strong>重要<\/strong>/);
+    assert.match(sanitized, /href="https:\/\/example\.com\?a=1&amp;b=2"/);
+    assert.match(sanitized, /<hr>/);
+    assert.doesNotMatch(sanitized, /script|onclick|javascript:/i);
+
+    assert.equal(richTextHtmlToPlainText(sanitized), '小标题\n今天记一条 重要 事情。\n买灯泡\n保修链接\n坏链接');
+
+    const markdown = htmlToMarkdownSubset(sanitized, 'fallback text');
+    assert.match(markdown, /## 小标题/);
+    assert.match(markdown, /今天记一条 \*\*重要\*\* 事情。/);
+    assert.match(markdown, /- 买灯泡/);
+    assert.match(markdown, /- \[保修链接\]\(https:\/\/example\.com\?a=1&b=2\)/);
+    assert.match(markdown, /---/);
+  });
+
+  test('prefers edited content_html over imported raw metadata', () => {
+    const richContent = buildRichContentFromNote({
+      contentHtml: '<p><strong>用户编辑后内容</strong></p>',
+      rawMetadata: JSON.stringify({
+        originalContentFormat: 'html',
+        originalContent: '<p>Note Station 原文</p>'
+      })
+    });
+
+    assert.equal(richContent.format, 'html');
+    assert.equal(richContent.source, 'content_html');
+    assert.match(richContent.html, /用户编辑后内容/);
+    assert.doesNotMatch(richContent.html, /Note Station 原文/);
+  });
+
+  test('converts plain text into safe editor html', () => {
+    assert.equal(
+      plainTextToRichTextHtml('第一行\n\n<script>坏</script> 第二段'),
+      '<p>第一行</p><p>&lt;script&gt;坏&lt;/script&gt; 第二段</p>'
+    );
   });
 });
