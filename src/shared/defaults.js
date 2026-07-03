@@ -39,7 +39,7 @@ export const seedNotes = [
     memberId: 'self',
     noteType: 'family_task',
     tags: ['待办', '重要', '维修'],
-    attachments: ['卫生间天花板渗水.jpg', '维修记录模板.docx']
+    attachments: []
   },
   {
     id: 'seed-bp',
@@ -50,7 +50,7 @@ export const seedNotes = [
     memberId: 'partner',
     noteType: 'shopping',
     tags: ['购物', '重要'],
-    attachments: ['电子发票.pdf']
+    attachments: []
   },
   {
     id: 'seed-imported',
@@ -62,6 +62,6 @@ export const seedNotes = [
     noteType: 'normal',
     sourceType: 'notestation_import',
     tags: ['待办', 'NAS'],
-    attachments: ['notestation_export.zip']
+    attachments: []
   }
 ];

@@ -198,3 +198,13 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 - 手机端实际使用反馈。
 - 是否优先做 NAS 运维增强、导入后整理、附件管理、富文本编辑或 Android。
 - 如果涉及 NAS 地址、账号、密码、token，需要用户手动配置，不写入仓库。
+
+## 2026-07-03 最新补充：测试数据清理与网页端 NSX 真实解析
+
+- 当前测试数据库和测试附件目录已清理重建；原始 `.nsx` 文件保留在 `data/imports/notestation/`。
+- 清理后 `npm.cmd run check` 显示 `integrityCheck=ok`、`categoryCount=11`、`noteCount=3`。
+- 网页端 `.nsx` 上传解析已接通真实 dry-run。使用本地真实样例只预览不确认导入，识别 93 条记录、20 个附件、0 个失败项。
+- `npm.cmd run test` 通过 11 suites / 48 tests。
+- `npm.cmd run build` 通过。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过，Docker 服务 healthy。
+- 独立附件上传入口已移除，图片和附件统一从富文本编辑器插入；详情页附件列表保留为下载和兼容展示。

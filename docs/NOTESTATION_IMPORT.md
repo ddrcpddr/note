@@ -152,7 +152,7 @@ src/server/importers/notestation/
 用户已提供真实 `.nsx` 样例后，项目新增只读 dry-run 解析能力：
 
 ```bash
-node src/server/scripts/notestation-dry-run.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+node src/server/scripts/notestation-dry-run.js data/imports/notestation/example-notestation-export.nsx
 ```
 
 该命令只读取 `.nsx`，不会写入正式数据库，不会解压真实内容到工作区。含真实标题和脱敏摘要的输出应保存到 `data/imports/notestation/` 下，该目录被 Git 忽略。
@@ -178,7 +178,7 @@ node src/server/scripts/notestation-dry-run.js data/imports/notestation/20260629
 只允许写入 sandbox/test/temp 数据目录：
 
 ```bash
-NOTE_DATA_DIR=data/imports/notestation/sandbox-db node src/server/scripts/notestation-sandbox-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+NOTE_DATA_DIR=data/imports/notestation/sandbox-db node src/server/scripts/notestation-sandbox-import.js data/imports/notestation/example-notestation-export.nsx
 ```
 
 脚本会拒绝在未设置 `NOTE_DATA_DIR`，或 `NOTE_DATA_DIR` 不包含 `sandbox`、`test`、`temp` 的情况下运行，防止污染正式数据库。
@@ -228,7 +228,7 @@ node src\server\scripts\notestation-sandbox-import.js data\imports\notestation\n
 已新增正式导入前确认命令：
 
 ```bash
-node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/example-notestation-export.nsx
 ```
 
 默认模式只做 preflight，不写正式数据库。当前真实样例预检结果：
@@ -245,7 +245,7 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 只有用户确认后，才允许执行带 `--confirm` 的正式写入命令：
 
 ```bash
-node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx --confirm
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/example-notestation-export.nsx --confirm
 ```
 
 正式写入策略：
@@ -276,7 +276,7 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 ### 执行命令
 
 ```bash
-node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx --confirm
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/example-notestation-export.nsx --confirm
 ```
 
 ### 导入保护
@@ -361,3 +361,33 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 - 富文本正文中要尽量恢复图片、附件引用、链接、列表、待办、表格、颜色和高亮。
 - 不再开发独立的正文外附件上传入口；附件列表只作为下载、兼容和失败排查辅助。
 - 解析失败项必须记录原因，不得静默丢弃。
+
+## 2026-07-03 网页端 `.nsx` 上传、预览与确认导入更新
+
+本节更新并覆盖上方“网页端完整上传解析仍需后续接入”的旧状态说明。
+
+当前导入页已接入真实 `.nsx` 文件选择和上传解析：浏览器选择 `.nsx` 后会把文件内容以 `application/octet-stream` 发送到后端，后端校验 ZIP 文件头，将文件保存到被 Git 忽略的 `data/imports/notestation/`，然后复用现有 NSX dry-run 解析器生成预览。
+
+本轮用本地真实样例 `example-notestation-export.nsx` 对 Docker 3300 服务做 dry-run 验证，只预览不确认导入：
+
+| 项目 | 结果 |
+| --- | ---: |
+| 总记录数 | 93 |
+| 成功解析 | 93 |
+| 失败项 | 0 |
+| 附件数 | 20 |
+| 原始分类 / 笔记本数 | 4 |
+
+网页端确认导入现在复用正式导入保护链路：
+
+- `.nsx` 文件先上传或复制到 `data/imports/notestation/`，该目录继续由 `.gitignore` 保护。
+- 复用现有 NSX dry-run / formal import 解析链路，不重新硬猜格式。
+- 正式导入前继续自动备份数据库。
+- Note Station 原始 HTML / 富文本结构优先进入 `content_html` 和 `source_html`。
+- 如果可以稳定转换，生成对应 `content_json` 供富文本编辑器再次编辑。
+- 图片和附件复制到 `data/attachments/`，数据库只保存元数据、相对路径和正文引用。
+- 富文本正文中要尽量恢复图片、附件引用、链接、列表、待办、表格、颜色和高亮。
+- 附件列表只作为下载和兼容展示，不再作为主要编辑入口。
+- 解析失败项必须记录原因，不得静默丢弃。
+
+当前测试数据可以清空；用户后续会在功能稳定后重新导入 `.nsx`。不要删除原始 `.nsx`，不要提交上传副本、数据库、附件、备份、导出或任何真实笔记内容。

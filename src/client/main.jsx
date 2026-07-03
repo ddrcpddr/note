@@ -165,12 +165,12 @@ const initialNotes = [
     ],
     time: '今天 10:42',
     member: '我',
-    attachmentCount: 2,
+    attachmentCount: 0,
     status: '已保存到 NAS',
     source: '手动创建',
     createdAt: '2026年6月28日 10:42',
     updatedAt: '今天 11:05',
-    attachments: ['卫生间天花板渗水.jpg', '维修记录模板.docx']
+    attachments: []
   },
   {
     id: 'bp',
@@ -189,12 +189,12 @@ const initialNotes = [
     ],
     time: '昨天 18:35',
     member: '爱人',
-    attachmentCount: 1,
+    attachmentCount: 0,
     status: '已保存到 NAS',
     source: '手动创建',
     createdAt: '2026年6月27日 18:35',
     updatedAt: '昨天 18:52',
-    attachments: ['电子发票.pdf']
+    attachments: []
   },
   {
     id: 'imported',
@@ -210,12 +210,12 @@ const initialNotes = [
     tags: [{ label: '待办', tone: tagTones.todo }],
     time: '昨天 09:21',
     member: '我',
-    attachmentCount: 3,
+    attachmentCount: 0,
     status: '已保存到 NAS',
     source: 'Note Station 导入',
     createdAt: '2026年6月27日 09:21',
     updatedAt: '昨天 09:35',
-    attachments: ['notestation_export.zip']
+    attachments: []
   }
 ];
 
@@ -1586,8 +1586,12 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       }
       const response = await fetch('/api/imports/notestation/dry-run', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: selectedNsxFile.name, fileType: selectedNsxFile.type || 'application/octet-stream', fileSize: selectedNsxFile.size, memberId: currentMemberId })
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-File-Name': encodeURIComponent(selectedNsxFile.name),
+          'X-Member-Id': currentMemberId
+        },
+        body: selectedNsxFile
       });
       if (!response.ok) throw new Error('无法创建导入预览');
       const data = await response.json();
@@ -1698,7 +1702,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-[17px] font-bold">{record.title}</h3>
-                  <p className="mt-1 text-[14px] leading-relaxed text-muted">{record.content}</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-muted">{record.content || record.summary}</p>
                   <p className="mt-1 text-[13px] text-muted">{record.originalPath}</p>
                 </div>
                 <span className="tag h-fit shrink-0 bg-teal-50 text-teal-600">{record.originalCategory}</span>

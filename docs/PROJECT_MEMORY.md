@@ -424,7 +424,7 @@ MVP 需要覆盖：
 
 ### 真实 Note Station NSX 样例分析与 dry-run
 
-- 用户已将真实 `.nsx` 放入 `data/imports/notestation/`，当前样例文件为 `20260629_112626_15568_ddrcpddr.nsx`，约 21.38 MiB。
+- 用户已将真实 `.nsx` 放入 `data/imports/notestation/`，当前样例文件为 `example-notestation-export.nsx`，约 21.38 MiB。
 - 已确认 `.nsx` 是 ZIP/PK 压缩包，可在内存中读取，不需要解压到工作区。
 - 已新增 `src/server/importers/notestation/nsx.js`，实现 NSX 结构分析与 dry-run 解析；默认 dry-run 输出标题、脱敏摘要、时间、原始路径、附件数和失败项，不输出完整正文。
 - 已新增 `src/server/scripts/notestation-dry-run.js`，可生成本地 dry-run JSON；输出文件应放在被忽略的 `data/imports/notestation/` 下。
@@ -1149,3 +1149,28 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 后续真实 `.nsx` 导入必须把 HTML、图片、附件引用尽量恢复到富文本正文，附件列表只作为下载和兼容展示，不再作为主要编辑入口。
 
 安全约束不变：不提交 `data/`、数据库、附件、备份、导出、`.nsx`、dry-run JSON、日志或真实隐私内容。
+
+## 2026-07-03 - 清理历史测试附件并接通网页端真实 `.nsx` 解析
+
+用户截图反馈：新建 / 编辑页已经只剩富文本编辑器内的附件入口，但首页和详情页仍有历史测试记录显示旧附件；导入页已经能弹出 `.nsx` 文件选择器，但选择真实文件后只显示 0 条记录 / 1 个失败项。
+
+本轮确认两个根因：
+
+- 旧附件来自历史测试数据库和旧 seed/mock 数据，并不是新建页仍有独立附件上传入口。
+- 网页端 `.nsx` 选择此前只上传文件名和大小，后端没有接收真实文件内容，因此无法解析真实 Note Station 导出。
+
+处理结果：
+
+- 停止 Docker 服务后清理当前测试数据库和测试附件目录，保留原始 `data/imports/notestation/*.nsx` 文件。
+- 移除 seed/mock 中的假附件，清理后默认测试库为 3 条 seed 记录、11 个分类、2 个默认成员，不再显示旧测试附件。
+- 网页端导入页现在会以 `application/octet-stream` 上传真实 `.nsx` 文件内容，后端保存到被 Git 忽略的 `data/imports/notestation/` 后复用现有 NSX dry-run 解析器。
+- 网页端确认导入现在会复用正式导入链路：导入前自动备份数据库，写入富文本字段，复制附件到 `data/attachments/`，失败项写入 `import_failures`，不静默丢弃。
+- 用本地真实样例 `example-notestation-export.nsx` 对 Docker 3300 服务做 dry-run，仅预览不确认导入：识别 93 条记录、93 条成功、0 条失败、20 个附件、4 个原始分类。
+
+验证结果：
+
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=3`。
+- `npm.cmd run test`：通过，11 suites / 48 tests / 48 pass。
+- `npm.cmd run build`：通过，仍有 Tiptap bundle size warning。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，Docker 服务 healthy，API / 首页壳 / 备份 / JSON 导出正常。
+- 安全检查：`data/`、`.nsx`、数据库、备份、导出、附件继续被忽略，不提交真实隐私数据。

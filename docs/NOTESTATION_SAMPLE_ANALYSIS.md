@@ -4,8 +4,8 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 文件名 | `20260629_112626_15568_ddrcpddr.nsx` |
-| 本地位置 | `data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx` |
+| 文件名 | `example-notestation-export.nsx` |
+| 本地位置 | `data/imports/notestation/example-notestation-export.nsx` |
 | 文件大小 | `22,413,647 bytes`，约 `21.38 MiB` |
 | 修改时间 | `2026-06-29 11:27:02` |
 | 文件类型判断 | 文件头为 `PK`，可识别为 ZIP/压缩包格式 |
@@ -119,7 +119,7 @@ category, ctime, mtime, stack, title
 本次命令：
 
 ```bash
-node src/server/scripts/notestation-dry-run.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+node src/server/scripts/notestation-dry-run.js data/imports/notestation/example-notestation-export.nsx
 ```
 
 含标题和脱敏摘要的完整 dry-run JSON 已生成到本地忽略目录：
@@ -185,7 +185,7 @@ data/imports/notestation/notestation-dry-run-preview.json
 已对真实 `.nsx` 执行无确认预检命令：
 
 ```bash
-node src/server/scripts/notestation-formal-import.js data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx
+node src/server/scripts/notestation-formal-import.js data/imports/notestation/example-notestation-export.nsx
 ```
 
 命令返回 `confirmed: false`、`requiresConfirmation: true`、`willWriteFormalDatabase: false`，说明本次只展示统计，不写正式数据库。

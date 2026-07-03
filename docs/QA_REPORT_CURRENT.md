@@ -381,3 +381,57 @@ npm.cmd run build
 
 - 本轮生成的 Playwright 截图和 DS note 视频抽帧只作为临时复现产物，已删除，不提交。
 - 未提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+
+---
+
+测试时间：2026-07-03
+
+当前目标：处理历史测试附件残留和网页端 `.nsx` 选择后无法解析的问题。本轮允许清空测试数据库和测试附件目录，但保留原始 `.nsx` 文件，不提交任何 `data/` 运行数据。
+
+## 复现步骤
+
+1. 打开 Docker 3300 页面，首页可见历史测试记录仍显示附件筛选和附件数量。
+2. 打开详情页，部分旧测试记录仍显示正文外附件列表。
+3. 打开导入 Note Station 页，选择真实 `.nsx` 文件后，页面显示 0 条记录、1 个失败项。
+
+## 问题原因
+
+- 附件残留来自历史测试数据库和旧 seed/mock 中的假附件；新建 / 编辑页的旧独立附件入口已移除。
+- 网页端导入此前只把文件名、大小传给后端做占位 dry-run，没有上传真实 `.nsx` 二进制内容，所以无法调用真实 NSX 解析器。
+
+## 修复内容
+
+- 清理当前测试数据库和测试附件目录，保留 `data/imports/notestation/*.nsx`。
+- 移除默认 seed/mock 记录中的假附件，避免重建测试库后继续出现旧附件。
+- 导入页 dry-run 请求改为上传真实 `.nsx` 文件内容。
+- 后端新增 raw `.nsx` 上传处理：校验 ZIP 文件头、保存到忽略目录、调用真实 NSX dry-run 解析器、写入 preview import 批次。
+- 确认导入链路支持网页端上传的 `.nsx`：自动备份数据库、写入富文本字段、复制附件、记录失败项。
+- 新增 API 测试覆盖“网页端上传真实形态 NSX -> 预览 -> 确认导入 -> 附件元数据和搜索可用”。
+
+## 运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+## 测试结果
+
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=3`。
+- `npm.cmd run test`：通过，11 suites / 48 tests / 48 pass。
+- `npm.cmd run build`：通过，仍有 Tiptap bundle size warning。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，Docker 服务 healthy，`/api/health`、`/api/app-data`、notes、categories、backup、JSON export 和 frontend shell 均正常。
+- 真实 `.nsx` dry-run 验证：`example-notestation-export.nsx` 解析出 93 条记录、93 条成功、0 条失败、20 个附件、4 个原始分类；本次只预览，未确认写入 notes。
+
+## 仍然存在的问题
+
+- 真实 `.nsx` 正式导入还需要用户在页面手动确认一次，确认前应接受当前测试库会被继续用于试验。
+- Note Station 的复杂富文本 HTML 到 Tiptap JSON 的可编辑还原仍需按真实样例继续增强；当前至少保留安全 HTML、纯文本和 source HTML。
+
+## 下一步建议
+
+1. 用户在 3300 页面重新选择真实 `.nsx`，确认预览数量是否与本次 dry-run 一致。
+2. 如果预览合理，再点击确认导入，检查首页、搜索、详情页富文本和附件引用。
+3. 若导入效果可接受，再决定是否再次清空测试库并做最终重新导入。

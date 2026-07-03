@@ -1,5 +1,8 @@
-import { createId, getDb, slugifyTag } from '../../db/database.js';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { createId, getDataPaths, getDb, slugifyTag } from '../../db/database.js';
 import { notestationSampleFailures, notestationSampleRecords } from './sample.js';
+import { dryRunNsxFile, readNsxEntryBuffer } from './nsx.js';
 import { prepareStoredRichText } from '../../rich-text.js';
 
 export function createNotestationDryRunPreview(payload = {}) {
@@ -34,6 +37,39 @@ export function createNotestationDryRunPreview(payload = {}) {
       '保留失败项报告并禁止直接污染正式库'
     ]
   };
+}
+
+export function createNotestationNsxPreview(filePath, memberId = 'self') {
+  const db = getDb();
+  const preview = dryRunNsxFile(filePath);
+  const importId = createId('import_nsx_web');
+  const insertImport = db.prepare(`
+    INSERT INTO imports
+      (id, source_type, file_name, file_path, status, total_count, success_count, failed_count, created_by_member_id)
+    VALUES
+      (?, 'notestation', ?, ?, 'previewed', ?, ?, ?, ?)
+  `);
+  const insertFailure = db.prepare(`
+    INSERT INTO import_failures
+      (id, import_id, original_title, original_path, error_message, raw_data)
+    VALUES
+      (?, ?, ?, ?, ?, ?)
+  `);
+
+  insertImport.run(importId, preview.fileName, filePath, preview.totalCount, preview.successCount, preview.failedCount, memberId);
+
+  for (const failure of preview.failures || []) {
+    insertFailure.run(
+      createId('import_failure'),
+      importId,
+      failure.originalTitle || failure.originalId,
+      failure.originalPath || failure.originalId || '',
+      failure.errorMessage,
+      JSON.stringify(failure)
+    );
+  }
+
+  return normalizeNsxPreview(preview, { importId, status: 'previewed' });
 }
 
 export function createNotestationSamplePreview(memberId = 'self') {
@@ -79,6 +115,10 @@ export function commitNotestationImport(importId, memberId = 'self') {
   const batch = db.prepare('SELECT * FROM imports WHERE id = ?').get(importId);
   if (!batch) {
     throw new Error('导入批次不存在');
+  }
+
+  if (isNsxImportBatch(batch)) {
+    return commitUploadedNsxImport(batch, memberId);
   }
 
   const existingImportedCount = db
@@ -180,6 +220,11 @@ export function getImportPreview(importId) {
     throw new Error('导入批次不存在');
   }
 
+  if (isNsxImportBatch(batch)) {
+    const preview = dryRunNsxFile(batch.file_path);
+    return normalizeNsxPreview(preview, { importId, status: batch.status });
+  }
+
   const failures = db
     .prepare(
       `SELECT id, original_title AS originalTitle, original_path AS originalPath, error_message AS errorMessage
@@ -219,4 +264,259 @@ function getImportResult(importId) {
     status: 'completed',
     importedNoteIds: notes.map((note) => note.id)
   };
+}
+
+function isNsxImportBatch(batch) {
+  return Boolean(batch?.file_path && String(batch.file_path).toLowerCase().endsWith('.nsx') && existsSync(batch.file_path));
+}
+
+function normalizeNsxPreview(preview, overrides = {}) {
+  return {
+    ...preview,
+    ...overrides,
+    records: (preview.records || []).map((record) => ({
+      ...record,
+      content: record.content || record.summary || ''
+    }))
+  };
+}
+
+function commitUploadedNsxImport(batch, memberId = 'self') {
+  const db = getDb();
+  const existingImportedNotes = db
+    .prepare("SELECT id FROM notes WHERE source_type = 'notestation_import' AND source_id = ? ORDER BY created_at DESC")
+    .all(batch.id);
+  if (existingImportedNotes.length > 0) {
+    return {
+      ...getImportPreview(batch.id),
+      status: 'completed',
+      importedNoteIds: existingImportedNotes.map((note) => note.id)
+    };
+  }
+
+  const preview = dryRunNsxFile(batch.file_path, { includeContent: true, includeRawContent: true });
+  const paths = getDataPaths();
+  const backupPath = backupDatabase(paths);
+  const attachmentStats = { copied: 0, failed: 0 };
+  const attachmentFailures = [];
+
+  const insertFailure = db.prepare(`
+    INSERT INTO import_failures
+      (id, import_id, original_title, original_path, error_message, raw_data)
+    VALUES
+      (?, ?, ?, ?, ?, ?)
+  `);
+  const insertNote = db.prepare(`
+    INSERT INTO notes
+      (
+        id,
+        title,
+        content,
+        content_text,
+        content_html,
+        content_json,
+        source_html,
+        content_format,
+        content_version,
+        summary,
+        category_id,
+        member_id,
+        note_type,
+        source_type,
+        source_id,
+        save_status,
+        visibility,
+        original_title,
+        original_path,
+        original_category,
+        original_created_at,
+        original_updated_at,
+        raw_metadata,
+        occurred_at
+      )
+    VALUES
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uncategorized', ?, 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
+  const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
+  const insertAttachment = db.prepare(`
+    INSERT INTO attachments
+      (id, note_id, file_name, original_name, mime_type, file_size, storage_path, source_type, kind, source_attachment_id, source_path, sort_order, is_inline)
+    VALUES
+      (?, ?, ?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, 0)
+  `);
+
+  db.exec('BEGIN');
+  try {
+    db.prepare('DELETE FROM import_failures WHERE import_id = ?').run(batch.id);
+
+    for (const failure of preview.failures || []) {
+      insertFailure.run(
+        createId('import_failure'),
+        batch.id,
+        failure.originalTitle || failure.originalId,
+        failure.originalPath || failure.originalId || '',
+        failure.errorMessage,
+        JSON.stringify(failure)
+      );
+    }
+
+    const importedNoteIds = [];
+    for (const record of preview.records || []) {
+      const noteId = createId('note');
+      importedNoteIds.push(noteId);
+      const rawMetadata = {
+        ...(record.rawMetadata || {}),
+        originalNotebookPath: record.originalPath || record.rawMetadata?.originalNotebookPath || null,
+        importSource: 'notestation_import'
+      };
+      const originalHtml = rawMetadata.originalContentFormat === 'html' ? String(rawMetadata.originalContent || '') : '';
+      const richText = prepareStoredRichText({
+        content: record.content || record.summary || record.title,
+        contentHtml: originalHtml,
+        sourceHtml: originalHtml
+      });
+
+      insertNote.run(
+        noteId,
+        record.title,
+        richText.legacyContent || record.content || record.summary || record.title,
+        richText.contentText || record.content || record.summary || record.title,
+        richText.contentHtml,
+        richText.contentJson,
+        richText.sourceHtml,
+        richText.contentFormat,
+        richText.contentVersion,
+        record.summary || richText.contentText || record.title,
+        memberId,
+        batch.id,
+        record.originalTitle,
+        record.originalPath,
+        record.originalCategory || '未分类',
+        record.originalCreatedAt,
+        record.originalUpdatedAt,
+        JSON.stringify(rawMetadata),
+        record.originalCreatedAt
+      );
+
+      for (const tagName of record.tags || []) {
+        const tagId = slugifyTag(tagName);
+        insertTag.run(tagId, tagName, tagId);
+        insertNoteTag.run(noteId, tagId);
+      }
+
+      for (const [index, attachment] of (record.attachments || []).entries()) {
+        const attachmentResult = copyNsxAttachment(batch.file_path, paths, batch.id, noteId, attachment, index);
+        if (attachmentResult.error) {
+          attachmentStats.failed += 1;
+          const failure = {
+            originalTitle: record.title,
+            originalPath: record.originalPath,
+            attachment: attachment.fileName || attachment.id,
+            errorMessage: attachmentResult.error
+          };
+          attachmentFailures.push(failure);
+          insertFailure.run(
+            createId('import_failure'),
+            batch.id,
+            record.title,
+            record.originalPath,
+            `附件导入失败：${attachmentResult.error}`,
+            JSON.stringify(failure)
+          );
+        } else {
+          attachmentStats.copied += 1;
+        }
+
+        insertAttachment.run(
+          createId('attachment'),
+          noteId,
+          attachmentResult.fileName,
+          attachmentResult.originalName,
+          attachmentResult.mimeType,
+          attachmentResult.fileSize,
+          attachmentResult.storagePath,
+          attachmentResult.mimeType?.startsWith('image/') ? 'image' : 'file',
+          attachment.id || attachment.fileName || null,
+          attachment.id || attachment.fileName || null,
+          index
+        );
+      }
+    }
+
+    db.prepare(
+      "UPDATE imports SET status = 'completed', total_count = ?, success_count = ?, failed_count = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).run(preview.totalCount, preview.successCount, (preview.failedCount || 0) + attachmentStats.failed, batch.id);
+    db.exec('COMMIT');
+
+    return {
+      ...normalizeNsxPreview(preview, { importId: batch.id, status: 'completed' }),
+      importedNoteIds,
+      backupPath,
+      attachmentCopiedCount: attachmentStats.copied,
+      attachmentFailureCount: attachmentStats.failed,
+      attachmentFailures
+    };
+  } catch (error) {
+    db.exec('ROLLBACK');
+    db.prepare("UPDATE imports SET status = 'failed' WHERE id = ?").run(batch.id);
+    error.message = `${error.message}。本次导入已回滚，可用备份恢复：${backupPath}`;
+    throw error;
+  }
+}
+
+function backupDatabase(paths) {
+  mkdirSync(paths.backupsDir, { recursive: true });
+  mkdirSync(path.dirname(paths.dbPath), { recursive: true });
+  if (!existsSync(paths.dbPath)) writeFileSync(paths.dbPath, '');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = path.join(paths.backupsDir, `app-before-notestation-import-${timestamp}.db`);
+  copyFileSync(paths.dbPath, backupPath);
+  return backupPath;
+}
+
+function copyNsxAttachment(inputPath, paths, importId, noteId, attachment, index) {
+  const fileName = safeFileName(attachment.fileName || attachment.id || `attachment-${index + 1}`);
+  const originalName = attachment.originalName || fileName;
+  const targetRelativePath = path.join('attachments', 'notestation', importId, noteId, fileName);
+  const targetPath = path.join(paths.dataDir, targetRelativePath);
+  const sourceEntry = attachment.id || attachment.fileName;
+
+  try {
+    mkdirSync(path.dirname(targetPath), { recursive: true });
+    const buffer = readNsxEntryBuffer(inputPath, sourceEntry);
+    writeFileSync(targetPath, buffer);
+    return {
+      fileName,
+      originalName,
+      mimeType: guessMimeType(fileName),
+      fileSize: buffer.length,
+      storagePath: targetRelativePath,
+      error: null
+    };
+  } catch (error) {
+    return {
+      fileName,
+      originalName,
+      mimeType: null,
+      fileSize: null,
+      storagePath: targetRelativePath,
+      error: error.message
+    };
+  }
+}
+
+function safeFileName(value) {
+  const normalized = String(value || 'attachment').replace(/[\\/:*?"<>|]+/g, '_').trim();
+  return normalized || 'attachment';
+}
+
+function guessMimeType(fileName) {
+  const ext = path.extname(fileName).toLowerCase();
+  if (ext === '.png') return 'image/png';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.gif') return 'image/gif';
+  if (ext === '.pdf') return 'application/pdf';
+  if (ext === '.txt') return 'text/plain';
+  return null;
 }

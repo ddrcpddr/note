@@ -66,6 +66,9 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('onChange={handleNsxFileChange}'));
     assert.ok(source.includes("nsxInputRef.current?.click()"));
     assert.ok(source.includes('selectedNsxFile?.name'));
+    assert.ok(source.includes("'Content-Type': 'application/octet-stream'"));
+    assert.ok(source.includes("'X-File-Name': encodeURIComponent(selectedNsxFile.name)"));
+    assert.ok(source.includes('body: selectedNsxFile'));
     assert.ok(source.includes('disabled={canPreview && !canCommitPreview}'));
     assert.ok(source.includes('等待网页解析接入'));
     assert.ok(source.includes("/api/imports/notestation/dry-run"));

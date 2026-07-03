@@ -7,7 +7,7 @@
 | 检查时间 | `2026-06-29 12:54:14 +08:00` |
 | dry-run 文件 | `data/imports/notestation/notestation-dry-run-preview.json` |
 | 含正文 sandbox 输入 | `data/imports/notestation/notestation-dry-run-preview-with-content.json` |
-| 真实样例文件 | `data/imports/notestation/20260629_112626_15568_ddrcpddr.nsx` |
+| 真实样例文件 | `data/imports/notestation/example-notestation-export.nsx` |
 | 隐私边界 | 本报告只记录统计和字段质量，不包含真实标题、正文、摘要、附件名或图片内容 |
 
 ## 字段质量统计

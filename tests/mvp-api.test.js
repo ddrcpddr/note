@@ -38,6 +38,73 @@ async function requestRaw(route, options = {}) {
   const data = text ? JSON.parse(text) : {};
   return { response, data };
 }
+function u16(value) {
+  const buffer = Buffer.alloc(2);
+  buffer.writeUInt16LE(value);
+  return buffer;
+}
+
+function u32(value) {
+  const buffer = Buffer.alloc(4);
+  buffer.writeUInt32LE(value);
+  return buffer;
+}
+
+function createStoredZip(entries) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const entry of entries) {
+    const name = Buffer.from(entry.name, 'utf8');
+    const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), 'utf8');
+    const localHeader = Buffer.concat([
+      u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(0), u32(data.length), u32(data.length), u16(name.length), u16(0), name
+    ]);
+    localParts.push(localHeader, data);
+
+    const centralHeader = Buffer.concat([
+      u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0), u32(0), u32(data.length), u32(data.length),
+      u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), name
+    ]);
+    centralParts.push(centralHeader);
+    offset += localHeader.length + data.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const end = Buffer.concat([
+    u32(0x06054b50), u16(0), u16(0), u16(entries.length), u16(entries.length), u32(centralDirectory.length), u32(offset), u16(0)
+  ]);
+
+  return Buffer.concat([...localParts, centralDirectory, end]);
+}
+
+function createWebImportNsxFixture() {
+  const notebookId = 'WEB_NOTEBOOK_1';
+  const noteId = 'WEB_NOTE_1';
+  const attachmentHash = 'abcdef1234567890';
+  return createStoredZip([
+    { name: 'config.json', data: JSON.stringify({ note: [noteId], notebook: [notebookId], todo: [] }) },
+    { name: notebookId, data: JSON.stringify({ title: '网页导入测试', stack: '' }) },
+    {
+      name: noteId,
+      data: JSON.stringify({
+        title: '网页 NSX 富文本记录',
+        brief: '网页端上传解析摘要',
+        content: '<div><strong>网页端上传解析正文</strong><ul><li>能进入富文本</li></ul></div>',
+        ctime: '2026-07-03T08:00:00Z',
+        mtime: '2026-07-03T08:30:00Z',
+        parent_id: notebookId,
+        tag: ['网页导入'],
+        attachment: {
+          first: { md5: attachmentHash, name: 'web-import.txt', size: 5, type: 'text', ext: 'txt' }
+        }
+      })
+    },
+    { name: 'file_' + attachmentHash, data: Buffer.from('hello') }
+  ]);
+}
+
 async function waitForHealth() {
   const startedAt = Date.now();
   let lastError;
@@ -640,5 +707,45 @@ describe('MVP API', () => {
     assert.equal(dryRun.importId, null);
     assert.ok(dryRun.requiredSampleInfo.length >= 3);
     assert.equal(afterNotes.notes.length, before.notes.length);
+  });
+
+  test('uploads previews and commits a real NSX file through the web import API', async () => {
+    const before = await requestJson('/api/notes?limit=all');
+    const nsx = createWebImportNsxFixture();
+    const preview = await requestJson('/api/imports/notestation/dry-run', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-File-Name': encodeURIComponent('web-import.nsx'),
+        'X-Member-Id': 'self'
+      },
+      body: nsx
+    });
+
+    assert.equal(preview.dryRun, true);
+    assert.equal(preview.status, 'previewed');
+    assert.ok(preview.importId);
+    assert.equal(preview.successCount, 1);
+    assert.equal(preview.failedCount, 0);
+    assert.equal(preview.attachmentCount, 1);
+    assert.equal(preview.records[0].title, '网页 NSX 富文本记录');
+    assert.match(preview.records[0].content, /网页端上传解析/);
+
+    const committed = await requestJson(`/api/imports/notestation/${preview.importId}/commit`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'self' })
+    });
+
+    assert.equal(committed.status, 'completed');
+    assert.equal(committed.importedNoteIds.length, 1);
+    assert.equal(committed.notes.length, 1);
+    assert.equal(committed.notes[0].sourceType, 'notestation_import');
+    assert.equal(committed.notes[0].attachments.length, 1);
+
+    const search = await requestJson(`/api/notes?search=${encodeURIComponent('网页端上传解析正文')}`);
+    assert.ok(search.notes.some((note) => committed.importedNoteIds.includes(note.id)));
+
+    const after = await requestJson('/api/notes?limit=all');
+    assert.equal(after.notes.length, before.notes.length + 1);
   });
 });
