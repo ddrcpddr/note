@@ -65,6 +65,31 @@ app.use((request, response, next) => {
   response.status(401).json({ error: '需要访问口令' });
 });
 
+app.get('/api/attachments/:id/file', (request, response) => {
+  const attachmentId = String(request.params.id || '').trim();
+  const attachment = getDb()
+    .prepare('SELECT original_name AS originalName, mime_type AS mimeType, storage_path AS storagePath FROM attachments WHERE id = ?')
+    .get(attachmentId);
+
+  if (!attachment) {
+    response.status(404).json({ error: '附件不存在' });
+    return;
+  }
+
+  const paths = getDataPaths();
+  const normalizedRelativePath = String(attachment.storagePath || '').replace(/\\/g, '/');
+  const absolutePath = path.resolve(paths.dataDir, normalizedRelativePath);
+  const dataRoot = path.resolve(paths.dataDir);
+  if ((!absolutePath.startsWith(`${dataRoot}${path.sep}`) && absolutePath !== dataRoot) || !existsSync(absolutePath)) {
+    response.status(404).json({ error: '附件文件不存在' });
+    return;
+  }
+
+  if (attachment.mimeType) response.type(attachment.mimeType);
+  response.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(attachment.originalName || 'attachment')}`);
+  response.sendFile(absolutePath);
+});
+
 app.get('/api/app-data', (_request, response) => {
   const db = getDb();
   const categories = db

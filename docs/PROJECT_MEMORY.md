@@ -1091,3 +1091,21 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 富文本目标改为“面向重新导入 Note Station 数据的最终富文本能力补齐”。推荐采用 Tiptap / ProseMirror，不再继续扩展轻量 `contenteditable`。建议长期字段为 `notes.content_text`、`notes.content_html`、`notes.content_json`、`notes.source_html`，并由 `attachments` 统一管理图片和附件。
 
 本轮仅更新方案文档，不开发代码、不改数据库、不清空数据。已更新：`docs/RICH_TEXT_IMPLEMENTATION_PLAN.md`、`docs/RICH_TEXT_FEATURE_PARITY.md`、`docs/NOTESTATION_IMPORT.md`、`docs/NEXT_STEPS.md` 和 `docs/PROJECT_MEMORY.md`。
+
+## 2026-07-03 - Note Station 兼容富文本编辑第一轮实现
+
+用户确认当前测试数据可以丢，允许调整数据库结构和重新导入 `.nsx`，但不能删除原始 `.nsx`，不能提交 `data/` 运行数据。
+
+本轮已实现面向重新导入 Note Station 的富文本第一轮能力：
+
+- 引入 Tiptap / ProseMirror 与 `sanitize-html`，替换旧的轻量 `contenteditable` 主编辑器。
+- `notes` 新增长期富文本字段：`content_text`、`content_html`、`content_json`、`source_html`、`content_format`、`content_version`；旧 `content` 继续作为 legacy 纯文本 fallback。
+- `attachments` 新增 `kind`、`content_ref_id`、`source_attachment_id`、`source_path`、`width`、`height`、`sort_order`、`is_inline`，用于统一管理正文图片和附件引用。
+- 新建 / 编辑记录页支持段落、标题、粗体、斜体、下划线、删除线、列表、待办、引用、链接、代码块、表格、对齐、文字颜色、背景高亮、清除格式、撤销/重做。
+- 图片上传和粘贴会写入本地附件系统并插入正文；附件可插入正文引用；详情页附件列表可打开 / 下载。
+- 服务端富文本清理禁止 script、iframe、事件属性、危险链接；允许基础文本格式、表格、待办 checkbox、安全图片和附件 URL。
+- JSON / Markdown 导出适配富文本：JSON 包含富文本字段，Markdown 尽量从 HTML 转换，保留待办和表格基础结构。
+- Note Station sample、sandbox、formal import 均已调整为写入新富文本字段；重新导入 `.nsx` 时会将原始 HTML 保留到 `source_html`，安全展示 HTML 写入 `content_html`，纯文本写入 `content_text`。
+- 未执行测试数据库清空；当前仅通过迁移方式升级结构。原始 `.nsx` 未删除，`data/` 仍不提交。
+
+当前仍需后续验证：重新用真实 `.nsx` dry-run / 导入，检查 Note Station 表格、待办、图片、附件和链接在真实数据中的恢复效果；复杂 HTML -> Tiptap JSON 转换仍需按真实样例渐进增强。

@@ -33,7 +33,7 @@ storageRouter.post('/export-markdown', (_request, response) => {
   const paths = getDataPaths();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const exportPath = path.join(paths.exportsDir, `notes-${timestamp}.md`);
-  const markdown = renderNotesMarkdown(listNotes({ limit: 'all' }));
+  const markdown = renderNotesMarkdown(listNotes({ limit: 'all', includeRichText: 'true' }));
   writeFileSync(exportPath, markdown, 'utf8');
   const fileSize = statSync(exportPath).size;
 
@@ -46,7 +46,7 @@ storageRouter.post('/export-json', (_request, response) => {
   const exportPath = path.join(paths.exportsDir, `notes-${timestamp}.json`);
   const payload = {
     exportedAt: new Date().toISOString(),
-    notes: listNotes({ limit: 'all' })
+    notes: listNotes({ limit: 'all', includeRichText: 'true' })
   };
   writeFileSync(exportPath, JSON.stringify(payload, null, 2), 'utf8');
   const fileSize = statSync(exportPath).size;
@@ -104,7 +104,7 @@ function renderNotesMarkdown(notes) {
     if (note.attachments?.length) lines.push(`- 附件：${note.attachments.map((attachment) => attachment.originalName || attachment.fileName).join('、')}`);
     if (note.originalPath) lines.push(`- 原始路径：${note.originalPath}`);
     lines.push('');
-    lines.push(note.contentHtml ? htmlToMarkdownSubset(note.contentHtml, note.content || note.summary || '') : note.content || note.summary || '');
+    lines.push(note.contentHtml ? htmlToMarkdownSubset(note.contentHtml, note.contentText || note.content || note.summary || '') : note.contentText || note.content || note.summary || '');
     lines.push('');
   }
 

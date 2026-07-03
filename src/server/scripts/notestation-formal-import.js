@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { dryRunNsxFile, readNsxEntryBuffer } from '../importers/notestation/nsx.js';
+import { prepareStoredRichText } from '../rich-text.js';
 
 const args = process.argv.slice(2);
 const filePath = args.find((arg) => !arg.startsWith('--'));
@@ -77,6 +78,12 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
         id,
         title,
         content,
+        content_text,
+        content_html,
+        content_json,
+        source_html,
+        content_format,
+        content_version,
         summary,
         category_id,
         member_id,
@@ -94,15 +101,15 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
         occurred_at
       )
     VALUES
-      (?, ?, ?, ?, 'uncategorized', 'self', 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uncategorized', 'self', 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
   const insertAttachment = db.prepare(`
     INSERT INTO attachments
-      (id, note_id, file_name, original_name, mime_type, file_size, storage_path, source_type)
+      (id, note_id, file_name, original_name, mime_type, file_size, storage_path, source_type, kind, source_attachment_id, source_path, sort_order, is_inline)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, 'notestation_import')
+      (?, ?, ?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, 0)
   `);
 
   db.exec('BEGIN');
@@ -127,12 +134,24 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
         originalNotebookPath: record.originalPath || record.rawMetadata?.originalNotebookPath || null,
         importSource: 'notestation_import'
       };
+      const originalHtml = rawMetadata.originalContentFormat === 'html' ? String(rawMetadata.originalContent || '') : '';
+      const richText = prepareStoredRichText({
+        content: record.content || record.summary || record.title,
+        contentHtml: originalHtml,
+        sourceHtml: originalHtml
+      });
 
       insertNote.run(
         noteId,
         record.title,
-        record.content || record.summary || record.title,
-        record.summary || record.title,
+        richText.legacyContent || record.content || record.summary || record.title,
+        richText.contentText || record.content || record.summary || record.title,
+        richText.contentHtml,
+        richText.contentJson,
+        richText.sourceHtml,
+        richText.contentFormat,
+        richText.contentVersion,
+        record.summary || richText.contentText || record.title,
         importId,
         record.originalTitle,
         record.originalPath,
@@ -180,6 +199,10 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
           attachmentResult.mimeType,
           attachmentResult.fileSize,
           attachmentResult.storagePath,
+          attachmentResult.mimeType?.startsWith('image/') ? 'image' : 'file',
+          attachment.id || attachment.fileName || null,
+          attachment.id || attachment.fileName || null,
+          index
         );
       }
     }

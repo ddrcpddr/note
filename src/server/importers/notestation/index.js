@@ -1,5 +1,6 @@
 import { createId, getDb, slugifyTag } from '../../db/database.js';
 import { notestationSampleFailures, notestationSampleRecords } from './sample.js';
+import { prepareStoredRichText } from '../../rich-text.js';
 
 export function createNotestationDryRunPreview(payload = {}) {
   const fileName = String(payload.fileName || 'notestation_export_sample.zip');
@@ -93,6 +94,12 @@ export function commitNotestationImport(importId, memberId = 'self') {
         id,
         title,
         content,
+        content_text,
+        content_html,
+        content_json,
+        source_html,
+        content_format,
+        content_version,
         summary,
         category_id,
         member_id,
@@ -110,7 +117,7 @@ export function commitNotestationImport(importId, memberId = 'self') {
         occurred_at
       )
     VALUES
-      (?, ?, ?, ?, ?, ?, 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
@@ -119,10 +126,22 @@ export function commitNotestationImport(importId, memberId = 'self') {
   try {
     for (const record of notestationSampleRecords) {
       const noteId = createId('note');
+      const originalHtml = record.rawMetadata?.originalContentFormat === 'html' ? String(record.rawMetadata.originalContent || '') : '';
+      const richText = prepareStoredRichText({
+        content: record.content,
+        contentHtml: originalHtml,
+        sourceHtml: originalHtml
+      });
       insertNote.run(
         noteId,
         record.title,
-        record.content,
+        richText.legacyContent || record.content,
+        richText.contentText || record.content,
+        richText.contentHtml,
+        richText.contentJson,
+        richText.sourceHtml,
+        richText.contentFormat,
+        richText.contentVersion,
         record.content.slice(0, 56),
         record.categoryId,
         memberId,

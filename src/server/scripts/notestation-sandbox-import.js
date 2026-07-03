@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { getDb, createId, slugifyTag } from '../db/database.js';
 import { dryRunNsxFile } from '../importers/notestation/nsx.js';
+import { prepareStoredRichText } from '../rich-text.js';
 
 const filePath = process.argv[2];
 if (!filePath) {
@@ -16,7 +17,7 @@ if (!sandboxTarget || !/sandbox|temp|test/i.test(sandboxTarget)) {
 
 const preview = filePath.toLowerCase().endsWith('.json')
   ? JSON.parse(readFileSync(filePath, 'utf8')).preview
-  : dryRunNsxFile(filePath, { includeContent: true });
+  : dryRunNsxFile(filePath, { includeContent: true, includeRawContent: true });
 const db = getDb();
 const importId = createId('import_nsx_sandbox');
 
@@ -38,6 +39,12 @@ const insertNote = db.prepare(`
       id,
       title,
       content,
+      content_text,
+      content_html,
+      content_json,
+      source_html,
+      content_format,
+      content_version,
       summary,
       category_id,
       member_id,
@@ -55,15 +62,15 @@ const insertNote = db.prepare(`
       occurred_at
     )
   VALUES
-    (?, ?, ?, ?, 'uncategorized', 'self', 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
+    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'uncategorized', 'self', 'normal', 'notestation_import', ?, 'saved', 'family', ?, ?, ?, ?, ?, ?, ?)
 `);
 const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
 const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
 const insertAttachment = db.prepare(`
   INSERT INTO attachments
-    (id, note_id, file_name, original_name, storage_path, source_type)
+    (id, note_id, file_name, original_name, storage_path, source_type, kind, source_attachment_id, source_path, sort_order, is_inline)
   VALUES
-    (?, ?, ?, ?, ?, 'notestation_import')
+    (?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, 0)
 `);
 
 db.exec('BEGIN');
@@ -83,18 +90,31 @@ try {
 
   for (const record of preview.records) {
     const noteId = createId('note');
+    const rawMetadata = record.rawMetadata || {};
+    const originalHtml = rawMetadata.originalContentFormat === 'html' ? String(rawMetadata.originalContent || '') : '';
+    const richText = prepareStoredRichText({
+      content: record.content || record.summary || record.title,
+      contentHtml: originalHtml,
+      sourceHtml: originalHtml
+    });
     insertNote.run(
       noteId,
       record.title,
-      record.content || record.summary || record.title,
-      record.summary || record.title,
+      richText.legacyContent || record.content || record.summary || record.title,
+      richText.contentText || record.content || record.summary || record.title,
+      richText.contentHtml,
+      richText.contentJson,
+      richText.sourceHtml,
+      richText.contentFormat,
+      richText.contentVersion,
+      record.summary || richText.contentText || record.title,
       importId,
       record.originalTitle,
       record.originalPath,
       record.originalCategory,
       record.originalCreatedAt,
       record.originalUpdatedAt,
-      JSON.stringify(record.rawMetadata || {}),
+      JSON.stringify(rawMetadata),
       record.originalCreatedAt
     );
 
@@ -113,7 +133,11 @@ try {
         noteId,
         fileName,
         originalName,
-        `imports/notestation/${fileName}`
+        `imports/notestation/${fileName}`,
+        guessAttachmentKind(fileName),
+        attachment.id || attachment.fileName || null,
+        attachment.id || attachment.fileName || null,
+        index
       );
     }
   }
@@ -136,3 +160,7 @@ console.log(JSON.stringify({
   dataDir: process.env.NOTE_DATA_DIR || null,
   dbPath: process.env.NOTE_DB_PATH || null
 }, null, 2));
+
+function guessAttachmentKind(fileName) {
+  return /\.(png|jpe?g|gif|webp)$/i.test(String(fileName || '')) ? 'image' : 'file';
+}

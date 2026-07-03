@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createId, getDataPaths, getDb, slugifyTag } from '../db/database.js';
-import { buildRichContentFromNote, richTextHtmlToPlainText, sanitizeRichTextHtml } from '../rich-text.js';
+import { buildRichContentFromNote, prepareStoredRichText } from '../rich-text.js';
 
 export const notesRouter = Router();
 
@@ -13,37 +13,51 @@ notesRouter.get('/', (request, response) => {
 notesRouter.post('/', (request, response) => {
   const db = getDb();
   const payload = request.body || {};
-  const richText = prepareRichTextPayload(payload);
-  const content = richText.content;
-  const generatedTitle = content.slice(0, 28) || '未命名记录';
-  const title = String(payload.title || '').trim() || generatedTitle;
   const noteId = createId('note');
   const categoryId = String(payload.categoryId || 'uncategorized');
   const memberId = String(payload.memberId || getCurrentMemberId());
   const noteType = String(payload.noteType || 'normal');
   const sourceType = String(payload.sourceType || 'manual');
-  const summary = String(payload.summary || content.slice(0, 56)).trim();
   const tags = Array.isArray(payload.tags) ? payload.tags.map((tag) => String(tag).trim()).filter(Boolean) : [];
-  const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
+  const attachmentPayloads = Array.isArray(payload.attachments) ? payload.attachments : [];
+  const preparedAttachments = attachmentPayloads.map((attachment, index) => {
+    const attachmentId = createId('attachment');
+    return { id: attachmentId, ...prepareAttachment(noteId, attachmentId, attachment, index) };
+  });
+  const richText = prepareRichTextPayload(payload, '', null, buildAttachmentMap(preparedAttachments));
+  const content = richText.contentText;
+  const generatedTitle = content.slice(0, 28) || '未命名记录';
+  const title = String(payload.title || '').trim() || generatedTitle;
+  const summary = String(payload.summary || content.slice(0, 56)).trim() || title;
 
   const insertNote = db.prepare(`
     INSERT INTO notes
-      (id, title, content, content_html, summary, category_id, member_id, note_type, source_type, save_status, visibility, occurred_at)
+      (id, title, content, content_text, content_html, content_json, source_html, content_format, content_version, summary, category_id, member_id, note_type, source_type, save_status, visibility, occurred_at)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, ?, 'saved', 'family', CURRENT_TIMESTAMP)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'saved', 'family', CURRENT_TIMESTAMP)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
-  const insertAttachment = db.prepare(`
-    INSERT INTO attachments
-      (id, note_id, file_name, original_name, mime_type, file_size, storage_path, source_type)
-    VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  const insertAttachment = createAttachmentInsertStatement(db);
 
   db.exec('BEGIN');
   try {
-    insertNote.run(noteId, title, content || title, richText.contentHtml, summary || title, categoryId, memberId, noteType, sourceType);
+    insertNote.run(
+      noteId,
+      title,
+      content || title,
+      content || title,
+      richText.contentHtml,
+      richText.contentJson,
+      richText.sourceHtml,
+      richText.contentFormat,
+      richText.contentVersion,
+      summary,
+      categoryId,
+      memberId,
+      noteType,
+      sourceType
+    );
 
     for (const tagName of tags) {
       const tagId = slugifyTag(tagName);
@@ -51,19 +65,8 @@ notesRouter.post('/', (request, response) => {
       insertNoteTag.run(noteId, tagId);
     }
 
-    for (const [index, attachment] of attachments.entries()) {
-      const attachmentId = createId('attachment');
-      const savedAttachment = prepareAttachment(noteId, attachmentId, attachment, index);
-      insertAttachment.run(
-        attachmentId,
-        noteId,
-        savedAttachment.fileName,
-        savedAttachment.originalName,
-        savedAttachment.mimeType,
-        savedAttachment.fileSize,
-        savedAttachment.storagePath,
-        sourceType
-      );
+    for (const attachment of preparedAttachments) {
+      insertPreparedAttachment(insertAttachment, noteId, attachment, sourceType);
     }
 
     db.exec('COMMIT');
@@ -153,7 +156,7 @@ notesRouter.delete('/:id', (request, response) => {
 notesRouter.patch('/:id', (request, response) => {
   const db = getDb();
   const noteId = String(request.params.id || '').trim();
-  const existing = listNotes({ id: noteId })[0];
+  const existing = listNotes({ id: noteId, includeRichText: 'true' })[0];
 
   if (!existing) {
     response.status(404).json({ error: '记录不存在' });
@@ -161,8 +164,13 @@ notesRouter.patch('/:id', (request, response) => {
   }
 
   const payload = request.body || {};
-  const richText = prepareRichTextPayload(payload, existing.content, existing.contentHtml);
-  const nextContent = richText.content;
+  const attachmentPayloads = Array.isArray(payload.attachments) ? payload.attachments : [];
+  const preparedAttachments = attachmentPayloads.map((attachment, index) => {
+    const attachmentId = createId('attachment');
+    return { id: attachmentId, ...prepareAttachment(noteId, attachmentId, attachment, index) };
+  });
+  const richText = prepareRichTextPayload(payload, existing.contentText || existing.content, existing.contentHtml, buildAttachmentMap(preparedAttachments));
+  const nextContent = richText.contentText;
   const generatedTitle = nextContent.slice(0, 28) || existing.title || '未命名记录';
   const nextTitle = String(payload.title ?? existing.title ?? '').trim() || generatedTitle;
   const nextCategoryId = String(payload.categoryId ?? existing.categoryId ?? 'uncategorized');
@@ -177,7 +185,12 @@ notesRouter.patch('/:id', (request, response) => {
     UPDATE notes
     SET title = ?,
         content = ?,
+        content_text = ?,
         content_html = ?,
+        content_json = ?,
+        source_html = COALESCE(?, source_html),
+        content_format = ?,
+        content_version = ?,
         summary = ?,
         category_id = ?,
         member_id = ?,
@@ -188,16 +201,35 @@ notesRouter.patch('/:id', (request, response) => {
   const deleteNoteTags = db.prepare('DELETE FROM note_tags WHERE note_id = ?');
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
+  const insertAttachment = createAttachmentInsertStatement(db);
 
   db.exec('BEGIN');
   try {
-    updateNote.run(nextTitle, nextContent || nextTitle, richText.contentHtml, nextSummary, nextCategoryId, nextMemberId, nextNoteType, noteId);
+    updateNote.run(
+      nextTitle,
+      nextContent || nextTitle,
+      nextContent || nextTitle,
+      richText.contentHtml,
+      richText.contentJson,
+      richText.sourceHtml,
+      richText.contentFormat,
+      richText.contentVersion,
+      nextSummary,
+      nextCategoryId,
+      nextMemberId,
+      nextNoteType,
+      noteId
+    );
     deleteNoteTags.run(noteId);
 
     for (const tagName of nextTags) {
       const tagId = slugifyTag(tagName);
       insertTag.run(tagId, tagName, tagId);
       insertNoteTag.run(noteId, tagId);
+    }
+
+    for (const attachment of preparedAttachments) {
+      insertPreparedAttachment(insertAttachment, noteId, attachment, 'manual');
     }
 
     db.exec('COMMIT');
@@ -223,18 +255,15 @@ export function listNotes(query = {}) {
   const params = [];
   const where = ['n.is_deleted = 0'];
 
-  if (!includeArchived) {
-    where.push('n.is_archived = 0');
-  }
-
+  if (!includeArchived) where.push('n.is_archived = 0');
   if (id) {
     where.push('n.id = ?');
     params.push(id);
   }
-
   if (search) {
     where.push(`(
       n.title LIKE ?
+      OR n.content_text LIKE ?
       OR n.content LIKE ?
       OR c.name LIKE ?
       OR m.name LIKE ?
@@ -244,24 +273,20 @@ export function listNotes(query = {}) {
         WHERE nts.note_id = n.id AND ts.name LIKE ?
       )
     )`);
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
   }
-
   if (category) {
     where.push('n.category_id = ?');
     params.push(category);
   }
-
   if (member) {
     where.push('n.member_id = ?');
     params.push(member);
   }
-
   if (source) {
     where.push('n.source_type = ?');
     params.push(source);
   }
-
   if (tag) {
     where.push(`EXISTS (
       SELECT 1 FROM note_tags ntf
@@ -279,7 +304,12 @@ export function listNotes(query = {}) {
         n.id,
         n.title,
         n.content,
+        COALESCE(NULLIF(n.content_text, ''), n.content) AS contentText,
         n.content_html AS contentHtml,
+        ${includeRichText ? 'n.content_json AS contentJson' : 'NULL AS contentJson'},
+        ${includeRichText ? 'n.source_html AS sourceHtml' : 'NULL AS sourceHtml'},
+        n.content_format AS contentFormat,
+        n.content_version AS contentVersion,
         n.summary,
         n.category_id AS categoryId,
         c.name AS categoryName,
@@ -315,7 +345,13 @@ export function listNotes(query = {}) {
             'originalName', a.original_name,
             'mimeType', a.mime_type,
             'fileSize', a.file_size,
-            'storagePath', a.storage_path
+            'storagePath', a.storage_path,
+            'kind', a.kind,
+            'isInline', a.is_inline,
+            'contentRefId', a.content_ref_id,
+            'sourceAttachmentId', a.source_attachment_id,
+            'sourcePath', a.source_path,
+            'downloadUrl', '/api/attachments/' || a.id || '/file'
           ))
           FROM attachments a
           WHERE a.note_id = n.id
@@ -330,9 +366,13 @@ export function listNotes(query = {}) {
     .all(...params)
     .map((row) => {
       const tags = JSON.parse(row.tags || '[]');
-      const attachments = JSON.parse(row.attachments || '[]');
+      const attachments = JSON.parse(row.attachments || '[]').map((attachment) => ({
+        ...attachment,
+        isInline: Boolean(attachment.isInline)
+      }));
       const note = {
         ...row,
+        content: row.contentText || row.content || '',
         isArchived: Boolean(row.isArchived),
         tags,
         attachments
@@ -342,51 +382,93 @@ export function listNotes(query = {}) {
       if (includeRichText) {
         const richContent = buildRichContentFromNote(row);
         if (richContent) note.richContent = richContent;
+      } else {
+        delete note.contentJson;
+        delete note.sourceHtml;
       }
 
       return note;
     });
 }
 
-function noteIdsFromPayload(noteIds) {
-  return noteIds.map((id) => String(id).trim()).filter(Boolean);
-}
-
-function prepareRichTextPayload(payload, fallbackContent = '', fallbackContentHtml = null) {
-  const hasContent = Object.prototype.hasOwnProperty.call(payload, 'content');
-  const hasContentHtml = Object.prototype.hasOwnProperty.call(payload, 'contentHtml');
-  if (!hasContent && !hasContentHtml && fallbackContentHtml) {
-    const sanitizedFallbackHtml = sanitizeRichTextHtml(fallbackContentHtml);
-    return {
-      content: String(fallbackContent || richTextHtmlToPlainText(sanitizedFallbackHtml) || '').trim(),
-      contentHtml: sanitizedFallbackHtml || null
-    };
+function prepareRichTextPayload(payload, fallbackContent = '', fallbackContentHtml = null, attachmentMap = {}) {
+  const hasAnyRichField = ['content', 'contentHtml', 'contentJson', 'sourceHtml'].some((key) => Object.prototype.hasOwnProperty.call(payload, key));
+  if (!hasAnyRichField && fallbackContentHtml) {
+    return prepareStoredRichText({ content: fallbackContent, contentHtml: fallbackContentHtml, attachmentMap });
   }
 
-  const rawHtml = typeof payload.contentHtml === 'string' ? payload.contentHtml : '';
-  const sanitizedHtml = rawHtml.trim() ? sanitizeRichTextHtml(rawHtml) : '';
-  const plainFromHtml = sanitizedHtml ? richTextHtmlToPlainText(sanitizedHtml) : '';
-  const plainContent = String(payload.content ?? fallbackContent ?? '').trim();
-  const content = (plainFromHtml || plainContent).trim();
+  return prepareStoredRichText({
+    content: payload.content ?? fallbackContent,
+    contentHtml: typeof payload.contentHtml === 'string' ? payload.contentHtml : '',
+    contentJson: payload.contentJson || null,
+    sourceHtml: typeof payload.sourceHtml === 'string' ? payload.sourceHtml : '',
+    attachmentMap
+  });
+}
 
-  return {
-    content,
-    contentHtml: sanitizedHtml && content ? sanitizedHtml : null
-  };
+function createAttachmentInsertStatement(db) {
+  return db.prepare(`
+    INSERT INTO attachments
+      (id, note_id, file_name, original_name, mime_type, file_size, storage_path, hash, source_type, kind, content_ref_id, source_attachment_id, source_path, width, height, sort_order, is_inline)
+    VALUES
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+}
+
+function insertPreparedAttachment(statement, noteId, attachment, sourceType) {
+  statement.run(
+    attachment.id,
+    noteId,
+    attachment.fileName,
+    attachment.originalName,
+    attachment.mimeType,
+    attachment.fileSize,
+    attachment.storagePath,
+    attachment.hash,
+    attachment.sourceType || sourceType,
+    attachment.kind,
+    attachment.contentRefId,
+    attachment.sourceAttachmentId,
+    attachment.sourcePath,
+    attachment.width,
+    attachment.height,
+    attachment.sortOrder,
+    attachment.isInline ? 1 : 0
+  );
+}
+
+function buildAttachmentMap(attachments) {
+  return attachments.reduce((map, attachment) => {
+    if (attachment.draftRef) map[attachment.draftRef] = attachment;
+    return map;
+  }, {});
 }
 
 function prepareAttachment(noteId, attachmentId, attachment, index) {
   const originalName = sanitizeAttachmentName(attachment.originalName || attachment.fileName, `附件-${index + 1}`);
   const mimeType = attachment.mimeType || null;
   const contentBase64 = typeof attachment.contentBase64 === 'string' ? attachment.contentBase64 : '';
+  const kind = String(attachment.kind || (mimeType?.startsWith('image/') ? 'image' : 'file'));
+  const isInline = Boolean(attachment.isInline || attachment.draftRef || kind === 'image-inline');
+  const normalizedKind = kind === 'image-inline' ? 'image' : kind;
 
   if (!contentBase64) {
     return {
+      draftRef: attachment.draftRef || null,
       fileName: sanitizeAttachmentName(attachment.fileName || originalName, originalName),
       originalName,
       mimeType,
       fileSize: Number(attachment.fileSize || 0),
-      storagePath: String(attachment.storagePath || `attachments/${originalName}`)
+      storagePath: String(attachment.storagePath || `attachments/${originalName}`),
+      hash: attachment.hash || null,
+      kind: normalizedKind,
+      contentRefId: attachment.contentRefId || attachment.draftRef || null,
+      sourceAttachmentId: attachment.sourceAttachmentId || null,
+      sourcePath: attachment.sourcePath || null,
+      width: Number.isFinite(Number(attachment.width)) ? Number(attachment.width) : null,
+      height: Number.isFinite(Number(attachment.height)) ? Number(attachment.height) : null,
+      sortOrder: Number(attachment.sortOrder ?? index),
+      isInline
     };
   }
 
@@ -398,12 +480,26 @@ function prepareAttachment(noteId, attachmentId, attachment, index) {
   writeFileSync(path.join(targetDir, fileName), buffer);
 
   return {
+    draftRef: attachment.draftRef || null,
     fileName,
     originalName,
     mimeType,
     fileSize: buffer.length,
-    storagePath
+    storagePath,
+    hash: attachment.hash || null,
+    kind: normalizedKind,
+    contentRefId: attachment.contentRefId || attachment.draftRef || null,
+    sourceAttachmentId: attachment.sourceAttachmentId || null,
+    sourcePath: attachment.sourcePath || null,
+    width: Number.isFinite(Number(attachment.width)) ? Number(attachment.width) : null,
+    height: Number.isFinite(Number(attachment.height)) ? Number(attachment.height) : null,
+    sortOrder: Number(attachment.sortOrder ?? index),
+    isInline
   };
+}
+
+function noteIdsFromPayload(noteIds) {
+  return noteIds.map((id) => String(id).trim()).filter(Boolean);
 }
 
 function sanitizeAttachmentName(value, fallback) {

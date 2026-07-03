@@ -334,3 +334,15 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 - 分类页在 `未分类 / 待整理` 卡片显示导入记录待整理数量，提醒用户后续可以人工整理。
 - Notes API 支持 `source=notestation_import`，用于搜索页来源筛选和后续自动化验收。
 - 当前仍不做批量分类迁移、不猜测 Note Station 原分类与家庭分类的自动映射，也不修改真实导入内容。
+
+## 2026-07-03 富文本字段兼容更新
+
+为支持后续重新导入 `.nsx` 并尽量保留 Note Station 富文本结构，导入链路已更新为写入新的正文结构：
+
+- `notes.content_text`：从 Note Station 正文提取的纯文本，用于搜索、列表摘要和降级展示。
+- `notes.content_html`：服务端清理后的安全 HTML，用于详情页展示。
+- `notes.content_json`：Tiptap / ProseMirror 编辑结构。当前对复杂 Note Station HTML 仍以安全 HTML 为主，后续按真实样例逐步增强转换。
+- `notes.source_html`：Note Station 原始 HTML，用于重新导入溯源和未来转换增强；页面不会直接渲染该字段。
+- `attachments.kind` / `source_attachment_id` / `source_path`：用于保留图片和附件来源关系。
+
+当前 sample、sandbox、formal import 脚本均已接入上述字段。重新正式导入前仍建议先 dry-run，并重点人工检查表格、待办、图片、附件、链接、颜色和高亮的恢复效果。

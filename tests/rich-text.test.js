@@ -14,6 +14,7 @@ const {
   buildRichContentFromNote,
   htmlToMarkdownSubset,
   plainTextToRichTextHtml,
+  prepareStoredRichText,
   richTextHtmlToPlainText,
   sanitizeRichTextHtml
 } = await import('../src/server/rich-text.js');
@@ -42,8 +43,8 @@ describe('Safe rich text read-only rendering', () => {
     assert.equal(richContent.format, 'html');
     assert.match(richContent.html, /<strong>宽带续费<\/strong>/);
     assert.match(richContent.html, /href="https:\/\/example\.com\/path\?x=1&amp;y=2"/);
-    assert.match(richContent.html, /图片附件已保留在附件列表/);
-    assert.doesNotMatch(richContent.html, /script|iframe|onclick|onerror|onmouseover|javascript:|<img/i);
+    assert.match(richContent.html, /<img src="https:\/\/example\.com\/private\.png" alt="图片" \/>/);
+    assert.doesNotMatch(richContent.html, /script|iframe|onclick|onerror|onmouseover|javascript:/i);
   });
 
   test('keeps plain text as fallback and search source', () => {
@@ -106,10 +107,10 @@ describe('Safe rich text read-only rendering', () => {
     assert.match(sanitized, /<h2>小标题<\/h2>/);
     assert.match(sanitized, /<strong>重要<\/strong>/);
     assert.match(sanitized, /href="https:\/\/example\.com\?a=1&amp;b=2"/);
-    assert.match(sanitized, /<hr>/);
+    assert.match(sanitized, /<hr\s*\/?/);
     assert.doesNotMatch(sanitized, /script|onclick|javascript:/i);
 
-    assert.equal(richTextHtmlToPlainText(sanitized), '小标题\n今天记一条 重要 事情。\n买灯泡\n保修链接\n坏链接');
+    assert.equal(richTextHtmlToPlainText(sanitized), '小标题\n\n今天记一条 重要 事情。\n\n买灯泡\n保修链接\n\n---\n\n坏链接');
 
     const markdown = htmlToMarkdownSubset(sanitized, 'fallback text');
     assert.match(markdown, /## 小标题/);
@@ -117,6 +118,36 @@ describe('Safe rich text read-only rendering', () => {
     assert.match(markdown, /- 买灯泡/);
     assert.match(markdown, /- \[保修链接\]\(https:\/\/example\.com\?a=1&b=2\)/);
     assert.match(markdown, /---/);
+  });
+
+
+  test('keeps Note Station-compatible task lists, tables, colors and inline image references', () => {
+    const html = `
+      <p style="color:#0F766E;background-color:#FEF3C7;text-align:center" onclick="bad()">带颜色的段落</p>
+      <ul data-type="taskList"><li data-type="taskItem" data-checked="true"><label><input type="checkbox" checked onclick="bad()"></label><div><p>已完成事项</p></div></li></ul>
+      <table><tbody><tr><th>项目</th><th>状态</th></tr><tr><td>宽带</td><td>已续费</td></tr></tbody></table>
+    `;
+
+    const sanitized = sanitizeRichTextHtml(html);
+    assert.match(sanitized, /color:#0F766E/);
+    assert.match(sanitized, /background-color:#FEF3C7/);
+    assert.match(sanitized, /text-align:center/);
+    assert.match(sanitized, /data-checked="true"/);
+    assert.match(sanitized, /<table>/);
+    assert.doesNotMatch(sanitized, /onclick|script/i);
+
+    const markdown = htmlToMarkdownSubset(sanitized, 'fallback');
+    assert.match(markdown, /- \[x\] 已完成事项/);
+    assert.match(markdown, /\| 项目 \| 状态 \|/);
+
+    const stored = prepareStoredRichText({
+      contentHtml: '<p>正文图片</p><img src="data:image/png;base64,abc" alt="照片" data-draft-ref="draft-image">',
+      attachmentMap: {
+        'draft-image': { id: 'attachment_1', originalName: '照片.png' }
+      }
+    });
+    assert.match(stored.contentHtml, /\/api\/attachments\/attachment_1\/file/);
+    assert.match(stored.contentHtml, /data-attachment-id="attachment_1"/);
   });
 
   test('prefers edited content_html over imported raw metadata', () => {

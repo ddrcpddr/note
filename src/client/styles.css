@@ -195,3 +195,76 @@
     @apply my-1 inline-flex max-w-full items-center rounded-full border border-dashed border-line bg-soft px-3 py-1 text-[12px] text-muted;
   }
 }
+
+@layer components {
+  .rich-text-content img,
+  .rich-text-editor img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 14px;
+    margin: 10px 0;
+  }
+
+  .rich-text-content table,
+  .rich-text-editor table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 12px;
+  }
+
+  .rich-text-content :has(> table),
+  .rich-text-editor :has(> table) {
+    overflow-x: auto;
+  }
+
+  .rich-text-content th,
+  .rich-text-content td,
+  .rich-text-editor th,
+  .rich-text-editor td {
+    border: 1px solid #E5E7EB;
+    padding: 8px 10px;
+    min-width: 76px;
+    vertical-align: top;
+  }
+
+  .rich-text-content th,
+  .rich-text-editor th {
+    background: #F3F4F6;
+    font-weight: 700;
+  }
+
+  .rich-text-content ul[data-type="taskList"],
+  .rich-text-editor ul[data-type="taskList"] {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .rich-text-content li[data-type="taskItem"],
+  .rich-text-editor li[data-type="taskItem"] {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .rich-text-content li[data-type="taskItem"] > label,
+  .rich-text-editor li[data-type="taskItem"] > label {
+    margin-top: 2px;
+  }
+
+  .rich-text-content li[data-type="taskItem"] > div,
+  .rich-text-editor li[data-type="taskItem"] > div {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: #9CA3AF;
+    pointer-events: none;
+    height: 0;
+  }
+}

@@ -299,3 +299,26 @@ Markdown 导出：
 10. JSON / Markdown 导出适配。
 11. 自动化测试覆盖新字段、XSS、搜索、导出、导入、图片、表格、待办。
 12. 用户重新导入真实 `.nsx`，再做导入效果修正。
+## 14. 2026-07-03 实施状态：第一轮已落地
+
+本轮已从方案进入代码实现，当前不再使用轻量 `contenteditable` 作为主编辑器。
+
+已完成：
+
+- 引入 Tiptap / ProseMirror 相关扩展和服务端 `sanitize-html`。
+- `notes` 表新增并迁移长期字段：`content_text`、`content_html`、`content_json`、`source_html`、`content_format`、`content_version`。
+- `attachments` 表新增富文本关联字段：`kind`、`content_ref_id`、`source_attachment_id`、`source_path`、`width`、`height`、`sort_order`、`is_inline`。
+- 新建 / 编辑记录页接入 Tiptap：段落、H2/H3、粗体、斜体、下划线、删除线、无序/有序列表、待办列表、引用、链接、代码块、表格、左/中/右对齐、文字颜色、背景高亮、清除格式、撤销/重做。
+- 图片上传和粘贴会作为 draft attachment 写入附件系统，并在保存时把正文图片替换为 `/api/attachments/:id/file`。
+- 附件可插入正文引用，详情页附件列表支持打开 / 下载。
+- 详情页继续使用服务端清理后的 HTML 展示富文本，纯文本作为 fallback。
+- 搜索继续基于 `content_text` / legacy `content`，不搜索 HTML 标签。
+- JSON 导出包含富文本字段；Markdown 导出优先从富文本 HTML 转换，保留表格和待办的基础 Markdown 表达。
+- Note Station sample / sandbox / formal import 已调整为写入 `content_text`、`content_html`、`content_json`、`source_html`，重新导入 `.nsx` 时会保留原始 HTML 到 `source_html`，安全 HTML 到 `content_html`。
+
+仍需后续加强：
+
+- HTML -> Tiptap JSON 的完整结构转换仍是渐进项；复杂 Note Station HTML 当前优先保证安全展示和再次编辑的基础兼容。
+- 表格编辑只做简单插入和基础编辑，尚未做手机端行列操作面板。
+- 图片尺寸读取、缩略图、图片替换 / 删除、附件引用的精致卡片化仍待补。
+- 重新导入真实 `.nsx` 后，需要根据真实 HTML 结构继续修正表格、待办、图片和附件关联。

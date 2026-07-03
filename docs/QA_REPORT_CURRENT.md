@@ -117,3 +117,38 @@ npm.cmd run build
 - 这是新版 Figma Make 视觉接入第一轮，主要完成全局视觉密度和分类页硬问题收敛；设置页、导入页、详情页底部操作等仍建议后续逐页细调。
 - 如果用户在 3300 Docker 端口查看不到变化，需要重建 / 重启 Docker 容器，或改用明确的本地服务端口查看最新构建产物。
 - 后续 UI 调整必须继续以 `docs/FIGMA_IMPLEMENTATION_SPECS.md` 和新版 Figma 390 x 844 Frame 为准，不再按旧版大字号视觉继续微调。
+
+---
+
+测试时间：2026-07-03
+
+当前目标：补齐面向后续重新导入 Synology Note Station 数据的富文本编辑能力。本轮允许调整测试库 schema，但不删除原始 `.nsx`，不提交 `data/` 运行数据。
+
+## 本轮范围
+
+- 新增富文本长期字段：`content_text`、`content_html`、`content_json`、`source_html`、`content_format`、`content_version`。
+- 扩展附件元数据：区分图片 / 附件、正文引用、源附件路径、尺寸、排序、是否正文内联。
+- 新建 / 编辑页接入 Tiptap 富文本编辑器，支持常用格式、待办列表、表格、链接、图片、附件引用。
+- 详情页继续通过安全 HTML 清理后展示富文本；搜索、列表摘要继续基于纯文本。
+- JSON / Markdown 导出兼容富文本字段。
+- Note Station sandbox / formal 导入写入新的富文本字段和附件元数据，保留原始 HTML 到 `source_html`。
+
+## 本轮运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+## 测试结果
+
+- `npm.cmd run check`：通过，`ok=true`，`integrityCheck=ok`，`categoryCount=11`，`noteCount=114`。
+- `npm.cmd run test`：通过，11 个 suite，41 个 test，41 个 pass，0 个 fail。
+- `npm.cmd run build`：通过，Vite 成功生成 `dist/` 构建产物。
+
+## 已知问题
+
+- Tiptap 让前端主 bundle 超过 500KB，Vite 输出 chunk size warning；不影响构建成功，后续可按需做动态加载或拆包。
+- 当前富文本第一轮偏实用稳定，表格复杂编辑、图片尺寸调整、附件引用体验仍可继续打磨。
+- 当前没有提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。

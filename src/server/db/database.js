@@ -91,7 +91,12 @@ function initializeSchema(database) {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
+      content_text TEXT NOT NULL DEFAULT '',
       content_html TEXT,
+      content_json TEXT,
+      source_html TEXT,
+      content_format TEXT NOT NULL DEFAULT 'plain_text',
+      content_version INTEGER NOT NULL DEFAULT 2,
       summary TEXT,
       category_id TEXT,
       member_id TEXT,
@@ -133,6 +138,14 @@ function initializeSchema(database) {
       storage_path TEXT NOT NULL,
       hash TEXT,
       source_type TEXT NOT NULL DEFAULT 'manual',
+      kind TEXT NOT NULL DEFAULT 'file',
+      content_ref_id TEXT,
+      source_attachment_id TEXT,
+      source_path TEXT,
+      width INTEGER,
+      height INTEGER,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      is_inline INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
     );
@@ -180,7 +193,21 @@ function migrateSchema(database) {
   addColumnIfMissing(database, 'notes', 'save_status', "TEXT NOT NULL DEFAULT 'saved'");
   addColumnIfMissing(database, 'notes', 'visibility', "TEXT NOT NULL DEFAULT 'family'");
   addColumnIfMissing(database, 'notes', 'raw_metadata', 'TEXT');
+  addColumnIfMissing(database, 'notes', 'content_text', "TEXT NOT NULL DEFAULT ''");
   addColumnIfMissing(database, 'notes', 'content_html', 'TEXT');
+  addColumnIfMissing(database, 'notes', 'content_json', 'TEXT');
+  addColumnIfMissing(database, 'notes', 'source_html', 'TEXT');
+  addColumnIfMissing(database, 'notes', 'content_format', "TEXT NOT NULL DEFAULT 'plain_text'");
+  addColumnIfMissing(database, 'notes', 'content_version', 'INTEGER NOT NULL DEFAULT 2');
+  addColumnIfMissing(database, 'attachments', 'kind', "TEXT NOT NULL DEFAULT 'file'");
+  addColumnIfMissing(database, 'attachments', 'content_ref_id', 'TEXT');
+  addColumnIfMissing(database, 'attachments', 'source_attachment_id', 'TEXT');
+  addColumnIfMissing(database, 'attachments', 'source_path', 'TEXT');
+  addColumnIfMissing(database, 'attachments', 'width', 'INTEGER');
+  addColumnIfMissing(database, 'attachments', 'height', 'INTEGER');
+  addColumnIfMissing(database, 'attachments', 'sort_order', 'INTEGER NOT NULL DEFAULT 0');
+  addColumnIfMissing(database, 'attachments', 'is_inline', 'INTEGER NOT NULL DEFAULT 0');
+  database.exec("UPDATE notes SET content_text = content WHERE (content_text IS NULL OR content_text = '') AND content IS NOT NULL;");
 }
 
 function addColumnIfMissing(database, tableName, columnName, definition) {
@@ -233,9 +260,9 @@ function seedDefaults(database) {
 function seedExampleNotes(database) {
   const insertNote = database.prepare(`
     INSERT INTO notes
-      (id, title, content, summary, category_id, member_id, note_type, source_type, occurred_at, save_status, visibility)
+      (id, title, content, content_text, content_html, content_json, summary, category_id, member_id, note_type, source_type, occurred_at, save_status, visibility)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'saved', 'family')
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'saved', 'family')
   `);
   const insertNoteTag = database.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
   const insertAttachment = database.prepare(`
@@ -250,6 +277,9 @@ function seedExampleNotes(database) {
       note.id,
       note.title,
       note.content,
+      note.content,
+      note.contentHtml || null,
+      note.contentJson ? JSON.stringify(note.contentJson) : null,
       note.summary,
       note.categoryId,
       note.memberId,

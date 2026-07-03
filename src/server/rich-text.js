@@ -1,28 +1,78 @@
-const ALLOWED_TAGS = new Set([
-  'p',
-  'br',
-  'strong',
-  'b',
-  'em',
-  'i',
-  'u',
-  's',
-  'h2',
-  'h3',
-  'ul',
-  'ol',
-  'li',
-  'blockquote',
-  'a',
-  'hr',
-  'code',
-  'pre'
-]);
+import sanitizeHtml from 'sanitize-html';
 
-const VOID_TAGS = new Set(['br', 'hr']);
-const BLOCKED_TAGS = 'script|style|iframe|object|embed|form|input|button|textarea|select|option|link|meta|svg|math';
-const BLOCKED_BLOCK_RE = new RegExp(`<\\s*(${BLOCKED_TAGS})\\b[^>]*>[\\s\\S]*?<\\s*\\/\\s*\\1\\s*>`, 'gi');
-const BLOCKED_SINGLE_RE = new RegExp(`<\\s*\\/?\\s*(${BLOCKED_TAGS})\\b[^>]*>`, 'gi');
+const COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$|^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
+const SAFE_PROTOCOLS = ['http', 'https', 'mailto', 'tel'];
+
+const SANITIZE_OPTIONS = {
+  allowedTags: [
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'del',
+    'h1', 'h2', 'h3', 'h4',
+    'ul', 'ol', 'li',
+    'blockquote', 'hr',
+    'a', 'img',
+    'pre', 'code',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'span', 'label', 'input'
+  ],
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    img: ['src', 'alt', 'width', 'height', 'data-attachment-id'],
+    span: ['style', 'data-checked'],
+    ul: ['data-type'],
+    label: [],
+    input: ['type', 'checked', 'disabled'],
+    p: ['style', 'data-text-align'],
+    h1: ['style', 'data-text-align'],
+    h2: ['style', 'data-text-align'],
+    h3: ['style', 'data-text-align'],
+    h4: ['style', 'data-text-align'],
+    li: ['data-type', 'data-checked'],
+    td: ['colspan', 'rowspan'],
+    th: ['colspan', 'rowspan']
+  },
+  allowedSchemes: [...SAFE_PROTOCOLS, 'data'],
+  allowedSchemesByTag: {
+    img: ['http', 'https', 'data']
+  },
+  transformTags: {
+    a: sanitizeLinkTag,
+    img: sanitizeImageTag,
+    span: sanitizeStyledTag,
+    p: sanitizeAlignedTag,
+    h1: sanitizeAlignedTag,
+    h2: sanitizeAlignedTag,
+    h3: sanitizeAlignedTag,
+    h4: sanitizeAlignedTag,
+    input: sanitizeCheckboxTag
+  },
+  exclusiveFilter(frame) {
+    return frame.tag === 'img' && !frame.attribs.src;
+  }
+};
+
+export function prepareStoredRichText({ content = '', contentHtml = '', contentJson = null, sourceHtml = '', attachmentMap = {} } = {}) {
+  const htmlWithAttachments = replaceDraftImageSources(String(contentHtml || ''), attachmentMap);
+  const sanitizedHtml = sanitizeRichTextHtml(htmlWithAttachments);
+  const rawSourceHtml = String(sourceHtml || '').trim();
+  const sanitizedSourceHtml = rawSourceHtml ? sanitizeRichTextHtml(rawSourceHtml) : '';
+  const normalizedJson = normalizeContentJson(contentJson);
+  const text = (
+    richTextHtmlToPlainText(sanitizedHtml)
+    || richTextJsonToPlainText(normalizedJson)
+    || richTextHtmlToPlainText(sanitizedSourceHtml)
+    || String(content || '')
+  ).trim();
+
+  return {
+    contentText: text,
+    contentHtml: sanitizedHtml || null,
+    contentJson: normalizedJson ? JSON.stringify(normalizedJson) : null,
+    sourceHtml: rawSourceHtml || null,
+    legacyContent: text || String(content || '').trim(),
+    contentFormat: normalizedJson ? 'tiptap_json' : (sanitizedHtml || sanitizedSourceHtml) ? 'html' : 'plain_text',
+    contentVersion: 2
+  };
+}
 
 export function buildRichContentFromMetadata(rawMetadataValue) {
   const rawMetadata = parseRawMetadata(rawMetadataValue);
@@ -42,12 +92,18 @@ export function buildRichContentFromNote(row = {}) {
     if (richContent) return richContent;
   }
 
+  const sourceHtml = String(row.sourceHtml || row.source_html || '').trim();
+  if (sourceHtml) {
+    const richContent = buildRichContent(sourceHtml, 'source_html');
+    if (richContent) return richContent;
+  }
+
   return buildRichContentFromMetadata(row.rawMetadata || row.raw_metadata);
 }
 
 function buildRichContent(htmlValue, source) {
   const html = sanitizeRichTextHtml(htmlValue);
-  if (!stripTags(html)) return null;
+  if (!stripTags(html) && !/<img\b|<table\b|data-attachment-id/i.test(html)) return null;
 
   return {
     format: 'html',
@@ -61,35 +117,10 @@ export function sanitizeRichTextHtml(value) {
   if (!html.trim()) return '';
 
   html = html
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<!doctype[^>]*>/gi, '')
-    .replace(BLOCKED_BLOCK_RE, '')
-    .replace(BLOCKED_SINGLE_RE, '');
+    .replace(/<!--([\s\S]*?)-->/g, '')
+    .replace(/<!doctype[^>]*>/gi, '');
 
-  return html.replace(/<\/?([a-zA-Z][\w:-]*)([^>]*)>/g, (match, tagName, attrs) => {
-    const tag = String(tagName || '').toLowerCase();
-    const isClosing = /^<\s*\//.test(match);
-
-    if (tag === 'div') {
-      return isClosing ? '</p>' : '<p>';
-    }
-
-    if (tag === 'img') {
-      return isClosing ? '' : '<span class="rich-text-attachment-placeholder">图片附件已保留在附件列表</span>';
-    }
-
-    if (!ALLOWED_TAGS.has(tag)) return '';
-    if (isClosing) return VOID_TAGS.has(tag) ? '' : `</${tag}>`;
-    if (VOID_TAGS.has(tag)) return `<${tag}>`;
-
-    if (tag === 'a') {
-      const href = sanitizeHref(extractHref(attrs));
-      if (!href) return '<a>';
-      return `<a href="${escapeAttribute(href)}" target="_blank" rel="noopener noreferrer">`;
-    }
-
-    return `<${tag}>`;
-  });
+  return sanitizeHtml(html, SANITIZE_OPTIONS).trim();
 }
 
 export function richTextHtmlToPlainText(value) {
@@ -97,13 +128,15 @@ export function richTextHtmlToPlainText(value) {
   return decodeHtmlEntities(
     html
       .replace(/<\s*br\s*\/?>/gi, '\n')
-      .replace(/<\s*hr\s*\/?>/gi, '\n')
-      .replace(/<\s*\/(p|h2|h3|li|blockquote|pre)\s*>/gi, '\n')
-      .replace(/<\s*(p|h2|h3|li|blockquote|pre|ul|ol)\b[^>]*>/gi, '')
+      .replace(/<\s*hr\s*\/?>/gi, '\n---\n')
+      .replace(/<\s*\/tr\s*>/gi, '\n')
+      .replace(/<\s*\/(p|h1|h2|h3|h4|li|blockquote|pre|div|table)\s*>/gi, '\n')
+      .replace(/<\s*\/(td|th)\s*>/gi, '\t')
+      .replace(/<img\b[^>]*alt="([^"]*)"[^>]*>/gi, (_, alt) => alt ? `\n[图片：${alt}]\n` : '\n[图片]\n')
       .replace(/<[^>]*>/g, '')
       .replace(/[ \t]+\n/g, '\n')
       .replace(/\n[ \t]+/g, '\n')
-      .replace(/\n{2,}/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim()
   );
 }
@@ -123,12 +156,18 @@ export function htmlToMarkdownSubset(value, fallback = '') {
   if (!html.trim()) return String(fallback || '').trim();
 
   let markdown = html;
-  markdown = markdown.replace(/<h2>([\s\S]*?)<\/h2>/gi, (_, body) => `\n## ${inlineMarkdown(body)}\n`);
-  markdown = markdown.replace(/<h3>([\s\S]*?)<\/h3>/gi, (_, body) => `\n### ${inlineMarkdown(body)}\n`);
-  markdown = markdown.replace(/<blockquote>([\s\S]*?)<\/blockquote>/gi, (_, body) => `\n> ${inlineMarkdown(body).replace(/\n/g, '\n> ')}\n`);
-  markdown = markdown.replace(/<li>([\s\S]*?)<\/li>/gi, (_, body) => `\n- ${inlineMarkdown(body)}`);
-  markdown = markdown.replace(/<hr>/gi, '\n---\n');
-  markdown = markdown.replace(/<p>([\s\S]*?)<\/p>/gi, (_, body) => `\n${inlineMarkdown(body)}\n`);
+  markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_, body) => `\n# ${inlineMarkdown(body)}\n`);
+  markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_, body) => `\n## ${inlineMarkdown(body)}\n`);
+  markdown = markdown.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_, body) => `\n### ${inlineMarkdown(body)}\n`);
+  markdown = markdown.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_, body) => `\n#### ${inlineMarkdown(body)}\n`);
+  markdown = markdown.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_, body) => `\n> ${inlineMarkdown(body).replace(/\n/g, '\n> ')}\n`);
+  markdown = markdown.replace(/<li[^>]*data-checked="true"[^>]*>([\s\S]*?)<\/li>/gi, (_, body) => `\n- [x] ${inlineMarkdown(body)}`);
+  markdown = markdown.replace(/<li[^>]*data-checked="false"[^>]*>([\s\S]*?)<\/li>/gi, (_, body) => `\n- [ ] ${inlineMarkdown(body)}`);
+  markdown = markdown.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, body) => `\n- ${inlineMarkdown(body)}`);
+  markdown = markdown.replace(/<img\b[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, (_, src, alt) => `\n![${decodeHtmlEntities(alt)}](${decodeHtmlEntities(src)})\n`);
+  markdown = markdown.replace(/<hr\s*\/?>/gi, '\n---\n');
+  markdown = markdown.replace(/<table[\s\S]*?<\/table>/gi, (table) => tableToMarkdown(table));
+  markdown = markdown.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_, body) => `\n${inlineMarkdown(body)}\n`);
   markdown = inlineMarkdown(markdown);
   markdown = markdown
     .replace(/\n{3,}/g, '\n\n')
@@ -137,18 +176,25 @@ export function htmlToMarkdownSubset(value, fallback = '') {
   return markdown || String(fallback || '').trim();
 }
 
-function inlineMarkdown(value) {
-  return decodeHtmlEntities(
-    String(value || '')
-      .replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**')
-      .replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**')
-      .replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*')
-      .replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*')
-      .replace(/<a\s+[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, label) => `[${stripTags(label)}](${decodeHtmlEntities(href)})`)
-      .replace(/<br>/gi, '\n')
-      .replace(/<\/?(ul|ol)>/gi, '')
-      .replace(/<[^>]*>/g, '')
-  ).trim();
+export function richTextJsonToPlainText(value) {
+  const json = normalizeContentJson(value);
+  if (!json) return '';
+  const pieces = [];
+  walkTipTapJson(json, (node) => {
+    if (typeof node.text === 'string') pieces.push(node.text);
+    if (['paragraph', 'heading', 'listItem', 'taskItem'].includes(node.type)) pieces.push('\n');
+  });
+  return pieces.join('').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+export function normalizeContentJson(value) {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(String(value));
+  } catch {
+    return null;
+  }
 }
 
 export function parseRawMetadata(rawMetadataValue) {
@@ -162,26 +208,146 @@ export function parseRawMetadata(rawMetadataValue) {
   }
 }
 
-function extractHref(attrs) {
-  const match = String(attrs || '').match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>]+))/i);
-  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
+function replaceDraftImageSources(html, attachmentMap) {
+  return String(html || '').replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+    const draftRef = extractAttribute(attrs, 'data-draft-ref');
+    const attachment = draftRef ? attachmentMap[draftRef] : null;
+    if (!attachment) return match;
+    const alt = extractAttribute(attrs, 'alt') || attachment.originalName || attachment.fileName || '图片';
+    return `<img src="/api/attachments/${escapeAttribute(attachment.id)}/file" alt="${escapeAttribute(alt)}" data-attachment-id="${escapeAttribute(attachment.id)}">`;
+  });
+}
+
+function sanitizeLinkTag(tagName, attribs) {
+  const href = sanitizeHref(attribs.href);
+  if (!href) return { tagName: 'a', attribs: {} };
+  return {
+    tagName,
+    attribs: {
+      href,
+      title: attribs.title || '',
+      target: '_blank',
+      rel: 'noopener noreferrer'
+    }
+  };
+}
+
+function sanitizeImageTag(tagName, attribs) {
+  const src = sanitizeImageSrc(attribs.src);
+  if (!src) return { tagName, attribs: {} };
+  const next = {
+    src,
+    alt: attribs.alt || '图片'
+  };
+  if (attribs['data-attachment-id']) next['data-attachment-id'] = String(attribs['data-attachment-id']).replace(/[^\w-]/g, '');
+  if (/^\d{1,5}$/.test(String(attribs.width || ''))) next.width = attribs.width;
+  if (/^\d{1,5}$/.test(String(attribs.height || ''))) next.height = attribs.height;
+  return { tagName, attribs: next };
+}
+
+function sanitizeCheckboxTag(tagName, attribs) {
+  if (String(attribs.type || '').toLowerCase() !== 'checkbox') return { tagName, attribs: {} };
+  const next = { type: 'checkbox', disabled: 'disabled' };
+  if (Object.prototype.hasOwnProperty.call(attribs, 'checked')) next.checked = 'checked';
+  return { tagName, attribs: next };
+}
+
+function sanitizeStyledTag(tagName, attribs) {
+  const style = sanitizeInlineStyle(attribs.style);
+  const next = {};
+  if (style) next.style = style;
+  if (attribs['data-checked'] === 'true' || attribs['data-checked'] === 'false') next['data-checked'] = attribs['data-checked'];
+  return { tagName, attribs: next };
+}
+
+function sanitizeAlignedTag(tagName, attribs) {
+  const style = sanitizeInlineStyle(attribs.style);
+  const next = {};
+  const align = String(attribs['data-text-align'] || '').toLowerCase();
+  const styleAlign = String(attribs.style || '').match(/text-align\s*:\s*(left|center|right)/i)?.[1]?.toLowerCase();
+  const textAlign = ['left', 'center', 'right'].includes(align) ? align : styleAlign;
+  const styleParts = [];
+  if (style) styleParts.push(style);
+  if (textAlign) {
+    next['data-text-align'] = textAlign;
+    styleParts.push(`text-align:${textAlign}`);
+  }
+  if (styleParts.length) next.style = [...new Set(styleParts)].join(';');
+  return { tagName, attribs: next };
+}
+
+function sanitizeInlineStyle(value) {
+  const rules = String(value || '').split(';').map((rule) => rule.trim()).filter(Boolean);
+  const allowed = [];
+  for (const rule of rules) {
+    const [rawProp, ...rawValueParts] = rule.split(':');
+    const prop = String(rawProp || '').trim().toLowerCase();
+    const val = rawValueParts.join(':').trim();
+    if ((prop === 'color' || prop === 'background-color') && COLOR_RE.test(val)) {
+      allowed.push(`${prop}:${val}`);
+    }
+  }
+  return allowed.join(';');
 }
 
 function sanitizeHref(value) {
   const decoded = decodeAttributeValue(value).trim();
   if (!decoded) return '';
-
   const compact = decoded.replace(/[\u0000-\u001f\u007f\s]+/g, '');
   const lower = compact.toLowerCase();
-  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:') || lower.startsWith('file:')) {
-    return '';
-  }
-
-  if (/^(https?:|mailto:|tel:|#|\/|\.\/|\.\.\/)/i.test(decoded)) {
-    return decoded;
-  }
-
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:') || lower.startsWith('file:')) return '';
+  if (/^(https?:|mailto:|tel:|#|\/|\.\/|\.\.\/)/i.test(decoded)) return decoded;
   return '';
+}
+
+function sanitizeImageSrc(value) {
+  const src = decodeAttributeValue(value).trim();
+  if (!src) return '';
+  if (/^\/api\/attachments\/[\w-]+\/file$/i.test(src)) return src;
+  if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(src)) return src;
+  if (/^https?:\/\//i.test(src)) return src;
+  return '';
+}
+
+function tableToMarkdown(tableHtml) {
+  const rows = [...String(tableHtml).matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map((rowMatch) => {
+    return [...rowMatch[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi)].map((cell) => inlineMarkdown(cell[1]).replace(/\|/g, '\\|'));
+  }).filter((row) => row.length);
+  if (!rows.length) return '';
+  const header = rows[0];
+  const separator = header.map(() => '---');
+  return `\n${[header, separator, ...rows.slice(1)].map((row) => `| ${row.join(' | ')} |`).join('\n')}\n`;
+}
+
+function inlineMarkdown(value) {
+  return decodeHtmlEntities(
+    String(value || '')
+      .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**')
+      .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**')
+      .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*')
+      .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*')
+      .replace(/<u[^>]*>([\s\S]*?)<\/u>/gi, '<u>$1</u>')
+      .replace(/<(s|del)[^>]*>([\s\S]*?)<\/\1>/gi, '~~$2~~')
+      .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`')
+      .replace(/<a\s+[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, label) => `[${stripTags(label)}](${decodeHtmlEntities(href)})`)
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?(ul|ol|tbody|thead)>/gi, '')
+      .replace(/<[^>]*>/g, '')
+  ).trim();
+}
+
+function walkTipTapJson(node, visit) {
+  if (!node || typeof node !== 'object') return;
+  visit(node);
+  if (Array.isArray(node.content)) {
+    for (const child of node.content) walkTipTapJson(child, visit);
+  }
+}
+
+function extractAttribute(attrs, name) {
+  const pattern = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>]+))`, 'i');
+  const match = String(attrs || '').match(pattern);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
 }
 
 function decodeAttributeValue(value) {

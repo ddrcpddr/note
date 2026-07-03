@@ -1,7 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import UnderlineExtension from '@tiptap/extension-underline';
+import LinkExtension from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { Table, TableRow, TableHeader, TableCell } from '@tiptap/extension-table';
+import { TextStyle } from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Placeholder from '@tiptap/extension-placeholder';
 import {
   AlertCircle,
+  Undo2,
+  Underline,
+  Table2,
+  Strikethrough,
+  Redo2,
+  Palette,
+  Highlighter,
+  Code2,
+  AlignRight,
+  AlignLeft,
+  AlignCenter,
   Archive,
   Bold,
   ArrowLeft,
@@ -385,6 +409,7 @@ function App() {
             title,
             content: body,
             contentHtml: bodyHtml || undefined,
+            contentJson: draft.bodyJson || undefined,
             categoryId: category.id,
             memberId: currentMember.id,
             noteType: draft.type,
@@ -415,6 +440,7 @@ function App() {
       summary: body.slice(0, 42),
       content: body,
       contentHtml: bodyHtml || null,
+      contentJson: draft.bodyJson || null,
       richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : null,
       category: category.name,
       categoryId: category.id,
@@ -431,7 +457,7 @@ function App() {
       source: '手动创建',
       createdAt: '今天 刚刚',
       updatedAt: '刚刚',
-      attachments: draft.attachments?.length ? draft.attachments.map((attachment) => attachment.originalName || attachment.fileName) : draft.hasAttachment ? ['家庭记录附件.jpg'] : []
+      attachments: draft.attachments?.length ? draft.attachments : draft.hasAttachment ? [{ originalName: '家庭记录附件.jpg', fileName: '家庭记录附件.jpg' }] : []
     };
 
     setNotesData((current) => [note, ...current]);
@@ -463,10 +489,12 @@ function App() {
             title,
             content: body,
             contentHtml: bodyHtml || undefined,
+            contentJson: draft.bodyJson || undefined,
             categoryId: category.id,
             memberId: currentMember.id,
             noteType: draft.type,
-            tags: draft.tags
+            tags: draft.tags,
+            attachments: draft.attachments?.length ? draft.attachments : []
           })
         });
 
@@ -495,6 +523,7 @@ function App() {
             summary: body.slice(0, 42),
             content: body,
             contentHtml: bodyHtml || null,
+            contentJson: draft.bodyJson || null,
             richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : item.richContent,
             category: category.name,
             categoryId: category.id,
@@ -759,11 +788,14 @@ function normalizeNote(note) {
     originalCategory: displayCategoryName(note.originalCategory || '', note.categoryId),
     originalCreatedAt: note.originalCreatedAt ? formatLongTime(note.originalCreatedAt) : '',
     originalUpdatedAt: note.originalUpdatedAt ? formatLongTime(note.originalUpdatedAt) : '',
+    contentText: note.contentText || note.content || '',
     contentHtml: note.contentHtml || null,
+    contentJson: note.contentJson || null,
+    sourceHtml: note.sourceHtml || null,
     richContent: note.richContent || null,
     createdAt: formatLongTime(note.createdAt),
     updatedAt: formatShortTime(note.updatedAt),
-    attachments: attachments.map((attachment) => attachment.originalName || attachment.fileName || attachment)
+    attachments: attachments.map((attachment) => (typeof attachment === 'string' ? { originalName: attachment, fileName: attachment } : attachment))
   };
 }
 
@@ -807,11 +839,15 @@ function findCategoryForType(type) {
 }
 
 function attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment) {
-  if (isEditing) return `附件暂不在编辑里修改（${initialNote?.attachmentCount || 0}）`;
+  if (isEditing && attachmentFiles.length === 0) return `保留原附件，可继续添加（${initialNote?.attachmentCount || 0}）`;
   if (attachmentFiles.length === 1) return attachmentFiles[0].name;
   if (attachmentFiles.length > 1) return `已选择 ${attachmentFiles.length} 个附件`;
   if (hasAttachment) return '已添加附件';
   return '添加照片 / 文件';
+}
+
+function makeDraftRef(prefix) {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function fileToAttachmentPayload(file) {
@@ -986,60 +1022,151 @@ function escapeClientHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function RichTextEditor({ initialHtml = '', plainTextFallback = '', onChange }) {
-  const editorRef = useRef(null);
-  const initialValue = useMemo(
-    () => initialHtml || clientPlainTextToRichTextHtml(plainTextFallback),
-    [initialHtml, plainTextFallback]
-  );
+const RichImageExtension = ImageExtension.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      draftRef: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-draft-ref'),
+        renderHTML: (attributes) => (attributes.draftRef ? { 'data-draft-ref': attributes.draftRef } : {})
+      },
+      attachmentId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-attachment-id'),
+        renderHTML: (attributes) => (attributes.attachmentId ? { 'data-attachment-id': attributes.attachmentId } : {})
+      }
+    };
+  }
+});
+
+function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallback = '', onChange, onAttachmentDraft }) {
+  const imageInputRef = useRef(null);
+  const attachmentInputRef = useRef(null);
+  const initialContent = useMemo(() => {
+    if (initialJson) {
+      try {
+        return typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson;
+      } catch {
+        return initialHtml || clientPlainTextToRichTextHtml(plainTextFallback);
+      }
+    }
+    return initialHtml || clientPlainTextToRichTextHtml(plainTextFallback);
+  }, [initialHtml, initialJson, plainTextFallback]);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ heading: { levels: [2, 3] } }),
+      UnderlineExtension,
+      LinkExtension.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
+      RichImageExtension.configure({ allowBase64: true }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Table.configure({ resizable: false }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Placeholder.configure({ placeholder: '写下家里的小事、账单、维修、临时备忘...' })
+    ],
+    content: initialContent,
+    editorProps: {
+      attributes: {
+        class: 'rich-text-editor min-h-[156px] outline-none'
+      }
+    },
+    onUpdate({ editor: activeEditor }) {
+      emitEditorChange(activeEditor);
+    }
+  });
 
   useEffect(() => {
-    if (!editorRef.current) return;
-    editorRef.current.innerHTML = initialValue;
-    emitChange();
-  }, [initialValue]);
+    if (!editor) return;
+    editor.commands.setContent(initialContent || '', false);
+    emitEditorChange(editor);
+  }, [editor, initialContent]);
 
-  function emitChange() {
-    const element = editorRef.current;
-    const html = element?.innerHTML || '';
-    const text = (element?.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
-    onChange({ html, text });
+  function emitEditorChange(activeEditor = editor) {
+    if (!activeEditor) return;
+    onChange({ html: activeEditor.getHTML(), text: activeEditor.getText().trim(), json: activeEditor.getJSON() });
   }
 
-  function runCommand(command, value = null) {
-    editorRef.current?.focus();
-    document.execCommand(command, false, value);
-    emitChange();
+  async function insertImageFile(file) {
+    if (!editor || !file) return;
+    const payload = await fileToAttachmentPayload(file);
+    const draftRef = makeDraftRef('image');
+    const nextPayload = { ...payload, draftRef, contentRefId: draftRef, kind: 'image', isInline: true };
+    onAttachmentDraft?.(nextPayload);
+    const src = `data:${nextPayload.mimeType};base64,${nextPayload.contentBase64}`;
+    editor.chain().focus().setImage({ src, alt: nextPayload.originalName, draftRef }).run();
   }
 
-  function addLink() {
-    const href = window.prompt('输入链接地址');
-    if (!href) return;
-    runCommand('createLink', href);
+  async function insertAttachmentFile(file) {
+    if (!editor || !file) return;
+    const payload = await fileToAttachmentPayload(file);
+    const draftRef = makeDraftRef('file');
+    const nextPayload = { ...payload, draftRef, contentRefId: draftRef, kind: 'file', isInline: true };
+    onAttachmentDraft?.(nextPayload);
+    editor.chain().focus().insertContent(`<p><a href="#attachment-${draftRef}">附件：${escapeClientHtml(nextPayload.originalName)}</a></p>`).run();
+  }
+
+  function handlePaste(event) {
+    const imageFiles = Array.from(event.clipboardData?.files || []).filter((file) => file.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+    event.preventDefault();
+    imageFiles.forEach((file) => insertImageFile(file));
+  }
+
+  function setLink() {
+    if (!editor) return;
+    const currentHref = editor.getAttributes('link').href || '';
+    const href = window.prompt('输入链接地址', currentHref);
+    if (href === null) return;
+    if (!href.trim()) {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run();
   }
 
   const tools = [
-    ['bold', '加粗', Bold, () => runCommand('bold')],
-    ['italic', '斜体', Italic, () => runCommand('italic')],
-    ['h2', '标题', Heading2, () => runCommand('formatBlock', 'h2')],
-    ['h3', '小标题', Heading3, () => runCommand('formatBlock', 'h3')],
-    ['ul', '无序列表', List, () => runCommand('insertUnorderedList')],
-    ['ol', '有序列表', ListOrdered, () => runCommand('insertOrderedList')],
-    ['quote', '引用', Quote, () => runCommand('formatBlock', 'blockquote')],
-    ['link', '链接', Link, addLink],
-    ['hr', '分隔线', Minus, () => runCommand('insertHTML', '<hr>')]
+    ['undo', '撤销', Undo2, () => editor?.chain().focus().undo().run()],
+    ['redo', '重做', Redo2, () => editor?.chain().focus().redo().run()],
+    ['bold', '加粗', Bold, () => editor?.chain().focus().toggleBold().run(), () => editor?.isActive('bold')],
+    ['italic', '斜体', Italic, () => editor?.chain().focus().toggleItalic().run(), () => editor?.isActive('italic')],
+    ['underline', '下划线', Underline, () => editor?.chain().focus().toggleUnderline().run(), () => editor?.isActive('underline')],
+    ['strike', '删除线', Strikethrough, () => editor?.chain().focus().toggleStrike().run(), () => editor?.isActive('strike')],
+    ['h2', '标题', Heading2, () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), () => editor?.isActive('heading', { level: 2 })],
+    ['h3', '小标题', Heading3, () => editor?.chain().focus().toggleHeading({ level: 3 }).run(), () => editor?.isActive('heading', { level: 3 })],
+    ['ul', '无序列表', List, () => editor?.chain().focus().toggleBulletList().run(), () => editor?.isActive('bulletList')],
+    ['ol', '有序列表', ListOrdered, () => editor?.chain().focus().toggleOrderedList().run(), () => editor?.isActive('orderedList')],
+    ['task', '待办', ListChecks, () => editor?.chain().focus().toggleTaskList().run(), () => editor?.isActive('taskList')],
+    ['quote', '引用', Quote, () => editor?.chain().focus().toggleBlockquote().run(), () => editor?.isActive('blockquote')],
+    ['code', '代码块', Code2, () => editor?.chain().focus().toggleCodeBlock().run(), () => editor?.isActive('codeBlock')],
+    ['link', '链接', Link, setLink, () => editor?.isActive('link')],
+    ['image', '图片', Upload, () => imageInputRef.current?.click()],
+    ['attach', '附件引用', Paperclip, () => attachmentInputRef.current?.click()],
+    ['table', '表格', Table2, () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()],
+    ['left', '左对齐', AlignLeft, () => editor?.chain().focus().setTextAlign('left').run()],
+    ['center', '居中', AlignCenter, () => editor?.chain().focus().setTextAlign('center').run()],
+    ['right', '右对齐', AlignRight, () => editor?.chain().focus().setTextAlign('right').run()],
+    ['color', '文字色', Palette, () => editor?.chain().focus().setColor('#0F766E').run()],
+    ['highlight', '高亮', Highlighter, () => editor?.chain().focus().toggleHighlight({ color: '#FEF3C7' }).run()],
+    ['clear', '清格式', X, () => editor?.chain().focus().unsetAllMarks().clearNodes().run()]
   ];
 
   return (
     <div className="min-w-0 flex-1">
       <div className="scroll-row -mx-1 mb-3 flex gap-2 px-1 pb-1">
-        {tools.map(([key, label, Icon, action]) => (
+        {tools.map(([key, label, Icon, action, isActive]) => (
           <button
             aria-label={label}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-white text-muted active:bg-teal-50 active:text-teal-700"
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-white text-muted active:bg-teal-50 active:text-teal-700 ${isActive?.() ? 'border-teal-500 bg-teal-50 text-teal-700' : ''}`}
             key={key}
             type="button"
-            onMouseDown={(event) => event.preventDefault()}
             onClick={action}
             title={label}
           >
@@ -1047,24 +1174,21 @@ function RichTextEditor({ initialHtml = '', plainTextFallback = '', onChange }) 
           </button>
         ))}
       </div>
-      <div
-        aria-label="记录正文"
-        className="rich-text-editor min-h-[156px] outline-none"
-        contentEditable
-        data-placeholder="写下家里的小事、账单、维修、临时备忘..."
-        onInput={emitChange}
-        ref={editorRef}
-        suppressContentEditableWarning
-      />
+      <EditorContent editor={editor} onPaste={handlePaste} />
+      <input ref={imageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { Array.from(event.target.files || []).forEach((file) => insertImageFile(file)); event.target.value = ''; }} />
+      <input ref={attachmentInputRef} className="hidden" type="file" onChange={(event) => { Array.from(event.target.files || []).forEach((file) => insertAttachmentFile(file)); event.target.value = ''; }} />
     </div>
   );
 }
+
 function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'create', initialNote = null }) {
   const isEditing = mode === 'edit' && initialNote;
   const [title, setTitle] = useState(initialNote?.title || '');
   const initialRichHtml = initialNote?.contentHtml || initialNote?.richContent?.html || '';
   const [bodyText, setBodyText] = useState(initialNote?.content || '');
   const [bodyHtml, setBodyHtml] = useState(initialRichHtml);
+  const [bodyJson, setBodyJson] = useState(initialNote?.contentJson || null);
+  const [inlineAttachments, setInlineAttachments] = useState([]);
   const [type, setType] = useState(initialNote ? recordTypeForNote(initialNote) : '家庭事务');
   const initialTags = initialNote ? initialNote.tags.map((tag) => tag.label).filter(Boolean) : ['待办', '重要'];
   const [tags, setTags] = useState(initialTags);
@@ -1092,8 +1216,9 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   async function save() {
     const originalType = initialNote ? recordTypeForNote(initialNote) : null;
     const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
-    const attachments = isEditing ? [] : await Promise.all(attachmentFiles.map(fileToAttachmentPayload));
-    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, hasAttachment: hasAttachment || attachments.length > 0, attachments });
+    const selectedAttachments = await Promise.all(attachmentFiles.map(fileToAttachmentPayload));
+    const attachments = [...selectedAttachments, ...inlineAttachments];
+    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, bodyJson, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, hasAttachment: hasAttachment || attachments.length > 0, attachments });
   }
 
   return (
@@ -1113,10 +1238,16 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           <FileText className="mt-1 shrink-0" size={18} />
           <RichTextEditor
             initialHtml={initialRichHtml}
+            initialJson={initialNote?.contentJson}
             plainTextFallback={initialNote?.content || ''}
-            onChange={({ text, html }) => {
+            onChange={({ text, html, json }) => {
               setBodyText(text);
               setBodyHtml(html);
+              setBodyJson(json);
+            }}
+            onAttachmentDraft={(attachment) => {
+              setInlineAttachments((current) => [...current, attachment]);
+              setHasAttachment(true);
             }}
           />
         </div>
@@ -1204,8 +1335,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
         )}
       </section>
       <SectionTitle>附件</SectionTitle>
-      {!isEditing && (
-        <input
+      <input
           className="hidden"
           id="record-attachment-input"
           multiple
@@ -1213,11 +1343,10 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           onChange={(event) => {
             const files = Array.from(event.target.files || []);
             setAttachmentFiles(files);
-            setHasAttachment(files.length > 0);
+            setHasAttachment(files.length > 0 || inlineAttachments.length > 0);
           }}
         />
-      )}
-      <label className={`soft-card flex min-h-[56px] w-full items-center justify-between px-4 py-3 text-left ${isEditing ? 'opacity-75' : 'cursor-pointer'}`} htmlFor={isEditing ? undefined : 'record-attachment-input'}>
+      <label className="soft-card flex min-h-[56px] w-full cursor-pointer items-center justify-between px-4 py-3 text-left" htmlFor="record-attachment-input">
         <span className="inline-flex min-w-0 items-center gap-3 text-[13px] text-muted">
           <Paperclip className="shrink-0 text-teal-600" size={20} />
           <span className="min-w-0">{attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment)}</span>
@@ -1617,18 +1746,24 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
       <section className="soft-card mt-4 p-5">
         <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Paperclip size={23} /> 附件（{note.attachments.length}）</h2>
         <div className="mt-4 space-y-3">
-          {note.attachments.map((name) => (
-            <div className="flex items-center justify-between rounded-2xl border border-line p-3" key={name}>
-              <div className="flex items-center gap-3">
-                <div className="grid h-14 w-14 place-items-center rounded-xl bg-teal-50 text-teal-600"><FileText size={29} /></div>
-                <div>
-                  <p className="text-[16px] font-medium">{name}</p>
-                  <p className="mt-1 text-[14px] text-muted">保存在 NAS 附件目录</p>
+          {note.attachments.map((attachment, index) => {
+            const item = typeof attachment === 'string' ? { originalName: attachment, fileName: attachment } : attachment;
+            const name = item.originalName || item.fileName || '附件';
+            const isImage = String(item.mimeType || '').startsWith('image/') || item.kind === 'image';
+            const row = (
+              <div className="flex items-center justify-between rounded-2xl border border-line p-3" key={item.id || name || index}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-teal-50 text-teal-600">{isImage ? <Upload size={29} /> : <FileText size={29} />}</div>
+                  <div className="min-w-0">
+                    <p className="break-words text-[16px] font-medium">{name}</p>
+                    <p className="mt-1 text-[14px] text-muted">{item.isInline ? '正文内引用' : '保存在 NAS 附件目录'}</p>
+                  </div>
                 </div>
+                <Download className="shrink-0 text-teal-600" size={24} />
               </div>
-              <Download className="text-teal-600" size={24} />
-            </div>
-          ))}
+            );
+            return item.downloadUrl ? <a href={item.downloadUrl} key={item.id || name || index} target="_blank" rel="noreferrer">{row}</a> : row;
+          })}
         </div>
       </section>
       <section className="soft-card mt-4 p-5">
