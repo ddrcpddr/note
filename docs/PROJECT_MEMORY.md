@@ -1317,3 +1317,30 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，health、app-data、列表、详情、搜索、分类、成员筛选、备份、JSON 导出和前端壳均正常。
 
 安全说明：本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+
+
+## 2026-07-04 - 自定义分类第一阶段完成
+
+当前主线已从 Android 暂停，先补 Web 端基础功能。第一目标为自定义分类，第二目标为离线后可继续记录、恢复联网后同步。
+
+本轮完成：
+
+- 后端新增分类 API：`POST /api/categories` 可创建分类，`PATCH /api/categories/:id` 可改名、改颜色、改图标。
+- 分类列表仍从 `/api/app-data` 和 `/api/categories` 读取，并带记录数量。
+- 前端不再只依赖硬编码分类数组：默认分类只作为 fallback，页面优先使用后端分类。
+- 分类页新增“新分类”和编辑入口，可轻量设置名称、颜色、图标。
+- 新建 / 编辑记录页新增分类选择 chip，保存时写入选中分类 ID。
+- 首页更多筛选和搜索页分类筛选改为动态分类。
+- API 与前端静态测试已覆盖自定义分类创建、编辑、筛选和页面接线。
+
+验证：
+
+- `node --test tests/frontend-ui.test.js`：通过，13 tests。
+- `node --test tests/mvp-api.test.js`：通过，22 tests。
+- `npm.cmd run check`：通过，integrityCheck ok，当前测试库 noteCount=0。
+- `npm.cmd run test`：通过，11 suites / 57 tests。
+- `npm.cmd run build`：通过。
+
+安全说明：本轮只改代码和文档，不提交 `data/`、数据库、附件、备份、导出、`.nsx` 或日志。
+
+下一阶段：在自定义分类提交并 Docker 验证后，进入“离线可记录、恢复联网后同步”专项。该阶段需要明确本地 IndexedDB / localStorage 队列、临时 ID、同步状态、冲突策略和失败重试，不应混入分类功能小改中。

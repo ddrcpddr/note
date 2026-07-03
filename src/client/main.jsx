@@ -85,7 +85,56 @@ const tagTones = {
   done: 'bg-green-50 text-green-700 border border-green-100'
 };
 
-const categories = [
+const categoryIconMap = {
+  family: Home,
+  house: Home,
+  repair: Wrench,
+  shopping: ShoppingBag,
+  account: KeyRound,
+  kids: Star,
+  health: HeartPulse,
+  pet: PawPrint,
+  work: Briefcase,
+  temporary: FileText,
+  uncategorized: Inbox,
+  home: Home,
+  wrench: Wrench,
+  cart: ShoppingBag,
+  key: KeyRound,
+  star: Star,
+  lightbulb: Lightbulb,
+  folder: Folder,
+  file: FileText,
+  car: Briefcase
+};
+
+const categoryToneMap = {
+  family: 'bg-teal-50 text-teal-700',
+  house: 'bg-blue-50 text-blue-700',
+  repair: 'bg-amber-50 text-amber-500',
+  shopping: 'bg-green-50 text-green-700',
+  account: 'bg-purple-50 text-purple-700',
+  kids: 'bg-amber-50 text-amber-600',
+  health: 'bg-rose-50 text-rose-500',
+  pet: 'bg-green-50 text-green-700',
+  work: 'bg-blue-50 text-blue-700',
+  temporary: 'bg-purple-50 text-purple-600',
+  uncategorized: 'bg-neutral-100 text-neutral-600'
+};
+
+const categoryColorOptions = ['#3DAA6C', '#2F7DB8', '#D88722', '#8C67C8', '#D9685B', '#557C93'];
+const categoryIconOptions = [
+  ['folder', '文件夹', Folder],
+  ['home', '家庭', Home],
+  ['wrench', '维修', Wrench],
+  ['shopping', '购物', ShoppingBag],
+  ['key', '账号', KeyRound],
+  ['star', '重要', Star],
+  ['lightbulb', '想法', Lightbulb],
+  ['file', '记录', FileText]
+];
+
+const fallbackCategories = [
   { id: 'family', name: '家庭事务', count: 128, update: '今天 10:42 更新', icon: Home, imageSrc: categoryImageAssets.family, tone: 'bg-teal-50 text-teal-700' },
   { id: 'house', name: '房屋 / 设备', count: 86, update: '昨天 18:35 更新', icon: Home, imageSrc: categoryImageAssets.house, tone: 'bg-blue-50 text-blue-700' },
   { id: 'repair', name: '维修 / 售后', count: 64, update: '昨天 09:21 更新', icon: Wrench, imageSrc: categoryImageAssets.repair, tone: 'bg-amber-50 text-amber-500' },
@@ -98,6 +147,47 @@ const categories = [
   { id: 'temporary', name: '临时记录', count: 19, update: '今天 09:15 更新', icon: FileText, imageSrc: categoryImageAssets.temporary, tone: 'bg-purple-50 text-purple-600' },
   { id: 'uncategorized', name: '未分类 / 待整理', count: 14, update: '5月12日 11:02 更新', icon: Inbox, imageSrc: categoryImageAssets.uncategorized, tone: 'bg-neutral-100 text-neutral-600' }
 ];
+
+function normalizeCategories(categoryList = []) {
+  const source = Array.isArray(categoryList) && categoryList.length ? categoryList : fallbackCategories;
+  return source.map((category, index) => normalizeCategory(category, index));
+}
+
+function normalizeCategory(category, index = 0) {
+  const fallback = fallbackCategories.find((item) => item.id === category.id);
+  const iconKey = category.icon || fallback?.id || fallback?.iconKey || 'folder';
+  const Icon = typeof iconKey === 'string' ? categoryIconMap[iconKey] || categoryIconMap[category.id] || fallback?.icon || Folder : iconKey;
+  const tone = fallback?.tone || categoryToneMap[category.id] || 'bg-teal-50 text-teal-700';
+  return {
+    id: category.id,
+    name: displayCategoryName(category.name || fallback?.name || '未分类 / 待整理', category.id),
+    slug: category.slug || category.id,
+    color: category.color || fallback?.color || categoryColorOptions[index % categoryColorOptions.length],
+    iconKey: typeof iconKey === 'string' ? iconKey : category.id,
+    icon: Icon,
+    imageSrc: category.imageSrc || fallback?.imageSrc || categoryImageAssets[category.id] || null,
+    tone,
+    count: Number(category.noteCount ?? category.count ?? fallback?.count ?? 0),
+    noteCount: Number(category.noteCount ?? category.count ?? fallback?.count ?? 0),
+    update: category.update || (Number(category.noteCount ?? category.count ?? 0) > 0 ? '最近有更新' : fallback?.update || '暂无记录'),
+    isSystem: Boolean(category.isSystem ?? fallback?.isSystem ?? false)
+  };
+}
+
+function applyCategoryDisplay(note, categoryList = fallbackCategories) {
+  const category = categoryList.find((item) => item.id === note.categoryId) ?? categoryList.find((item) => item.id === 'uncategorized') ?? categoryList[0] ?? fallbackCategories[0];
+  return {
+    ...note,
+    category: displayCategoryName(category.name, category.id),
+    categoryId: category.id,
+    categoryIcon: category.icon,
+    categoryImageSrc: category.imageSrc,
+    categoryColor: 'text-teal-600',
+    icon: category.icon,
+    iconTone: category.tone
+  };
+}
+
 
 const memberColorClasses = {
   teal: 'bg-teal-50 text-teal-700 border-teal-100',
@@ -159,6 +249,7 @@ const recordTypes = [
 
 function App() {
   const [notesData, setNotesData] = useState(initialNotes);
+  const [categoriesData, setCategoriesData] = useState(fallbackCategories);
   const [members, setMembers] = useState(fallbackMembers);
   const [currentMemberId, setCurrentMemberId] = useState('self');
   const [dataMode, setDataMode] = useState('mock');
@@ -199,10 +290,12 @@ function App() {
 
         const loadedMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
         const nextMembers = keepDefaultMembers(loadedMembers);
-        const nextNotes = Array.isArray(data.notes) ? data.notes.map(normalizeNote) : initialNotes;
+        const nextCategories = normalizeCategories(data.categories);
+        const nextNotes = Array.isArray(data.notes) ? data.notes.map((note) => normalizeNote(note, nextCategories)) : initialNotes;
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
         setMembers(nextMembers);
+        setCategoriesData(nextCategories);
         setCurrentMemberId(currentMember.id);
         setNotesData(nextNotes);
         setSelectedId(nextNotes[0]?.id ?? null);
@@ -233,7 +326,7 @@ function App() {
       const data = await response.json();
       const detailNote = data.notes?.[0];
       if (!detailNote) return;
-      const normalized = normalizeNote(detailNote);
+      const normalized = normalizeNote(detailNote, categoriesData);
       setNotesData((current) => current.some((note) => note.id === id)
         ? current.map((note) => (note.id === id ? normalized : note))
         : [normalized, ...current]);
@@ -292,7 +385,7 @@ function App() {
     const noteIds = notesData
       .filter((note) => note.sourceType === 'notestation_import' && note.categoryId === 'uncategorized')
       .map((note) => note.id);
-    const category = categories.find((item) => item.id === categoryId);
+    const category = categoriesData.find((item) => item.id === categoryId);
 
     if (!noteIds.length || !category) {
       showToast('暂时没有导入记录需要整理');
@@ -308,7 +401,7 @@ function App() {
         });
         if (!response.ok) throw new Error('bulk categorize failed');
         const data = await response.json();
-        const updated = new Map((data.notes || []).map((note) => [note.id, normalizeNote(note)]));
+        const updated = new Map((data.notes || []).map((note) => [note.id, normalizeNote(note, categoriesData)]));
         setNotesData((current) => current.map((note) => updated.get(note.id) || note));
         showToast(data.updatedCount ? `已整理 ${data.updatedCount} 条导入记录` : '没有符合条件的导入记录');
         return;
@@ -336,7 +429,7 @@ function App() {
   }
 
   async function createMockNote(draft) {
-    const category = findCategoryForType(draft.type);
+    const category = draft.categoryId ? categoriesData.find((item) => item.id === draft.categoryId) ?? findCategoryForType(draft.type, categoriesData) : findCategoryForType(draft.type, categoriesData);
     const body = draft.body.trim() || '刚刚新建的一条家庭记录，稍后可以继续补充细节。';
     const bodyHtml = draft.bodyHtml || '';
     const title = draft.title.trim() || body.slice(0, 24);
@@ -366,7 +459,7 @@ function App() {
         }
 
         const data = await response.json();
-        const note = normalizeNote(data.note);
+        const note = normalizeNote(data.note, categoriesData);
         setNotesData((current) => [note, ...current]);
         setSelectedId(note.id);
         setScreen('detail');
@@ -416,7 +509,7 @@ function App() {
   }
 
   async function updateExistingNote(draft) {
-    const category = draft.categoryId ? categories.find((item) => item.id === draft.categoryId) ?? findCategoryForType(draft.type) : findCategoryForType(draft.type);
+    const category = draft.categoryId ? categoriesData.find((item) => item.id === draft.categoryId) ?? findCategoryForType(draft.type, categoriesData) : findCategoryForType(draft.type, categoriesData);
     const body = draft.body.trim() || draft.title.trim() || '未命名记录';
     const bodyHtml = draft.bodyHtml || '';
     const title = draft.title.trim() || body.slice(0, 24);
@@ -446,7 +539,7 @@ function App() {
         }
 
         const data = await response.json();
-        const note = normalizeNote(data.note);
+        const note = normalizeNote(data.note, categoriesData);
         setNotesData((current) => current.map((item) => (item.id === note.id ? note : item)));
         setSelectedId(note.id);
         setScreen('detail');
@@ -577,6 +670,71 @@ function App() {
     }
   }
 
+  function applyCategoryList(categoryList) {
+    const nextCategories = normalizeCategories(categoryList);
+    setCategoriesData(nextCategories);
+    setNotesData((current) => current.map((note) => applyCategoryDisplay(note, nextCategories)));
+  }
+
+  async function createCategory(draft) {
+    const payload = { name: draft.name, color: draft.color, icon: draft.icon };
+
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'category create failed');
+        applyCategoryList(data.categories || []);
+        showToast('分类已添加');
+        return true;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，分类未保存');
+        return false;
+      }
+    }
+
+    const localCategory = normalizeCategory({
+      id: 'local_category_' + Date.now().toString(36),
+      name: payload.name,
+      color: payload.color,
+      icon: payload.icon,
+      isSystem: false
+    }, categoriesData.length);
+    applyCategoryList([...categoriesData, localCategory]);
+    showToast('分类已在当前页面添加');
+    return true;
+  }
+
+  async function updateCategory(categoryId, draft) {
+    const payload = { name: draft.name, color: draft.color, icon: draft.icon };
+
+    if (dataMode === 'sqlite') {
+      try {
+        const response = await fetch('/api/categories/' + categoryId, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'category update failed');
+        applyCategoryList(data.categories || []);
+        showToast('分类已更新');
+        return true;
+      } catch {
+        showToast('暂时没有连上家庭记录服务，分类未保存');
+        return false;
+      }
+    }
+
+    applyCategoryList(categoriesData.map((category) => (category.id === categoryId ? { ...category, ...payload } : category)));
+    showToast('分类已在当前页面更新');
+    return true;
+  }
+
   if (accessLocked) {
     return <AccessLockScreen message={accessMessage} onUnlock={unlockAccess} />;
   }
@@ -586,6 +744,7 @@ function App() {
       {screen === 'home' && (
         <HomeScreen
           notes={notesData}
+          categories={categoriesData}
           filter={homeFilter}
           member={homeMember}
           category={homeCategory}
@@ -601,6 +760,7 @@ function App() {
       {screen === 'new' && (
         <NewRecordScreen
           members={members}
+          categories={categoriesData}
           currentMemberId={currentMemberId}
           onBack={() => navigate('home')}
           onSave={createMockNote}
@@ -611,20 +771,21 @@ function App() {
           mode="edit"
           initialNote={selectedNote}
           members={members}
+          categories={categoriesData}
           currentMemberId={currentMemberId}
           onBack={() => navigate('detail')}
           onSave={updateExistingNote}
         />
       )}
       {screen === 'detail' && selectedNote && <DetailScreen note={selectedNote} onBack={() => navigate('home')} onEdit={openEdit} onArchive={archiveNote} onDelete={deleteNote} />}
-      {screen === 'search' && <SearchScreen notes={notesData} members={members} onOpenDetail={openDetail} />}
-      {screen === 'categories' && <CategoriesScreen notes={notesData} onSelectCategory={applyCategory} onBulkCategorizeImported={bulkCategorizeImported} />}
+      {screen === 'search' && <SearchScreen notes={notesData} categories={categoriesData} members={members} onOpenDetail={openDetail} />}
+      {screen === 'categories' && <CategoriesScreen notes={notesData} categories={categoriesData} onSelectCategory={applyCategory} onCreateCategory={createCategory} onUpdateCategory={updateCategory} onBulkCategorizeImported={bulkCategorizeImported} />}
       {screen === 'import' && (
         <ImportScreen
           currentMemberId={currentMemberId}
           onBack={() => navigate('settings')}
           onImported={(importedNotes) => {
-            const normalized = importedNotes.map(normalizeNote);
+            const normalized = importedNotes.map((note) => normalizeNote(note, categoriesData));
             setNotesData((current) => {
               const existingIds = new Set(current.map((note) => note.id));
               return [...normalized.filter((note) => !existingIds.has(note.id)), ...current];
@@ -698,8 +859,8 @@ function normalizeMember(member, index = 0) {
   };
 }
 
-function normalizeNote(note) {
-  const category = categories.find((item) => item.id === note.categoryId) ?? categories.find((item) => item.id === 'uncategorized') ?? categories[0];
+function normalizeNote(note, categoryList = fallbackCategories) {
+  const category = categoryList.find((item) => item.id === note.categoryId) ?? categoryList.find((item) => item.id === 'uncategorized') ?? categoryList[0] ?? fallbackCategories[0];
   const tags = Array.isArray(note.tags) ? note.tags.map((tag) => tag.label || tag.name || tag).filter(Boolean) : [];
   const attachments = Array.isArray(note.attachments) ? note.attachments : [];
   const sourceType = note.sourceType || 'manual';
@@ -773,12 +934,12 @@ function formatLongTime(value) {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-function findCategoryForType(type) {
-  if (type.includes('维修')) return categories.find((item) => item.id === 'repair');
-  if (type.includes('购物')) return categories.find((item) => item.id === 'shopping');
-  if (type.includes('账号')) return categories.find((item) => item.id === 'account');
-  if (type.includes('临时')) return categories.find((item) => item.id === 'temporary');
-  return categories.find((item) => item.name === type) ?? categories[0];
+function findCategoryForType(type, categoryList = fallbackCategories) {
+  if (type.includes('维修')) return categoryList.find((item) => item.id === 'repair') ?? categoryList[0];
+  if (type.includes('购物')) return categoryList.find((item) => item.id === 'shopping') ?? categoryList[0];
+  if (type.includes('账号')) return categoryList.find((item) => item.id === 'account') ?? categoryList[0];
+  if (type.includes('临时')) return categoryList.find((item) => item.id === 'temporary') ?? categoryList[0];
+  return categoryList.find((item) => item.name === type) ?? categoryList.find((item) => item.id === 'family') ?? categoryList[0] ?? fallbackCategories[0];
 }
 
 function makeDraftRef(prefix) {
@@ -819,9 +980,9 @@ function recordTypeForNote(note) {
   return recordTypes.some((recordType) => recordType.label === note.category) ? note.category : '家庭事务';
 }
 
-function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', query = '', tag = 'all', source = 'all' }) {
+function filterNotes(notes, { filter = 'all', member = 'all', category = 'all', query = '', tag = 'all', source = 'all' }, categoryList = fallbackCategories) {
   const keyword = query.trim().toLowerCase();
-  const categoryItem = categories.find((item) => item.id === category);
+  const categoryItem = categoryList.find((item) => item.id === category);
 
   return notes.filter((note) => {
     const tags = note.tags.map((item) => item.label);
@@ -903,10 +1064,10 @@ function AccessLockScreen({ message, onUnlock }) {
   );
 }
 
-function HomeScreen({ notes, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote }) {
+function HomeScreen({ notes, categories, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote }) {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const hasAdvancedFilter = member !== 'all' || category !== 'all';
-  const visibleNotes = filterNotes(notes, { filter, member, category });
+  const visibleNotes = filterNotes(notes, { filter, member, category }, categories);
   const categoryName = categories.find((item) => item.id === category)?.name ?? '全部分类';
   return (
     <>
@@ -929,7 +1090,7 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
         <section className="mt-3 rounded-2xl border border-line/70 bg-white px-3 py-3 shadow-card">
           <p className="px-1 text-[12px] text-muted">更多筛选</p>
           <MemberFilters members={members} active={member} onChange={onMemberChange} />
-          <CategoryFilters active={category} onChange={onCategoryChange} />
+          <CategoryFilters categories={categories} active={category} onChange={onCategoryChange} />
         </section>
       )}
       <TodayCard onCreateNote={onCreateNote} />
@@ -1194,7 +1355,7 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
   );
 }
 
-function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'create', initialNote = null }) {
+function NewRecordScreen({ members, categories, currentMemberId, onBack, onSave, mode = 'create', initialNote = null }) {
   const isEditing = mode === 'edit' && initialNote;
   const [title, setTitle] = useState(initialNote?.title || '');
   const initialRichHtml = initialNote?.contentHtml || initialNote?.richContent?.html || '';
@@ -1203,6 +1364,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   const [bodyJson, setBodyJson] = useState(initialNote?.contentJson || null);
   const [inlineAttachments, setInlineAttachments] = useState([]);
   const [type, setType] = useState(initialNote ? recordTypeForNote(initialNote) : '家庭事务');
+  const initialCategoryId = initialNote?.categoryId || findCategoryForType(initialNote ? recordTypeForNote(initialNote) : '家庭事务', categories)?.id || categories[0]?.id || 'family';
+  const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
   const initialTags = initialNote ? initialNote.tags.map((tag) => tag.label).filter(Boolean) : ['待办', '重要'];
   const [tags, setTags] = useState(initialTags);
   const [isAddingTag, setIsAddingTag] = useState(false);
@@ -1225,10 +1388,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   }
 
   async function save() {
-    const originalType = initialNote ? recordTypeForNote(initialNote) : null;
-    const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
     const attachments = inlineAttachments;
-    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, bodyJson, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, attachments });
+    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, bodyJson, type, categoryId: selectedCategoryId, memberId: currentMember.id, tags, attachments });
   }
 
   return (
@@ -1294,7 +1455,11 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
               }`}
               key={recordType.label}
               type="button"
-              onClick={() => setType(recordType.label)}
+              onClick={() => {
+                setType(recordType.label);
+                const matchedCategory = findCategoryForType(recordType.label, categories);
+                if (matchedCategory?.id) setSelectedCategoryId(matchedCategory.id);
+              }}
             >
               <Icon size={18} strokeWidth={2.1} />
               {recordType.label}
@@ -1302,6 +1467,23 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           );
         })}
       </section>
+      <SectionTitle>分类</SectionTitle>
+      <section className="soft-card p-3">
+        <div className="scroll-row flex gap-2 pb-1">
+          {categories.map((category) => (
+            <button
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-[12px] font-medium ${selectedCategoryId === category.id ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}
+              key={category.id}
+              type="button"
+              onClick={() => setSelectedCategoryId(category.id)}
+            >
+              <CategoryMark src={category.imageSrc} fallback={category.icon} label={category.name} className="h-5 w-5" iconSize={14} />
+              {category.name}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <SectionTitle>标签</SectionTitle>
       <section className="soft-card flex flex-wrap gap-2 p-3">
         {visibleTagOptions.map((label) => (
@@ -1352,7 +1534,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   );
 }
 
-function SearchScreen({ notes, members, onOpenDetail }) {
+function SearchScreen({ notes, categories, members, onOpenDetail }) {
   const [query, setQuery] = useState('漏水');
   const [category, setCategory] = useState('all');
   const [tag, setTag] = useState('待办');
@@ -1361,7 +1543,10 @@ function SearchScreen({ notes, members, onOpenDetail }) {
   const [source, setSource] = useState('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const hasAdvancedSearch = member !== 'all' || source !== 'all';
-  const results = filterNotes(notes, { query, category, tag, member, source });
+  const results = filterNotes(notes, { query, category, tag, member, source }, categories);
+  const categoryFilterOptions = ['all', ...categories.slice(0, 7).map((item) => item.id)];
+  const categoryFilterLabels = Object.fromEntries(categories.map((item) => [item.id, item.name]));
+  categoryFilterLabels.all = '全部';
   const clearFilters = () => {
     setQuery('');
     setCategory('all');
@@ -1399,7 +1584,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
         <span className="text-[14px] font-medium text-teal-600">搜索</span>
       </section>
       <section className="soft-card mt-4 divide-y divide-line p-3">
-        <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
+        <FilterRow title="分类" options={categoryFilterOptions} labels={categoryFilterLabels} active={category} onChange={setCategory} />
         <FilterRow title="标签" options={['all', '待办', '重要', '维修', '购物']} labels={{ all: '全部' }} active={tag} onChange={setTag} />
         <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active={range} onChange={setRange} />
         <div className="flex items-center justify-between gap-3 py-3">
@@ -1433,8 +1618,10 @@ function SearchScreen({ notes, members, onOpenDetail }) {
   );
 }
 
-function CategoriesScreen({ notes, onSelectCategory }) {
+function CategoriesScreen({ notes, categories, onSelectCategory, onCreateCategory, onUpdateCategory }) {
   const [query, setQuery] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [draft, setDraft] = useState({ name: '', color: categoryColorOptions[0], icon: 'folder' });
   const visibleCategories = categories
     .map((category) => ({
       ...category,
@@ -1442,6 +1629,28 @@ function CategoriesScreen({ notes, onSelectCategory }) {
       update: notes.some((note) => note.categoryId === category.id) ? '最近有更新' : category.update
     }))
     .filter((category) => category.name.includes(query.trim()));
+  const isEditing = Boolean(editingId);
+
+  function startCreate() {
+    setEditingId('new');
+    setDraft({ name: '', color: categoryColorOptions[0], icon: 'folder' });
+  }
+
+  function startEdit(category) {
+    setEditingId(category.id);
+    setDraft({ name: category.name, color: category.color || categoryColorOptions[0], icon: category.iconKey || 'folder' });
+  }
+
+  async function submitCategory(event) {
+    event.preventDefault();
+    if (!draft.name.trim()) return;
+    const ok = editingId === 'new' ? await onCreateCategory(draft) : await onUpdateCategory(editingId, draft);
+    if (ok) {
+      setEditingId(null);
+      setDraft({ name: '', color: categoryColorOptions[0], icon: 'folder' });
+    }
+  }
+
   return (
     <>
       <header className="flex items-start justify-between">
@@ -1449,8 +1658,8 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           <h1 className="text-[20px] font-bold leading-none text-ink">分类</h1>
           <p className="mt-1 text-[11px] text-muted">按家里的事情慢慢整理</p>
         </div>
-        <button className="grid h-9 w-9 place-items-center rounded-full bg-white text-teal-600 shadow-card">
-          <Grid2X2 size={18} />
+        <button className="chip px-3 text-teal-700" type="button" onClick={startCreate}>
+          <Plus size={17} /> 新分类
         </button>
       </header>
       <section className="soft-card mt-4 flex h-11 w-full items-center gap-3 rounded-xl bg-[#F2F2F5] px-3 text-left text-[14px] text-[#8b8e94] shadow-card">
@@ -1462,6 +1671,46 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           placeholder="搜索分类"
         />
       </section>
+      {isEditing && (
+        <form className="soft-card mt-4 space-y-3 p-3" onSubmit={submitCategory}>
+          <div className="flex items-center gap-2">
+            <input
+              className="h-10 min-w-0 flex-1 rounded-xl border border-line bg-white px-3 text-[14px] outline-none focus:border-teal-500"
+              value={draft.name}
+              onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="分类名称"
+              maxLength={24}
+              autoFocus
+            />
+            <button className="h-10 rounded-xl bg-teal-600 px-4 text-[13px] font-semibold text-white" type="submit">保存</button>
+            <button className="h-10 rounded-xl border border-line px-3 text-[13px] text-muted" type="button" onClick={() => setEditingId(null)}>取消</button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {categoryColorOptions.map((color) => (
+              <button
+                aria-label={color}
+                className={`h-7 w-7 rounded-full border-2 ${draft.color === color ? 'border-ink' : 'border-white'}`}
+                key={color}
+                style={{ backgroundColor: color }}
+                type="button"
+                onClick={() => setDraft((current) => ({ ...current, color }))}
+              />
+            ))}
+          </div>
+          <div className="scroll-row flex gap-2 pb-1">
+            {categoryIconOptions.map(([iconKey, label, Icon]) => (
+              <button
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] ${draft.icon === iconKey ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}
+                key={iconKey}
+                type="button"
+                onClick={() => setDraft((current) => ({ ...current, icon: iconKey }))}
+              >
+                <Icon size={14} /> {label}
+              </button>
+            ))}
+          </div>
+        </form>
+      )}
       <section className="mt-4 grid grid-cols-2 gap-3 pb-24" data-category-grid>
         {visibleCategories.map((category) => {
           const Icon = category.icon;
@@ -1469,20 +1718,25 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           const displayUpdate = category.update.replace(' 更新', '');
           const countTone = category.tone.match(/text-[^\s]+/)?.[0] ?? 'text-teal-600';
           return (
-            <button className="soft-card relative flex h-[70px] w-full items-center gap-1.5 overflow-hidden rounded-2xl px-2.5 py-2.5 text-left shadow-card" data-category-card key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-[30px] w-[30px] shrink-0 ${category.tone}`} data-category-icon>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-[24px] w-[24px]" iconSize={16} />
-              </div>
-              <div className="min-w-0 flex-1 pr-2">
-                <h2 className="whitespace-nowrap text-[13px] font-semibold leading-4 text-ink" data-category-title>{displayName}</h2>
-                <p className={`mt-0.5 whitespace-nowrap text-[11px] font-medium leading-[14px] ${countTone}`} data-category-count>{category.count} 条记录</p>
-                <p className="mt-0.5 whitespace-nowrap text-[10px] leading-[13px] text-muted" data-category-update>{displayUpdate}</p>
-              </div>
-              <ChevronRight className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted" size={13} />
-            </button>
+            <article className="soft-card relative flex h-[78px] w-full items-center gap-2 overflow-hidden rounded-2xl px-2.5 py-2.5 text-left shadow-card" data-category-card key={category.id}>
+              <button className="flex min-w-0 flex-1 items-center gap-2 text-left" type="button" onClick={() => onSelectCategory(category.id)}>
+                <div className={`circle-icon h-[34px] w-[34px] shrink-0 ${category.tone}`} data-category-icon>
+                  <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-[27px] w-[27px]" iconSize={17} />
+                </div>
+                <div className="min-w-0 flex-1 pr-4">
+                  <h2 className="whitespace-nowrap text-[13px] font-semibold leading-4 text-ink" data-category-title>{displayName}</h2>
+                  <p className={`mt-0.5 whitespace-nowrap text-[11px] font-medium leading-[14px] ${countTone}`} data-category-count>{category.count} 条记录</p>
+                  <p className="mt-0.5 whitespace-nowrap text-[10px] leading-[13px] text-muted" data-category-update>{displayUpdate}</p>
+                </div>
+              </button>
+              <button className="absolute right-1 top-1 rounded-full p-1 text-muted" type="button" aria-label={`编辑${displayName}`} onClick={() => startEdit(category)}>
+                <MoreHorizontal size={14} />
+              </button>
+              <ChevronRight className="absolute bottom-2 right-1.5 text-muted" size={13} />
+            </article>
           );
         })}
-        {visibleCategories.length === 0 && <EmptyState title="暂时没有这个分类" desc="后续可以在分类管理中添加新的家庭分类。" image={illustrationAssets.emptyHome} />}
+        {visibleCategories.length === 0 && <EmptyState title="暂时没有这个分类" desc="可以添加一个新的家庭分类，或换个关键词再试。" image={illustrationAssets.emptyHome} />}
       </section>
     </>
   );
@@ -2213,8 +2467,8 @@ function MemberFilters({ members, active, onChange }) {
   );
 }
 
-function CategoryFilters({ active, onChange }) {
-  const options = [{ id: 'all', name: '全部分类' }, ...categories.slice(0, 5)];
+function CategoryFilters({ categories, active, onChange }) {
+  const options = [{ id: 'all', name: '全部分类' }, ...categories.slice(0, 8)];
 
   return (
     <section className="scroll-row mt-3 flex gap-2 pb-1">

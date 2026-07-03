@@ -419,6 +419,55 @@ describe('MVP API', () => {
     assert.ok(!afterDelete.notes.some((note) => note.id === created.note.id));
   });
 
+  test('creates and updates custom categories for notes and filters', async () => {
+    const createdCategory = await requestJson('/api/categories', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: '车辆 / 保养',
+        color: '#3DAA6C',
+        icon: 'car'
+      })
+    });
+
+    assert.ok(createdCategory.category.id.startsWith('category_'));
+    assert.equal(createdCategory.category.name, '车辆 / 保养');
+    assert.equal(createdCategory.category.color, '#3DAA6C');
+    assert.equal(createdCategory.category.icon, 'car');
+    assert.equal(createdCategory.category.isSystem, 0);
+
+    const updatedCategory = await requestJson('/api/categories/' + createdCategory.category.id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: '车辆资料',
+        color: '#557c93',
+        icon: 'car'
+      })
+    });
+
+    assert.equal(updatedCategory.category.name, '车辆资料');
+    assert.equal(updatedCategory.category.color, '#557c93');
+
+    const createdNote = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '自定义分类记录',
+        content: '这条记录用于验证自定义分类。',
+        categoryId: createdCategory.category.id,
+        memberId: 'self'
+      })
+    });
+
+    assert.equal(createdNote.note.categoryId, createdCategory.category.id);
+    assert.equal(createdNote.note.categoryName, '车辆资料');
+
+    const filtered = await requestJson('/api/notes?category=' + encodeURIComponent(createdCategory.category.id));
+    assert.ok(filtered.notes.some((note) => note.id === createdNote.note.id));
+
+    const categoriesResult = await requestJson('/api/categories');
+    const categoryFromList = categoriesResult.categories.find((category) => category.id === createdCategory.category.id);
+    assert.ok(categoryFromList);
+    assert.equal(categoryFromList.noteCount, 1);
+  });
   test('supports search, category, member, tag and source filters', async () => {
     const title = `筛选测试记录 ${Date.now()}`;
     const created = await requestJson('/api/notes', {
@@ -766,3 +815,4 @@ describe('MVP API', () => {
     assert.equal(after.notes.length, before.notes.length + 1);
   });
 });
+

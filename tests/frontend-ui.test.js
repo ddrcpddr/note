@@ -109,8 +109,25 @@ describe('Frontend mobile interactions', () => {
 
     assert.ok(source.includes('async function openDetail(id)'));
     assert.ok(source.includes("fetch(`/api/notes?id=${encodeURIComponent(id)}`)"));
-    assert.ok(source.includes('const normalized = normalizeNote(detailNote)'));
+    assert.ok(source.includes('const normalized = normalizeNote(detailNote, categoriesData)'));
     assert.ok(source.includes('setNotesData((current) => current.some((note) => note.id === id)'));
+  });
+
+  test('wires custom categories through app data, note forms, search and category management', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('const [categoriesData, setCategoriesData] = useState(fallbackCategories)'));
+    assert.ok(source.includes('const nextCategories = normalizeCategories(data.categories)'));
+    assert.ok(source.includes('function normalizeNote(note, categoryList = fallbackCategories)'));
+    assert.ok(source.includes('function filterNotes(notes, { filter ='));
+    assert.ok(source.includes("fetch('/api/categories'"));
+    assert.ok(source.includes("fetch('/api/categories/' + categoryId"));
+    assert.ok(source.includes('function NewRecordScreen({ members, categories, currentMemberId'));
+    assert.ok(source.includes('categoryId: selectedCategoryId'));
+    assert.ok(source.includes('function SearchScreen({ notes, categories, members, onOpenDetail })'));
+    assert.ok(source.includes("const categoryFilterOptions = ['all', ...categories.slice(0, 7).map((item) => item.id)]"));
+    assert.ok(source.includes('function CategoriesScreen({ notes, categories, onSelectCategory, onCreateCategory, onUpdateCategory })'));
+    assert.ok(source.includes('新分类'));
   });
 
   test('keeps member management aligned with compact mobile UI', () => {
