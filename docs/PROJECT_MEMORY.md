@@ -1294,3 +1294,26 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过。
 
 说明：控制台里的 Microsoft 图片 lazy-load Intervention 是浏览器提示，不是应用代码错误。本轮只修复 Tiptap duplicate extension warning。
+
+## 2026-07-03 - 收敛成员管理页移动端 UI
+
+用户截图反馈“成员管理”页面仍像旧版大字号卡片，和当前新版移动端视觉不统一。
+
+本轮只修成员管理页视觉层，不改成员逻辑、数据库、导入、富文本或其他页面：
+
+- 将顶部说明卡从大标题 hero 风格收敛为紧凑信息卡，标题改为 18px 级别，说明文案更短。
+- 当前成员卡片和成员列表卡片统一为 12px 头像、17-18px 标题、紧凑说明文字。
+- 改名 / 头像 / 颜色按钮统一为 36px 高的轻量胶囊按钮，避免移动端按钮过大。
+- 成员切换图标按钮统一尺寸，减少右侧视觉突兀。
+- 新增前端静态回归测试，防止成员管理页回到 26px 大标题、64px 大头像的旧样式。
+
+验证结果：
+
+- `node --test tests/frontend-ui.test.js`：通过，12 tests。
+- `npm.cmd run check`：通过，当前测试库 `noteCount=186`。
+- `npm.cmd run test`：通过，11 suites / 55 tests / 55 pass。
+- `npm.cmd run build`：通过，新前端产物为 `index-DmpFVVzJ.js` / `index-CZcawJYy.css`。
+- `docker compose ps`：`note` 容器 healthy，3300 端口正常。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，health、app-data、列表、详情、搜索、分类、成员筛选、备份、JSON 导出和前端壳均正常。
+
+安全说明：本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。

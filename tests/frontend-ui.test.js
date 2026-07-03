@@ -113,6 +113,17 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('setNotesData((current) => current.some((note) => note.id === id)'));
   });
 
+  test('keeps member management aligned with compact mobile UI', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('function MemberManagementScreen'));
+    assert.ok(source.includes('text-[18px] font-semibold leading-6 text-ink">家庭成员身份'));
+    assert.ok(source.includes('h-12 w-12 shrink-0 border'));
+    assert.ok(source.includes('text-[17px] font-semibold text-ink'));
+    assert.ok(source.includes('h-9 rounded-2xl border border-line bg-white px-3 text-[13px] font-medium text-muted'));
+    assert.ok(!source.includes('text-[26px] font-bold leading-tight">家庭成员身份'));
+    assert.ok(!source.includes('h-16 w-16 shrink-0 border'));
+  });
   test('does not ship hardcoded sample notes or related records', () => {
     const source = readText('src/client/main.jsx');
     const defaults = readText('src/shared/defaults.js');

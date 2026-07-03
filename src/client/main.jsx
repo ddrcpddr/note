@@ -1852,25 +1852,25 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
   return (
     <>
       <TopBar title="成员管理" onBack={onBack} />
-      <section className="soft-card mt-5 p-4">
-        <div className="flex items-start gap-4">
-          <div className="circle-icon bg-teal-50 text-teal-600"><UserRound size={34} /></div>
+      <section className="soft-card mt-4 p-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-teal-50 text-teal-600"><UserRound size={24} /></div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-[26px] font-bold leading-tight">家庭成员身份</h1>
-            <p className="mt-1 text-[12px] leading-5 text-muted">当前版本先固定“我”和“爱人”两个成员，并支持切换、改名、头像字和颜色。</p>
+            <h1 className="text-[18px] font-semibold leading-6 text-ink">家庭成员身份</h1>
+            <p className="mt-1 text-[12px] leading-5 text-muted">当前只保留“我”和“爱人”，可切换、改名、调整头像字和颜色。</p>
           </div>
         </div>
       </section>
       <SectionTitle>当前成员</SectionTitle>
       <section className="soft-card p-4">
         {members.filter((member) => member.id === currentMemberId).map((member) => (
-          <div className="flex items-center gap-4" key={member.id}>
-            <AvatarMark src={member.avatarImage} label={member.name} className={`h-16 w-16 shrink-0 border ${member.colorClass}`} />
+          <div className="flex items-center gap-3" key={member.id}>
+            <AvatarMark src={member.avatarImage} label={member.name} className={`h-12 w-12 shrink-0 border ${member.colorClass}`} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[22px] font-bold">{member.name}</p>
-              <p className="mt-1 text-[12px] text-muted">新建记录会默认归到这个成员名下</p>
+              <p className="truncate text-[18px] font-semibold text-ink">{member.name}</p>
+              <p className="mt-1 text-[12px] leading-5 text-muted">新建记录默认归到这个成员名下</p>
             </div>
-            <CheckCircle2 className="shrink-0 text-teal-600" size={26} />
+            <CheckCircle2 className="shrink-0 text-teal-600" size={22} />
           </div>
         ))}
       </section>
@@ -1881,23 +1881,23 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
           const isEditing = editingMemberId === member.id;
           return (
             <article className="soft-card p-4" key={member.id}>
-              <div className="flex items-center gap-4">
-                <AvatarMark src={member.avatarImage} label={member.name} className={`h-14 w-14 shrink-0 border ${member.colorClass}`} />
+              <div className="flex items-center gap-3">
+                <AvatarMark src={member.avatarImage} label={member.name} className={`h-12 w-12 shrink-0 border ${member.colorClass}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-2">
-                    <h2 className="truncate text-[20px] font-bold">{member.name}</h2>
-                    {isCurrent && <span className="tag bg-teal-50 text-teal-600">当前</span>}
+                    <h2 className="truncate text-[17px] font-semibold text-ink">{member.name}</h2>
+                    {isCurrent && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-600">当前</span>}
                   </div>
-                  <p className="mt-1 text-[14px] leading-relaxed text-muted">可以改名、换头像字和颜色；新增成员以后再开放。</p>
+                  <p className="mt-1 text-[12px] leading-5 text-muted">改名、头像字和颜色会同步到记录显示。</p>
                 </div>
-                <button className="shrink-0 text-teal-600" type="button" onClick={() => onSwitchMember(member.id)} aria-label={`切换到${member.name}`}>
-                  {isCurrent ? <CheckCircle2 size={18} /> : <ChevronRight size={24} />}
+                <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-teal-600" type="button" onClick={() => onSwitchMember(member.id)} aria-label={`切换到${member.name}`}>
+                  {isCurrent ? <CheckCircle2 size={20} /> : <ChevronRight size={22} />}
                 </button>
               </div>
               {isEditing ? (
                 <div className="mt-4 space-y-3">
-                  <input className="h-11 w-full rounded-2xl border border-line bg-white px-4 text-[16px] outline-none focus:border-teal-500" value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="成员名称" />
-                  <input className="h-11 w-full rounded-2xl border border-line bg-white px-4 text-[16px] outline-none focus:border-teal-500" value={draftAvatar} onChange={(event) => setDraftAvatar(event.target.value.slice(0, 2))} placeholder="头像字" />
+                  <input className="h-10 w-full rounded-2xl border border-line bg-white px-3 text-[14px] outline-none focus:border-teal-500" value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder="成员名称" />
+                  <input className="h-10 w-full rounded-2xl border border-line bg-white px-3 text-[14px] outline-none focus:border-teal-500" value={draftAvatar} onChange={(event) => setDraftAvatar(event.target.value.slice(0, 2))} placeholder="头像字" />
                   <div className="scroll-row flex gap-2 pb-1">
                     {memberColorOptions.map(([color, label]) => (
                       <button className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[12px] ${draftColor === color ? memberColorClasses[color] : 'border-line bg-white text-muted'}`} key={color} type="button" onClick={() => setDraftColor(color)}>{label}</button>
@@ -1909,18 +1909,18 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
                   </div>
                 </div>
               ) : (
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => startEdit(member)}>改名</button>
-                  <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => startEdit(member)}>头像</button>
-                  <button className="rounded-2xl border border-line bg-white px-3 py-2 text-[14px] text-muted" type="button" onClick={() => startEdit(member)}>颜色</button>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <button className="h-9 rounded-2xl border border-line bg-white px-3 text-[13px] font-medium text-muted" type="button" onClick={() => startEdit(member)}>改名</button>
+                  <button className="h-9 rounded-2xl border border-line bg-white px-3 text-[13px] font-medium text-muted" type="button" onClick={() => startEdit(member)}>头像</button>
+                  <button className="h-9 rounded-2xl border border-line bg-white px-3 text-[13px] font-medium text-muted" type="button" onClick={() => startEdit(member)}>颜色</button>
                 </div>
               )}
             </article>
           );
         })}
       </section>
-      <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-4 text-[12px] leading-relaxed text-muted">
-        当前版本先固定使用“我”和“爱人”；新增成员以后再做。
+      <section className="mt-4 rounded-2xl border border-line bg-white/80 p-3 text-[12px] leading-5 text-muted">
+        当前只固定使用“我”和“爱人”；新增成员以后再做。
       </section>
     </>
   );
