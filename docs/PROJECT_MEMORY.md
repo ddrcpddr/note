@@ -1055,3 +1055,14 @@ MVP 需要覆盖：
 - 新增测试覆盖：富文本创建、编辑、安全清理、危险链接处理、搜索仍基于纯文本、JSON 导出、Markdown 导出、旧纯文本转编辑器 HTML、用户富文本优先于 Note Station 原始 HTML。
 - 验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过 11 个测试套件 / 40 项测试；`npm.cmd run build` 通过。
 - 本轮不提交 `data/`、数据库、备份、导出、附件、`.nsx`、日志或真实隐私数据。
+
+## 2026-07-03 - 新版 Figma Make 视觉基准接入第一轮
+
+- Figma / UI 线程同步确认：后续前端视觉基准切换为 GitHub 仓库 `ddrcpddr/figma` 中 `家事记-UI设计规范.md` 对应的 Figma Make 版本，来源提交 `75a42cde764f6d024804b23f099e8ef04e641823`。
+- 项目内实现入口为 `docs/FIGMA_IMPLEMENTATION_SPECS.md`；旧的 430px / 大字号 / 偏 Product Design 早期稿的实现不再作为标准。
+- 本轮前端已按新版基准做第一批视觉层调整：页面壳收敛到 `390px` 基准、背景切换为 `#F4F5F7`、主色切换为 `#3DAA6C`、卡片统一 `16px` 圆角和轻阴影、底部导航改为约 `58px`、FAB 改为首页 `56px` / 分类页 `66px`。
+- 首页、搜索、新建、分类、记录卡片、底部导航、富文本显示密度等共享视觉已先收拢到新版字号层级；未新增功能、不改数据库、不改真实 Note Station 数据。
+- 图标继续优先使用 `design/image-assets/v1/runtime/` 中已有 runtime 素材：默认成员只保留 `我 / 爱人`，分类图标继续使用 11 个已生成分类图标，不重新自由设计图标。
+- Playwright 验收使用临时本地端口 `3312`：首页和分类页生成 390px / 430px 截图；分类页 11 个分类完整存在，无页面横向溢出，无分类标题省略号、溢出或异常竖排；分类卡实测约 `173 x 70`，符合新版两列紧凑卡片方向。
+- 验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=114`；`npm.cmd run test` 通过 11 个测试套件 / 40 项测试；`npm.cmd run build` 通过。
+- 本轮只提交代码和文档，不提交 `data/`、数据库、备份、导出、附件、`.nsx`、日志或临时截图。

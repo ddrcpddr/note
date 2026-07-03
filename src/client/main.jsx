@@ -682,13 +682,13 @@ function App() {
 
       {(screen === 'home' || screen === 'categories') && (
         <button
-          className={`fixed bottom-[104px] right-[max(24px,calc((100vw-430px)/2+24px))] z-40 grid place-items-center rounded-full bg-teal-600 text-white shadow-float ${screen === 'categories' ? 'h-[82px] w-[82px] content-center gap-0.5' : 'h-[74px] w-[74px]'}`}
+          className={`fixed bottom-[72px] right-[max(20px,calc((100vw-390px)/2+20px))] z-40 grid place-items-center rounded-full bg-teal-600 text-white shadow-float ${screen === 'categories' ? 'h-[66px] w-[66px] content-center gap-0.5' : 'h-14 w-14'}`}
           type="button"
           aria-label="新建记录"
           onClick={() => navigate('new')}
         >
-          <Plus size={screen === 'categories' ? 34 : 36} strokeWidth={2.6} />
-          {screen === 'categories' && <span className="text-[12px] font-medium leading-none">记一件事</span>}
+          <Plus size={screen === 'categories' ? 28 : 26} strokeWidth={2.6} />
+          {screen === 'categories' && <span className="text-[10px] font-medium leading-none">记一件事</span>}
         </button>
       )}
 
@@ -904,7 +904,7 @@ function AccessLockScreen({ message, onUnlock }) {
           <ShieldCheck size={34} />
         </div>
         <h1 className="mt-5 text-[25px] font-bold text-[#153b37]">输入访问口令</h1>
-        <p className="mt-2 text-[15px] leading-relaxed text-muted">这是家里的生活记录，只在家庭设备上输入一次即可继续使用。</p>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted">这是家里的生活记录，只在家庭设备上输入一次即可继续使用。</p>
         <form className="mt-6 space-y-4" onSubmit={submit}>
           <input
             className="h-14 w-full rounded-2xl border border-line bg-white px-4 text-center text-[22px] tracking-[0.24em] outline-none focus:border-teal-500"
@@ -915,7 +915,7 @@ function AccessLockScreen({ message, onUnlock }) {
             placeholder="••••"
           />
           {message && <p className="text-[14px] text-rose-500">{message}</p>}
-          <button className="h-14 w-full rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="submit">
+          <button className="h-14 w-full rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float" type="submit">
             进入家事记
           </button>
         </form>
@@ -934,21 +934,21 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
       <header className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-[25px] font-bold leading-none text-teal-600">家事记</h1>
-            <Home className="mt-0.5 text-teal-600" size={25} strokeWidth={2.2} />
+            <h1 className="text-[20px] font-bold leading-none text-teal-600">家事记</h1>
+            <Home className="mt-0.5 text-teal-600" size={20} strokeWidth={2.2} />
           </div>
-          <p className="mt-2 text-[15px] text-muted">记录家里的大小事</p>
+          <p className="mt-1 text-[11px] text-muted">记录家里的大小事</p>
         </div>
-        <div className="flex gap-3 pt-2 text-teal-700">
-          <Clock3 size={26} />
-          <MoreHorizontal size={26} className="text-ink" />
+        <div className="flex gap-2 pt-1 text-muted">
+          <Clock3 size={20} />
+          <MoreHorizontal size={20} className="text-ink" />
         </div>
       </header>
       <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
       <QuickFilters active={filter} onChange={onFilterChange} showMore={showMoreFilters} onToggleMore={() => setShowMoreFilters((value) => !value)} />
       {(showMoreFilters || hasAdvancedFilter) && (
-        <section className="mt-3 rounded-[20px] border border-line/70 bg-white/80 px-3 py-3 shadow-[0_6px_18px_rgba(39,43,48,0.045)]">
-          <p className="px-1 text-[13px] text-muted">更多筛选</p>
+        <section className="mt-3 rounded-2xl border border-line/70 bg-white px-3 py-3 shadow-card">
+          <p className="px-1 text-[12px] text-muted">更多筛选</p>
           <MemberFilters members={members} active={member} onChange={onMemberChange} />
           <CategoryFilters active={category} onChange={onCategoryChange} />
         </section>
@@ -958,7 +958,7 @@ function HomeScreen({ notes, filter, member, category, members, onFilterChange, 
         title={category === 'all' ? '最新记录' : categoryName}
         trailing={<><RotateCw size={18} /> {visibleNotes.length} 条</>}
       />
-      <section className="mt-3 space-y-4">
+      <section className="mt-3 space-y-2.5">
         {visibleNotes.map((note) => (
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
@@ -1099,8 +1099,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   return (
     <>
       <TopBar title={isEditing ? "编辑记录" : "新记录"} onBack={onBack} action="保存" onAction={save} />
-      <section className="soft-card mt-5 flex h-[58px] items-center gap-4 px-5 text-[19px] text-muted">
-        <span className="text-[28px]">T</span>
+      <section className="soft-card mt-5 flex h-12 items-center gap-3 px-4 text-[14px] text-muted">
+        <span className="text-[20px]">T</span>
         <input
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted"
           value={title}
@@ -1108,9 +1108,9 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           placeholder="标题（可选）"
         />
       </section>
-      <section className="soft-card mt-4 min-h-[246px] p-5">
-        <div className="flex gap-4 text-[17px] text-muted">
-          <FileText className="mt-1 shrink-0" size={25} />
+      <section className="soft-card mt-3 min-h-[168px] p-4">
+        <div className="flex gap-3 text-[14px] text-muted">
+          <FileText className="mt-1 shrink-0" size={18} />
           <RichTextEditor
             initialHtml={initialRichHtml}
             plainTextFallback={initialNote?.content || ''}
@@ -1120,20 +1120,20 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
             }}
           />
         </div>
-        <div className="mt-4 text-right text-[15px] text-muted">{bodyText.length}/1000</div>
+        <div className="mt-2 text-right text-[11px] text-muted">{bodyText.length}/1000</div>
       </section>
-      <section className="mt-5 flex items-center justify-between gap-3 rounded-[20px] border border-line/70 bg-white/80 px-4 py-3 shadow-[0_6px_18px_rgba(39,43,48,0.045)]">
+      <section className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-line/70 bg-white/80 px-4 py-3 shadow-[0_6px_18px_rgba(39,43,48,0.045)]">
         <div className="flex min-w-0 items-center gap-3">
           <AvatarMark src={currentMember.avatarImage} label={currentMember.name} className={`h-9 w-9 shrink-0 border ${currentMember.colorClass}`} />
           <div className="min-w-0">
-            <p className="truncate text-[15px] text-muted">当前成员</p>
-            <p className="truncate text-[17px] font-semibold text-ink">{currentMember.name}</p>
+            <p className="truncate text-[12px] text-muted">当前成员</p>
+            <p className="truncate text-[14px] font-semibold text-ink">{currentMember.name}</p>
           </div>
         </div>
-        <div className="scroll-row flex max-w-[190px] gap-2 pb-1">
+        <div className="scroll-row flex max-w-[158px] gap-2 pb-1">
           {members.map((member) => (
             <button
-              className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-[14px] ${selectedMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
+              className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[12px] ${selectedMemberId === member.id ? member.colorClass : 'border-line bg-white text-muted'}`}
               key={member.id}
               type="button"
               onClick={() => setSelectedMemberId(member.id)}
@@ -1144,26 +1144,26 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
         </div>
       </section>
       <SectionTitle>记录类型</SectionTitle>
-      <section className="grid grid-cols-4 gap-3">
+      <section className="grid grid-cols-4 gap-2">
         {recordTypes.map((recordType) => {
           const Icon = recordType.icon;
           return (
             <button
-              className={`soft-card flex h-[80px] flex-col items-center justify-center gap-2 px-1 text-[15px] ${
+              className={`soft-card flex h-[66px] flex-col items-center justify-center gap-1.5 px-1 text-[10px] font-medium ${
                 type === recordType.label ? 'border-teal-600 bg-teal-50 text-teal-700' : 'text-ink'
               }`}
               key={recordType.label}
               type="button"
               onClick={() => setType(recordType.label)}
             >
-              <Icon size={25} strokeWidth={2.1} />
+              <Icon size={18} strokeWidth={2.1} />
               {recordType.label}
             </button>
           );
         })}
       </section>
       <SectionTitle>标签</SectionTitle>
-      <section className="soft-card flex flex-wrap gap-3 p-4">
+      <section className="soft-card flex flex-wrap gap-2 p-3">
         {visibleTagOptions.map((label) => (
           <button
             className={`tag ${tags.includes(label) ? tagTones[findTagTone(label)] : 'border border-line bg-white text-muted'}`}
@@ -1171,13 +1171,13 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
             type="button"
             onClick={() => toggleTag(label)}
           >
-            {label} {tags.includes(label) && <X className="ml-1" size={14} />}
+            {label} {tags.includes(label) && <X className="ml-1" size={13} />}
           </button>
         ))}
         {isAddingTag ? (
           <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-dashed border-teal-200 bg-white px-3 py-1.5">
             <input
-              className="w-20 bg-transparent text-[15px] outline-none placeholder:text-muted"
+              className="w-20 bg-transparent text-[12px] outline-none placeholder:text-muted"
               value={newTag}
               onChange={(event) => setNewTag(event.target.value)}
               onKeyDown={(event) => {
@@ -1198,7 +1198,7 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
             </button>
           </span>
         ) : (
-          <button className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[15px] text-muted" type="button" onClick={() => setIsAddingTag(true)}>
+          <button className="inline-flex items-center rounded-xl border border-dashed border-line px-3 py-1.5 text-[12px] text-muted" type="button" onClick={() => setIsAddingTag(true)}>
             <Plus size={17} /> 添加标签
           </button>
         )}
@@ -1217,18 +1217,18 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           }}
         />
       )}
-      <label className={`soft-card flex min-h-[72px] w-full items-center justify-between px-5 py-4 text-left ${isEditing ? 'opacity-75' : 'cursor-pointer'}`} htmlFor={isEditing ? undefined : 'record-attachment-input'}>
-        <span className="inline-flex min-w-0 items-center gap-4 text-[17px] text-muted">
-          <Paperclip className="shrink-0 text-teal-600" size={28} />
+      <label className={`soft-card flex min-h-[56px] w-full items-center justify-between px-4 py-3 text-left ${isEditing ? 'opacity-75' : 'cursor-pointer'}`} htmlFor={isEditing ? undefined : 'record-attachment-input'}>
+        <span className="inline-flex min-w-0 items-center gap-3 text-[13px] text-muted">
+          <Paperclip className="shrink-0 text-teal-600" size={20} />
           <span className="min-w-0">{attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment)}</span>
         </span>
         {hasAttachment ? <CheckCircle2 className="shrink-0 text-teal-600" /> : <ChevronRight className="shrink-0 text-muted" />}
       </label>
-      <div className="bottom-action-bar flex h-[92px] items-center gap-4 px-5 py-4">
-        <button className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl text-[17px] font-medium text-teal-600" type="button">
+      <div className="bottom-action-bar flex h-[72px] items-center gap-3 px-4 py-3">
+        <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-[14px] font-medium text-teal-600" type="button">
           <FileText size={22} /> {isEditing ? '保留原附件' : '存为模板'}
         </button>
-        <button className="flex h-14 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[18px] font-semibold text-white shadow-float" type="button" onClick={save}>
+        <button className="flex h-12 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float" type="button" onClick={save}>
           <Check size={24} /> {isEditing ? '保存修改' : '保存记录'}
         </button>
       </div>
@@ -1259,30 +1259,30 @@ function SearchScreen({ notes, members, onOpenDetail }) {
     <>
       <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[25px] font-bold leading-none text-[#093f3e]">搜索</h1>
-          <p className="mt-2 text-[15px] text-muted">快速找到你需要的记录</p>
+          <h1 className="text-[17px] font-bold leading-none text-ink">搜索</h1>
+          <p className="mt-1 text-[11px] text-muted">快速找到你需要的记录</p>
         </div>
         <button className="chip mt-3 px-3">
           <Clock3 size={19} /> 历史
         </button>
       </header>
-      <section className="soft-card mt-5 flex h-[62px] items-center gap-4 px-5">
-        <Search size={29} className="text-muted" />
+      <section className="soft-card mt-4 flex h-12 items-center gap-3 px-4">
+        <Search size={22} className="text-muted" />
         <input
-          className="min-w-0 flex-1 bg-transparent text-[20px] font-medium outline-none placeholder:text-muted"
+          className="min-w-0 flex-1 bg-transparent text-[14px] font-medium outline-none placeholder:text-muted"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="输入关键词"
         />
         {query && (
           <button type="button" onClick={() => setQuery('')} aria-label="清空搜索">
-            <X size={23} className="text-muted" />
+            <X size={18} className="text-muted" />
           </button>
         )}
-        <span className="h-8 w-px bg-line" />
-        <span className="text-[17px] font-medium text-teal-600">搜索</span>
+        <span className="h-6 w-px bg-line" />
+        <span className="text-[14px] font-medium text-teal-600">搜索</span>
       </section>
-      <section className="soft-card mt-5 divide-y divide-line p-4">
+      <section className="soft-card mt-4 divide-y divide-line p-3">
         <FilterRow title="分类" options={['all', 'family', 'repair', 'shopping', 'temporary']} labels={{ all: '全部', family: '家庭事务', repair: '维修', shopping: '购物', temporary: '临时' }} active={category} onChange={setCategory} />
         <FilterRow title="标签" options={['all', '待办', '重要', '维修', '购物']} labels={{ all: '全部' }} active={tag} onChange={setTag} />
         <FilterRow title="时间范围" options={['全部时间', '本月', '今年']} active={range} onChange={setRange} />
@@ -1307,7 +1307,7 @@ function SearchScreen({ notes, members, onOpenDetail }) {
         title={`找到 ${results.length} 条相关记录`}
         trailing={<button type="button" onClick={clearFilters} className="text-muted">清除筛选</button>}
       />
-      <section className="mt-3 space-y-4">
+      <section className="mt-3 space-y-2.5">
         {results.map((note) => (
           <RecordCard key={note.id} note={note} onClick={() => onOpenDetail(note.id)} />
         ))}
@@ -1328,17 +1328,17 @@ function CategoriesScreen({ notes, onSelectCategory }) {
     .filter((category) => category.name.includes(query.trim()));
   return (
     <>
-      <header className="mt-5 flex items-start justify-between">
+      <header className="flex items-start justify-between">
         <div>
-          <h1 className="text-[40px] font-bold leading-[46px] text-[#06483F]">分类</h1>
-          <p className="mt-2 text-[17px] text-muted">按家里的事情慢慢整理</p>
+          <h1 className="text-[20px] font-bold leading-none text-ink">分类</h1>
+          <p className="mt-1 text-[11px] text-muted">按家里的事情慢慢整理</p>
         </div>
-        <button className="grid h-12 w-12 place-items-center rounded-full bg-white text-teal-600 shadow-card">
-          <Grid2X2 size={24} />
+        <button className="grid h-9 w-9 place-items-center rounded-full bg-white text-teal-600 shadow-card">
+          <Grid2X2 size={18} />
         </button>
       </header>
-      <section className="soft-card mt-7 flex h-[58px] w-full items-center gap-4 rounded-[18px] bg-white px-[18px] text-left text-[19px] text-[#8b8e94] shadow-card">
-        <Search size={28} className="text-[#777b82]" />
+      <section className="soft-card mt-4 flex h-11 w-full items-center gap-3 rounded-xl bg-[#F2F2F5] px-3 text-left text-[14px] text-[#8b8e94] shadow-card">
+        <Search size={20} className="text-[#777b82]" />
         <input
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#8b8e94]"
           value={query}
@@ -1346,23 +1346,23 @@ function CategoriesScreen({ notes, onSelectCategory }) {
           placeholder="搜索分类"
         />
       </section>
-      <section className="mt-10 grid grid-cols-2 gap-x-[10px] gap-y-[14px] pb-[124px] min-[430px]:gap-x-[14px]" data-category-grid>
+      <section className="mt-4 grid grid-cols-2 gap-3 pb-24" data-category-grid>
         {visibleCategories.map((category) => {
           const Icon = category.icon;
           const displayName = category.name;
           const displayUpdate = category.update.replace(' 更新', '');
           const countTone = category.tone.match(/text-[^\s]+/)?.[0] ?? 'text-teal-600';
           return (
-            <button className="soft-card relative flex h-[102px] w-full items-center gap-1.5 overflow-hidden rounded-[16px] px-[9px] py-[14px] text-left shadow-[0_8px_24px_rgba(39,43,48,0.08)] min-[430px]:px-2.5" data-category-card key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
-              <div className={`circle-icon h-11 w-11 shrink-0 bg-white min-[430px]:h-[52px] min-[430px]:w-[52px] ${category.tone}`} data-category-icon>
-                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-[38px] w-[38px] min-[430px]:h-[42px] min-[430px]:w-[42px]" iconSize={28} />
+            <button className="soft-card relative flex h-[70px] w-full items-center gap-1.5 overflow-hidden rounded-2xl px-2.5 py-2.5 text-left shadow-card" data-category-card key={category.id} type="button" onClick={() => onSelectCategory(category.id)}>
+              <div className={`circle-icon h-[30px] w-[30px] shrink-0 ${category.tone}`} data-category-icon>
+                <CategoryMark src={category.imageSrc} fallback={Icon} label={displayName} className="h-[24px] w-[24px]" iconSize={16} />
               </div>
               <div className="min-w-0 flex-1 pr-2">
-                <h2 className="break-keep text-[18px] font-bold leading-[22px] text-ink" data-category-title>{displayName}</h2>
-                <p className={`mt-1 whitespace-nowrap text-[15px] font-medium leading-[18px] ${countTone}`} data-category-count>{category.count} 条记录</p>
-                <p className="mt-0.5 whitespace-nowrap text-[13px] leading-[16px] text-muted" data-category-update>{displayUpdate}</p>
+                <h2 className="whitespace-nowrap text-[13px] font-semibold leading-4 text-ink" data-category-title>{displayName}</h2>
+                <p className={`mt-0.5 whitespace-nowrap text-[11px] font-medium leading-[14px] ${countTone}`} data-category-count>{category.count} 条记录</p>
+                <p className="mt-0.5 whitespace-nowrap text-[10px] leading-[13px] text-muted" data-category-update>{displayUpdate}</p>
               </div>
-              <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 text-muted" size={14} />
+              <ChevronRight className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted" size={13} />
             </button>
           );
         })}
@@ -1453,7 +1453,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-[20px] font-bold">{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 Note Station .nsx 文件'}</h2>
-            <p className="mt-1 text-[15px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '先预览记录，再决定是否导入'}</p>
+            <p className="mt-1 text-[12px] text-muted">{canPreview ? '2.4 MB · 2025-05-18 20:11' : '先预览记录，再决定是否导入'}</p>
           </div>
         </div>
         <span className="mt-4 inline-flex items-center gap-2 text-[16px] font-medium text-teal-600">
@@ -1468,7 +1468,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       {canPreview && preview && (
         <>
           <section className="soft-card mt-4 p-5">
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {[
                 ['记录', `${preview.totalCount} 条`, FileText, 'text-teal-600'],
                 ['分类', `${preview.originalCategoryCount} 个`, Folder, 'text-blue-600'],
@@ -1524,12 +1524,12 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
                 <span className="chip" key={label}>{label}</span>
               ))}
             </div>
-            <p className="mt-4 text-[15px] text-muted">无法准确映射的记录会先放入未分类 / 待整理，并保留原始路径方便之后整理。</p>
+            <p className="mt-4 text-[12px] text-muted">无法准确映射的记录会先放入未分类 / 待整理，并保留原始路径方便之后整理。</p>
           </section>
         </>
       )}
       <div className="bottom-action-bar grid h-[88px] grid-cols-2 gap-4 px-4 py-4">
-        <button className="rounded-2xl border border-teal-600 text-[17px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
+        <button className="rounded-2xl border border-teal-600 text-[14px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
           {canPreview ? '重新选择文件' : '取消'}
         </button>
         <button className="rounded-2xl bg-teal-600 text-[17px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
@@ -1564,7 +1564,7 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
     <>
       <TopBar title="记录详情" onBack={onBack} action="编辑" onAction={onEdit} />
       <section className="soft-card mt-5 p-4">
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <div className={`circle-icon h-[72px] w-[72px] bg-white ${note.iconTone}`}>
             <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-14 w-14" iconSize={38} />
           </div>
@@ -1573,7 +1573,7 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
               <h2 className="min-w-0 text-[16px] font-bold leading-tight" style={{ overflowWrap: 'anywhere' }}>{note.title}</h2>
               <span className="text-[25px] text-muted">☆</span>
             </div>
-            <div className={`mt-3 flex items-center gap-2 text-[17px] font-medium ${note.categoryColor}`}>
+            <div className={`mt-3 flex items-center gap-2 text-[14px] font-medium ${note.categoryColor}`}>
               <CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-6 w-6" iconSize={23} /> {note.category} <ChevronRight size={18} />
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -1588,12 +1588,12 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
           <MetaRow icon={Clock3} label="更新" value={note.updatedAt} />
           <MetaRow icon={FileText} label="来源" value={note.source} />
           <div className="flex flex-wrap gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1.5 text-[14px] font-medium text-teal-700"><UserRound size={16} /> {note.member}</span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-soft px-3 py-1.5 text-[14px] font-medium text-muted"><Cloud size={16} /> {note.status}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[12px] font-medium text-teal-700"><UserRound size={16} /> {note.member}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-soft px-2.5 py-1 text-[12px] font-medium text-muted"><Cloud size={16} /> {note.status}</span>
           </div>
         </div>
         {note.sourceType === 'notestation_import' && (
-          <div className="mt-5 rounded-2xl bg-teal-50/70 p-4 text-[15px] leading-relaxed text-muted">
+          <div className="mt-5 rounded-2xl bg-teal-50/70 p-4 text-[12px] leading-relaxed text-muted">
             <p className="font-semibold text-teal-700">Note Station 来源信息</p>
             <div className="mt-3 space-y-2">
               <p className="break-words"><span className="text-[#24312f]">原始分类：</span>{note.originalCategory || '未分类 / 待整理'}</p>
@@ -1658,7 +1658,7 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
         <button className="flex flex-col items-center gap-1 text-muted" type="button" onClick={() => { setShowActions((value) => !value); setConfirmDelete(false); }}>
           {showActions ? <X size={28} /> : <MoreHorizontal size={28} />}<span className="text-[13px]">更多</span>
         </button>
-        <button className="inline-flex h-[52px] items-center gap-3 rounded-2xl bg-teal-600 px-7 py-3 text-[18px] font-semibold text-white shadow-float" type="button"><Share2 size={25} /> 分享记录</button>
+        <button className="inline-flex h-[52px] items-center gap-3 rounded-2xl bg-teal-600 px-7 py-3 text-[15px] font-semibold text-white shadow-float" type="button"><Share2 size={18} /> 分享记录</button>
       </div>
     </>
   );
@@ -1699,7 +1699,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
           <div className="circle-icon bg-teal-50 text-teal-600"><UserRound size={34} /></div>
           <div className="min-w-0 flex-1">
             <h1 className="text-[26px] font-bold leading-tight">家庭成员身份</h1>
-            <p className="mt-2 text-[16px] leading-relaxed text-muted">当前版本先固定“我”和“爱人”两个成员，并支持切换、改名、头像字和颜色。</p>
+            <p className="mt-1 text-[12px] leading-5 text-muted">当前版本先固定“我”和“爱人”两个成员，并支持切换、改名、头像字和颜色。</p>
           </div>
         </div>
       </section>
@@ -1710,7 +1710,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
             <AvatarMark src={member.avatarImage} label={member.name} className={`h-16 w-16 shrink-0 border ${member.colorClass}`} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[22px] font-bold">{member.name}</p>
-              <p className="mt-1 text-[15px] text-muted">新建记录会默认归到这个成员名下</p>
+              <p className="mt-1 text-[12px] text-muted">新建记录会默认归到这个成员名下</p>
             </div>
             <CheckCircle2 className="shrink-0 text-teal-600" size={26} />
           </div>
@@ -1733,7 +1733,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
                   <p className="mt-1 text-[14px] leading-relaxed text-muted">可以改名、换头像字和颜色；新增成员以后再开放。</p>
                 </div>
                 <button className="shrink-0 text-teal-600" type="button" onClick={() => onSwitchMember(member.id)} aria-label={`切换到${member.name}`}>
-                  {isCurrent ? <CheckCircle2 size={25} /> : <ChevronRight size={24} />}
+                  {isCurrent ? <CheckCircle2 size={18} /> : <ChevronRight size={24} />}
                 </button>
               </div>
               {isEditing ? (
@@ -1742,7 +1742,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
                   <input className="h-11 w-full rounded-2xl border border-line bg-white px-4 text-[16px] outline-none focus:border-teal-500" value={draftAvatar} onChange={(event) => setDraftAvatar(event.target.value.slice(0, 2))} placeholder="头像字" />
                   <div className="scroll-row flex gap-2 pb-1">
                     {memberColorOptions.map(([color, label]) => (
-                      <button className={`inline-flex shrink-0 rounded-full border px-3 py-1.5 text-[14px] ${draftColor === color ? memberColorClasses[color] : 'border-line bg-white text-muted'}`} key={color} type="button" onClick={() => setDraftColor(color)}>{label}</button>
+                      <button className={`inline-flex shrink-0 rounded-full border px-2.5 py-1 text-[12px] ${draftColor === color ? memberColorClasses[color] : 'border-line bg-white text-muted'}`} key={color} type="button" onClick={() => setDraftColor(color)}>{label}</button>
                     ))}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -1761,7 +1761,7 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
           );
         })}
       </section>
-      <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-4 text-[15px] leading-relaxed text-muted">
+      <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-4 text-[12px] leading-relaxed text-muted">
         当前版本先固定使用“我”和“爱人”；新增成员以后再做。
       </section>
     </>
@@ -1956,7 +1956,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[20px] font-semibold">当前记录人</p>
-            <p className="mt-1 text-[15px] text-muted">新建记录会默认归到当前成员名下</p>
+            <p className="mt-1 text-[12px] text-muted">新建记录会默认归到当前成员名下</p>
           </div>
           <UserRound className="text-teal-600" size={32} />
         </div>
@@ -1968,7 +1968,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
               type="button"
               onClick={() => onSwitchMember(member.id)}
             >
-              <span className="inline-flex items-center gap-2 text-[17px] font-medium">
+              <span className="inline-flex items-center gap-2 text-[14px] font-medium">
                 <AvatarMark src={member.avatarImage} label={member.name} className="h-7 w-7" />
                 {member.name}
               </span>
@@ -1976,12 +1976,12 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
           ))}
         </div>
         <p className="mt-4 text-[14px] leading-relaxed text-muted">当前默认成员固定为“我”和“爱人”；改名、头像和颜色编辑以后再做。</p>
-        <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[17px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
+        <button className="mt-4 flex h-12 w-full items-center justify-between rounded-2xl border border-line bg-white px-4 text-left text-[14px] font-medium text-teal-700" type="button" onClick={onOpenMembers}>
           成员管理
           <ChevronRight size={19} />
         </button>
       </section>
-      <div className="mt-6 rounded-2xl border border-orange-200 bg-amber-50 px-4 py-3 text-[15px] leading-relaxed text-[#a35b00]">
+      <div className="mt-6 rounded-2xl border border-orange-200 bg-amber-50 px-4 py-3 text-[12px] leading-relaxed text-[#a35b00]">
         所有数据仅保存在家庭 NAS 或局域网服务器中，家事记不会上传任何内容。
       </div>
     </>
@@ -1991,7 +1991,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 function SearchPill({ placeholder, onClick }) {
   return (
     <button className="mt-6 flex h-[58px] w-full items-center gap-4 rounded-[20px] bg-[#f4f3ef] px-5 text-left text-[20px] text-[#8b8e94] shadow-card" type="button" onClick={onClick}>
-      <Search size={28} className="text-[#777b82]" />
+      <Search size={20} className="text-[#777b82]" />
       <span className="min-w-0 flex-1 truncate">{placeholder}</span>
     </button>
   );
@@ -2072,7 +2072,7 @@ function TodayCard({ onCreateNote }) {
         <CalendarDays className="text-teal-600" size={30} />
         <div className="min-w-0">
           <h2 className="text-[21px] font-bold text-teal-600">今天要记</h2>
-          <p className="mt-1 truncate text-[15px] text-muted">随手记一条，闪念不丢失</p>
+          <p className="mt-1 truncate text-[12px] text-muted">随手记一条，闪念不丢失</p>
         </div>
       </div>
       <div className="h-12 w-px shrink-0 bg-line" />
@@ -2086,22 +2086,22 @@ function RecordCard({ note, onClick }) {
   const CategoryIcon = note.categoryIcon;
   return (
     <article className="soft-card p-4" onClick={onClick}>
-      <div className="flex gap-4">
-        <div className={`circle-icon bg-white ${note.iconTone}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-11 w-11" iconSize={32} /></div>
+      <div className="flex gap-3">
+        <div className={`circle-icon bg-white ${note.iconTone}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={Icon} label={note.category} className="h-[34px] w-[34px]" iconSize={18} /></div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 text-[16px] font-bold leading-snug" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
-            <MoreHorizontal size={22} className="shrink-0 text-ink" />
+            <h3 className="min-w-0 text-[14px] font-semibold leading-[20px] text-ink" style={{ overflowWrap: 'anywhere' }}>{note.title}</h3>
+            <MoreHorizontal size={18} className="shrink-0 text-ink" />
           </div>
-          <p className="record-summary mt-2 text-[16px] leading-relaxed text-muted">{note.summary}</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <p className="record-summary mt-1 text-[12px] leading-5 text-muted">{note.summary}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {note.tags.map((tag) => <span className={`tag ${tag.tone}`} key={tag.label}>{tag.label}</span>)}
           </div>
-          <div className="mt-3 border-t border-line pt-3 text-[14px] text-muted">
+          <div className="mt-2 border-t border-line pt-2 text-[11px] text-muted">
             <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
-              <span className="inline-flex items-center gap-1.5"><Clock3 size={17} /> {note.time}</span>
-              <span className={`inline-flex min-w-0 items-center gap-1.5 font-medium ${note.categoryColor}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-[18px] w-[18px]" iconSize={18} /> <span className="truncate">{note.category}</span></span>
-              <span className="inline-flex items-center gap-1.5"><Paperclip size={17} /> {note.attachmentCount}</span>
+              <span className="inline-flex items-center gap-1.5"><Clock3 size={13} /> {note.time}</span>
+              <span className={`inline-flex min-w-0 items-center gap-1.5 font-medium ${note.categoryColor}`}><CategoryMark src={note.categoryImageSrc || categoryImageAssets[note.categoryId]} fallback={CategoryIcon} label={note.category} className="h-[14px] w-[14px]" iconSize={13} /> <span className="truncate">{note.category}</span></span>
+              <span className="inline-flex items-center gap-1.5"><Paperclip size={13} /> {note.attachmentCount}</span>
             </div>
           </div>
         </div>
@@ -2112,18 +2112,18 @@ function RecordCard({ note, onClick }) {
 
 function TopBar({ title, onBack, action, onAction }) {
   return (
-    <header className="grid grid-cols-[44px_minmax(0,1fr)_64px] items-center">
-      <button className="text-ink" onClick={onBack} type="button" aria-label="返回"><ArrowLeft size={34} /></button>
-      <h1 className="truncate text-center text-[22px] font-semibold">{title}</h1>
-      <button className="text-right text-[17px] font-medium text-teal-600" type="button" onClick={onAction}>{action}</button>
+    <header className="grid h-12 grid-cols-[40px_minmax(0,1fr)_56px] items-center border-b border-line bg-white -mx-4 px-4">
+      <button className="text-ink" onClick={onBack} type="button" aria-label="返回"><ArrowLeft size={22} /></button>
+      <h1 className="truncate text-center text-[15px] font-semibold">{title}</h1>
+      <button className="text-right text-[14px] font-medium text-teal-600" type="button" onClick={onAction}>{action}</button>
     </header>
   );
 }
 
 function FilterRow({ title, options, active, onChange, labels = {} }) {
   return (
-    <div className="grid grid-cols-[76px_1fr] gap-3 py-3 first:pt-0 last:pb-0">
-      <span className="pt-2 text-[16px] font-medium">{title}</span>
+    <div className="grid grid-cols-[56px_1fr] gap-2 py-2.5 first:pt-0 last:pb-0">
+      <span className="pt-1.5 text-[12px] text-muted">{title}</span>
       <div className="scroll-row flex gap-2">
         {options.map((option) => (
           <button
@@ -2142,10 +2142,10 @@ function FilterRow({ title, options, active, onChange, labels = {} }) {
 
 function EmptyState({ title, desc, image }) {
   return (
-    <section className="mt-5 rounded-[22px] border border-dashed border-line bg-white/70 p-5 text-center">
+    <section className="mt-4 rounded-2xl border border-dashed border-line bg-white/70 p-5 text-center">
       {image ? <IllustrationImage src={image} alt={title} /> : <Search className="mx-auto text-muted" size={42} />}
-      <p className="mt-3 text-[17px] font-medium">{title}</p>
-      <p className="mt-1 text-[15px] leading-relaxed text-muted">{desc}</p>
+      <p className="mt-3 text-[14px] font-medium">{title}</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-muted">{desc}</p>
     </section>
   );
 }
@@ -2174,15 +2174,15 @@ function RelatedRow({ title, meta }) {
 
 function SectionHeader({ title, trailing }) {
   return (
-    <section className="mt-8 flex items-center justify-between">
-      <h2 className="text-[18px] font-medium">{title}</h2>
-      <span className="inline-flex items-center gap-1 text-[15px] text-muted">{trailing}</span>
+    <section className="mt-5 flex items-center justify-between">
+      <h2 className="text-[14px] font-semibold">{title}</h2>
+      <span className="inline-flex items-center gap-1 text-[12px] text-muted">{trailing}</span>
     </section>
   );
 }
 
 function SectionTitle({ children }) {
-  return <h2 className="mb-3 mt-6 text-[21px] font-semibold">{children}</h2>;
+  return <h2 className="mb-3 mt-5 text-[17px] font-bold">{children}</h2>;
 }
 
 function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClick }) {
@@ -2196,10 +2196,10 @@ function SettingsRow({ title, desc, icon: Icon, action, disabled = false, onClic
         <div className="circle-icon h-[58px] w-[58px] bg-teal-50 text-teal-700"><Icon size={31} /></div>
         <div className="min-w-0">
           <p className="text-[19px] font-semibold">{title}</p>
-          <p className="mt-1 break-all text-[15px] leading-relaxed text-muted">{desc}</p>
+          <p className="mt-1 break-all text-[12px] leading-relaxed text-muted">{desc}</p>
         </div>
       </div>
-      {action === '>' ? <ChevronRight className="shrink-0 text-muted" size={20} /> : <span className="shrink-0 text-[15px] text-muted">{action}</span>}
+      {action === '>' ? <ChevronRight className="shrink-0 text-muted" size={20} /> : <span className="shrink-0 text-[12px] text-muted">{action}</span>}
     </button>
   );
 }
@@ -2218,7 +2218,7 @@ function BottomNav({ active, onChange }) {
         const isActive = active === item.key;
         return (
           <button className={`nav-item ${isActive ? 'nav-active' : ''}`} key={item.key} onClick={() => onChange(item.key)} type="button">
-            <Icon size={28} strokeWidth={isActive ? 2.7 : 2.2} />
+            <Icon size={22} strokeWidth={isActive ? 2.7 : 2.2} />
             <span>{item.label}</span>
           </button>
         );

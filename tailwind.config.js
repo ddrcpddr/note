@@ -4,35 +4,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        paper: '#fcfaf6',
+        paper: '#F4F5F7',
         surface: '#ffffff',
-        ink: '#17191c',
-        muted: '#747982',
-        soft: '#f3f5f1',
-        line: '#e7e2d9',
+        ink: '#1F2937',
+        muted: '#9CA3AF',
+        soft: '#F2F2F5',
+        line: '#EBEBEB',
         teal: {
-          50: '#edf7f3',
-          100: '#dcefea',
-          500: '#0f8f80',
-          600: '#0a7f73',
-          700: '#086a60'
+          50: '#E8F5EE',
+          100: '#D7ECDF',
+          500: '#3DAA6C',
+          600: '#3DAA6C',
+          700: '#2F8D58'
         },
         amber: {
-          50: '#fff4e6',
-          500: '#d17800'
+          50: '#FFF3E0',
+          500: '#FF9500'
         },
         rose: {
-          50: '#fff0f0',
-          500: '#f02b2b'
+          50: '#FFF0F0',
+          500: '#FF4757'
         }
       },
       boxShadow: {
-        card: '0 8px 24px rgba(39, 43, 48, 0.08)',
-        float: '0 14px 30px rgba(10, 127, 115, 0.28)'
+        card: '0 1px 6px rgba(0, 0, 0, 0.06)',
+        float: '0 4px 20px rgba(61, 170, 108, 0.40)'
       },
       fontFamily: {
         sans: [
-          'Inter',
+          '"Noto Sans SC"',
           'ui-sans-serif',
           'system-ui',
           '-apple-system',
