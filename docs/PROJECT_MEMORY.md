@@ -1019,3 +1019,26 @@ MVP 需要覆盖：
 数据安全状态：Git 只跟踪 `data/` 下 `.gitkeep` 占位文件；真实数据库、备份、导出、附件、`.nsx`、dry-run JSON、日志和隐私内容不得提交。
 
 本轮验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`，`noteCount=113`，`categoryCount=11`；`npm.cmd run test` 通过 11 suites / 36 tests；`npm.cmd run build` 通过。
+
+## 2026-07-03 - 开发路线调整：暂停 RC 流程，富文本编辑优先
+
+用户明确调整项目方向：note 是个人和家庭自用工具，不继续按复杂 RC1 / RC2 或商业发布流程推进。之前围绕 RC1 试运行、发布清单、复杂验收和 Gate 的流程暂停，不再作为当前主线任务。
+
+新的开发顺序：
+
+1. 富文本编辑能力：新建、编辑、详情展示，兼容纯文本和 Note Station 导入 HTML，不破坏搜索、分类、标签、成员、备份、JSON / Markdown 导出和附件。
+2. 富文本相关页面收口：新建记录页、编辑记录页、详情页，保持当前移动端风格，不重做整套 UI。
+3. Product Design 7 张最终图视觉还原：仍然是 Android 前必做项，但不阻塞富文本开发；后续必须按 Figma 实现规格逐页还原，不凭感觉微调。
+4. Android 封装：继续排最后，当前不创建 Android 工程、不生成 APK。
+
+本轮只更新路线文档，不开发富文本，不改业务代码，不改数据库，不改 UI。
+
+已更新：
+
+- `docs/NEXT_STEPS.md`
+- `docs/ROADMAP_RELEASE_PLAN.md`
+- `docs/CODEX_CONTINUOUS_DEVELOPMENT_PLAN.md`
+- `docs/ANDROID_WRAPPER_PLAN.md`
+- `docs/PROJECT_MEMORY.md`
+
+本轮路线调整验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`，`noteCount=113`，`categoryCount=11`；`npm.cmd run test` 通过 11 suites / 36 tests；`npm.cmd run build` 通过。
