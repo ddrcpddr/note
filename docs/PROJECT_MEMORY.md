@@ -1125,3 +1125,13 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 修复内容：富文本编辑器新增 `toolbarRevision` 状态，并在 `onUpdate`、`onSelectionUpdate`、`onTransaction`、`onFocus`、`onBlur` 刷新工具栏；工具按钮使用 `onMouseDown.preventDefault` 保持编辑器焦点和选择；补齐表格、对齐、文字色、高亮的 active 判断；编辑区和详情区的 `em/i` 统一使用 `oblique 12deg`，让中文斜体更明显。新增前端静态回归测试防止状态刷新和斜体样式回退。
 
 验证结果：`node --test tests/frontend-ui.test.js` 通过；`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=114`；`npm.cmd run test` 通过 11 suites / 44 tests；`npm.cmd run build` 通过；Docker 3300 重建后 healthy，HTTP smoke 通过。Playwright 复测确认点击“斜体”后无需输入就立即选中，输入后 HTML 为 `<p><em>斜体测试abc</em></p>`，computed style 为 `oblique 12deg`；“高亮”按钮也能立即显示选中态。本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+
+## 2026-07-03 - 修复富文本斜体真实可见性与文字色取消
+
+用户继续反馈：斜体按钮能选中，但下方文字看起来没有变斜；“更多”里的文字色一旦选中就不能再次点击取消。
+
+本轮复现确认：斜体命令已经生成 `<em>`，但仅依赖 `font-style: oblique 12deg` 对中文字体视觉反馈不足；文字色按钮只有单向 `setColor('#0F766E')`，没有 active 时 `unsetColor()` 的 toggle 分支。
+
+修复内容：富文本编辑区和详情区的 `em/i` 改为 `display: inline-block` + `transform: skewX(-10deg)`，让中文斜体真实可见；新增 `toggleTextColor()`，当前选区已有固定文字色时再次点击会 `unsetColor()`。新增前端静态回归测试覆盖文字色可取消和斜体 transform。
+
+验证结果：`node --test tests/frontend-ui.test.js` 通过 5 项；`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=114`；`npm.cmd run test` 通过 11 suites / 45 tests；`npm.cmd run build` 通过；Docker 3300 重建后 healthy，HTTP smoke 通过。Playwright 复测确认斜体元素 transform 为 `matrix(1, 0, -0.176327, 1, 0, 0)`；文字色第一次点击生成 color span，第二次点击移除 color span 并取消按钮选中。本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。

@@ -32,12 +32,20 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('onMouseDown={(event) => event.preventDefault()}'));
   });
 
+  test('lets the rich text fixed text color button toggle off', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('function toggleTextColor()'));
+    assert.ok(source.includes("editor.chain().focus().unsetColor().run()"));
+    assert.ok(source.includes("['color', '文字色', Palette, toggleTextColor"));
+  });
+
   test('styles italic text inside both rich text display and editor surfaces', () => {
     const styles = readText('src/client/styles.css');
 
     assert.ok(styles.includes('.rich-text-content em,'));
     assert.ok(styles.includes('.rich-text-editor em,'));
-    assert.ok(styles.includes('font-style: oblique 12deg;'));
+    assert.ok(styles.includes('transform: skewX(-10deg);'));
   });
 
   test('wires the home today card to the new-record screen', () => {

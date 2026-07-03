@@ -1,5 +1,65 @@
 测试时间：2026-07-03
 
+当前目标：继续修复富文本编辑器两个真实反馈：斜体选中后文字视觉上不明显；“更多”里的文字色按钮无法再次点击取消。本轮不改数据库结构、不改导入逻辑、不新增功能，只修富文本编辑交互。
+
+## 复现步骤
+
+1. 打开 Docker 服务 `http://127.0.0.1:3300/`。
+2. 进入新建记录页，输入临时文字并全选。
+3. 点击“斜体”，检查 HTML、computed style 和实际 transform。
+4. 切到“更多”，全选文字，点击“文字色”两次。
+
+## 复现结果
+
+- 斜体：修复前 HTML 会变成 `<em>... </em>`，但 computed style 只是 `oblique 12deg`，中文字体视觉上仍不够明显。
+- 文字色：修复前第一次点击生成 `<span style="color: rgb(15, 118, 110);">`，第二次点击仍保持同样 HTML 和按钮选中态，无法取消。
+
+## 问题原因
+
+- 中文字体的浏览器合成斜体不稳定，单纯依赖 `font-style: oblique` 不足以提供清晰可见的斜体反馈。
+- 文字色按钮的 action 只有单向 `setColor('#0F766E')`，没有判断 active 后调用 `unsetColor()`，所以它不是 toggle。
+
+## 修复内容
+
+- 富文本编辑区和详情区的 `em/i` 改为实际 `skewX(-10deg)`，让中文斜体肉眼可见。
+- 新增 `toggleTextColor()`：当前选区已有固定文字色时再次点击执行 `unsetColor()`，否则设置 `#0F766E`。
+- 更新前端静态回归测试，覆盖文字色可取消和斜体使用 transform。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker compose up -d --build
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+## 测试结果
+
+- `node --test tests/frontend-ui.test.js`：通过，5 项测试通过。
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=114`。
+- `npm.cmd run test`：通过，11 suites / 45 tests / 45 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap bundle size warning。
+- Docker 3300：容器 healthy，`/api/health` 返回 `ok=true`。
+- Docker smoke：通过，health、app-data、notes-list、note-detail、search、category-filter、member-filter、backup、JSON export、frontend shell 均为 ok。Smoke 会生成测试记录、备份和导出，均位于 `data/` ignored 目录。
+- Playwright 复测：选中文字点击“斜体”后 HTML 为 `<p><em>斜体文字测试</em></p>`，computed transform 为 `matrix(1, 0, -0.176327, 1, 0, 0)`，display 为 `inline-block`。文字色第一次点击后生成 color span 且按钮选中，第二次点击后 HTML 恢复为 `<p><em>斜体文字测试</em></p>`，按钮取消选中。
+
+## 仍然存在的问题
+
+- 文字色目前仍是固定绿色，没有颜色面板。
+- 高亮目前仍是固定浅黄色，没有多色选择。
+- 表格复杂编辑、图片尺寸调整等仍是后续增强。
+
+## 下一步建议
+
+- 用户在 `http://127.0.0.1:3300/` 强制刷新后，重点测试：斜体是否肉眼可见、文字色是否能第二次点击取消。
+
+---
+
+测试时间：2026-07-03
+
 当前目标：修复富文本编辑器中“斜体不明显 / 多个控件点击后不立即显示选中态”的真实使用问题。本轮不改数据库、不改导入数据、不新增功能，只修富文本编辑器状态反馈和斜体显示。
 
 ## 复现步骤

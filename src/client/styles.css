@@ -115,8 +115,12 @@
   .rich-text-content i,
   .rich-text-editor em,
   .rich-text-editor i {
-    font-style: italic;
-    font-style: oblique 12deg;
+    display: inline-block;
+    max-width: 100%;
+    padding-right: 0.08em;
+    font-style: normal;
+    transform: skewX(-10deg);
+    transform-origin: center;
   }
 
   .rich-text-content ul,

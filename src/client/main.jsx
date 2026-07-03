@@ -1150,6 +1150,16 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
     editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run();
   }
 
+  function toggleTextColor() {
+    if (!editor) return;
+    const color = '#0F766E';
+    if (editor.isActive('textStyle', { color })) {
+      editor.chain().focus().unsetColor().run();
+      return;
+    }
+    editor.chain().focus().setColor(color).run();
+  }
+
   const toolbarGroups = [
     {
       id: 'basic',
@@ -1193,7 +1203,7 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
         ['left', '左对齐', AlignLeft, () => editor?.chain().focus().setTextAlign('left').run(), () => editor?.isActive({ textAlign: 'left' })],
         ['center', '居中', AlignCenter, () => editor?.chain().focus().setTextAlign('center').run(), () => editor?.isActive({ textAlign: 'center' })],
         ['right', '右对齐', AlignRight, () => editor?.chain().focus().setTextAlign('right').run(), () => editor?.isActive({ textAlign: 'right' })],
-        ['color', '文字色', Palette, () => editor?.chain().focus().setColor('#0F766E').run(), () => editor?.isActive('textStyle', { color: '#0F766E' })],
+        ['color', '文字色', Palette, toggleTextColor, () => editor?.isActive('textStyle', { color: '#0F766E' })],
         ['highlight', '高亮', Highlighter, () => editor?.chain().focus().toggleHighlight({ color: '#FEF3C7' }).run(), () => editor?.isActive('highlight', { color: '#FEF3C7' })],
         ['clear', '清格式', X, () => editor?.chain().focus().unsetAllMarks().clearNodes().run()]
       ]
