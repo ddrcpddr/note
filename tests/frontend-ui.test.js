@@ -10,6 +10,17 @@ function readText(relativePath) {
 }
 
 describe('Frontend mobile interactions', () => {
+  test('uses a grouped rich text toolbar instead of one long icon strip', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('const toolbarGroups = ['));
+    assert.ok(source.includes("const [activeToolbarGroup, setActiveToolbarGroup] = useState('basic')"));
+    assert.ok(source.includes('activeTools.map(([key, label, Icon, action, isActive])'));
+    assert.ok(source.includes('grid grid-cols-4 gap-1.5'));
+    assert.ok(!source.includes('tools.map(([key, label, Icon, action, isActive])'));
+    assert.ok(!source.includes('scroll-row -mx-1 mb-3 flex gap-2 px-1 pb-1'));
+  });
+
   test('wires the home today card to the new-record screen', () => {
     const source = readText('src/client/main.jsx');
 

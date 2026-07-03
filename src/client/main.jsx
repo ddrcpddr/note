@@ -1132,47 +1132,88 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
     editor.chain().focus().extendMarkRange('link').setLink({ href: href.trim() }).run();
   }
 
-  const tools = [
-    ['undo', '撤销', Undo2, () => editor?.chain().focus().undo().run()],
-    ['redo', '重做', Redo2, () => editor?.chain().focus().redo().run()],
-    ['bold', '加粗', Bold, () => editor?.chain().focus().toggleBold().run(), () => editor?.isActive('bold')],
-    ['italic', '斜体', Italic, () => editor?.chain().focus().toggleItalic().run(), () => editor?.isActive('italic')],
-    ['underline', '下划线', Underline, () => editor?.chain().focus().toggleUnderline().run(), () => editor?.isActive('underline')],
-    ['strike', '删除线', Strikethrough, () => editor?.chain().focus().toggleStrike().run(), () => editor?.isActive('strike')],
-    ['h2', '标题', Heading2, () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), () => editor?.isActive('heading', { level: 2 })],
-    ['h3', '小标题', Heading3, () => editor?.chain().focus().toggleHeading({ level: 3 }).run(), () => editor?.isActive('heading', { level: 3 })],
-    ['ul', '无序列表', List, () => editor?.chain().focus().toggleBulletList().run(), () => editor?.isActive('bulletList')],
-    ['ol', '有序列表', ListOrdered, () => editor?.chain().focus().toggleOrderedList().run(), () => editor?.isActive('orderedList')],
-    ['task', '待办', ListChecks, () => editor?.chain().focus().toggleTaskList().run(), () => editor?.isActive('taskList')],
-    ['quote', '引用', Quote, () => editor?.chain().focus().toggleBlockquote().run(), () => editor?.isActive('blockquote')],
-    ['code', '代码块', Code2, () => editor?.chain().focus().toggleCodeBlock().run(), () => editor?.isActive('codeBlock')],
-    ['link', '链接', Link, setLink, () => editor?.isActive('link')],
-    ['image', '图片', Upload, () => imageInputRef.current?.click()],
-    ['attach', '附件引用', Paperclip, () => attachmentInputRef.current?.click()],
-    ['table', '表格', Table2, () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()],
-    ['left', '左对齐', AlignLeft, () => editor?.chain().focus().setTextAlign('left').run()],
-    ['center', '居中', AlignCenter, () => editor?.chain().focus().setTextAlign('center').run()],
-    ['right', '右对齐', AlignRight, () => editor?.chain().focus().setTextAlign('right').run()],
-    ['color', '文字色', Palette, () => editor?.chain().focus().setColor('#0F766E').run()],
-    ['highlight', '高亮', Highlighter, () => editor?.chain().focus().toggleHighlight({ color: '#FEF3C7' }).run()],
-    ['clear', '清格式', X, () => editor?.chain().focus().unsetAllMarks().clearNodes().run()]
+  const toolbarGroups = [
+    {
+      id: 'basic',
+      label: '常用',
+      tools: [
+        ['undo', '撤销', Undo2, () => editor?.chain().focus().undo().run()],
+        ['redo', '重做', Redo2, () => editor?.chain().focus().redo().run()],
+        ['bold', '加粗', Bold, () => editor?.chain().focus().toggleBold().run(), () => editor?.isActive('bold')],
+        ['italic', '斜体', Italic, () => editor?.chain().focus().toggleItalic().run(), () => editor?.isActive('italic')],
+        ['underline', '下划线', Underline, () => editor?.chain().focus().toggleUnderline().run(), () => editor?.isActive('underline')],
+        ['strike', '删除线', Strikethrough, () => editor?.chain().focus().toggleStrike().run(), () => editor?.isActive('strike')],
+        ['h2', '标题', Heading2, () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), () => editor?.isActive('heading', { level: 2 })],
+        ['h3', '小标题', Heading3, () => editor?.chain().focus().toggleHeading({ level: 3 }).run(), () => editor?.isActive('heading', { level: 3 })]
+      ]
+    },
+    {
+      id: 'list',
+      label: '列表',
+      tools: [
+        ['ul', '无序', List, () => editor?.chain().focus().toggleBulletList().run(), () => editor?.isActive('bulletList')],
+        ['ol', '有序', ListOrdered, () => editor?.chain().focus().toggleOrderedList().run(), () => editor?.isActive('orderedList')],
+        ['task', '待办', ListChecks, () => editor?.chain().focus().toggleTaskList().run(), () => editor?.isActive('taskList')],
+        ['quote', '引用', Quote, () => editor?.chain().focus().toggleBlockquote().run(), () => editor?.isActive('blockquote')],
+        ['code', '代码', Code2, () => editor?.chain().focus().toggleCodeBlock().run(), () => editor?.isActive('codeBlock')]
+      ]
+    },
+    {
+      id: 'insert',
+      label: '插入',
+      tools: [
+        ['link', '链接', Link, setLink, () => editor?.isActive('link')],
+        ['image', '图片', Upload, () => imageInputRef.current?.click()],
+        ['attach', '附件', Paperclip, () => attachmentInputRef.current?.click()],
+        ['table', '表格', Table2, () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()]
+      ]
+    },
+    {
+      id: 'style',
+      label: '更多',
+      tools: [
+        ['left', '左对齐', AlignLeft, () => editor?.chain().focus().setTextAlign('left').run()],
+        ['center', '居中', AlignCenter, () => editor?.chain().focus().setTextAlign('center').run()],
+        ['right', '右对齐', AlignRight, () => editor?.chain().focus().setTextAlign('right').run()],
+        ['color', '文字色', Palette, () => editor?.chain().focus().setColor('#0F766E').run()],
+        ['highlight', '高亮', Highlighter, () => editor?.chain().focus().toggleHighlight({ color: '#FEF3C7' }).run()],
+        ['clear', '清格式', X, () => editor?.chain().focus().unsetAllMarks().clearNodes().run()]
+      ]
+    }
   ];
+  const [activeToolbarGroup, setActiveToolbarGroup] = useState('basic');
+  const activeTools = toolbarGroups.find((group) => group.id === activeToolbarGroup)?.tools ?? toolbarGroups[0].tools;
 
   return (
     <div className="min-w-0 flex-1">
-      <div className="scroll-row -mx-1 mb-3 flex gap-2 px-1 pb-1">
-        {tools.map(([key, label, Icon, action, isActive]) => (
-          <button
-            aria-label={label}
-            className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-white text-muted active:bg-teal-50 active:text-teal-700 ${isActive?.() ? 'border-teal-500 bg-teal-50 text-teal-700' : ''}`}
-            key={key}
-            type="button"
-            onClick={action}
-            title={label}
-          >
-            <Icon size={18} />
-          </button>
-        ))}
+      <div className="mb-3 rounded-2xl border border-line/80 bg-white/90 p-2 shadow-[0_6px_18px_rgba(39,43,48,0.04)]">
+        <div className="grid grid-cols-4 gap-1.5">
+          {toolbarGroups.map((group) => (
+            <button
+              className={`h-8 rounded-xl text-[12px] font-semibold ${activeToolbarGroup === group.id ? 'bg-teal-600 text-white shadow-sm' : 'bg-soft text-muted'}`}
+              key={group.id}
+              type="button"
+              onClick={() => setActiveToolbarGroup(group.id)}
+            >
+              {group.label}
+            </button>
+          ))}
+        </div>
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
+          {activeTools.map(([key, label, Icon, action, isActive]) => (
+            <button
+              aria-label={label}
+              className={`flex h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 text-[10px] font-medium active:bg-teal-50 active:text-teal-700 ${isActive?.() ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-line bg-white text-muted'}`}
+              key={key}
+              type="button"
+              onClick={action}
+              title={label}
+            >
+              <Icon size={17} />
+              <span className="max-w-full truncate">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
       <EditorContent editor={editor} onPaste={handlePaste} />
       <input ref={imageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { Array.from(event.target.files || []).forEach((file) => insertImageFile(file)); event.target.value = ''; }} />
