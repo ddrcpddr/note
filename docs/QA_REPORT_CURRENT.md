@@ -894,3 +894,12 @@ npm.cmd run build
 - npm.cmd run smoke -- --base-url http://127.0.0.1:3300：通过，ok=true。
 - /sw.js 检查：HTTP 200，包含 app-shell 缓存名，并包含 /api/ 绕过逻辑。
 - 当前仍需人工验证：手机或浏览器先在线打开一次页面，随后停止 Docker/NAS，新建记录进入本地待同步队列；恢复 Docker/NAS 后自动同步。
+
+
+## 2026-07-04 - 离线 app-data 快照缓存
+
+- 新增前端静态回归测试断言：offline app-data cache key、读写函数、offline-cache 模式、快照合并、最近 100 条非离线记录缓存。
+- 单项验证：node --test tests/frontend-ui.test.js 通过，14 tests。
+- 待人工验证：在线打开一次页面后停止 Docker，刷新页面应仍能看到最近一次加载的记录；此时新建记录应进入“待同步到 NAS”，恢复 Docker 后自动同步。
+
+- Docker 复验：docker compose up -d --build 通过；npm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过；/sw.js 检查通过。

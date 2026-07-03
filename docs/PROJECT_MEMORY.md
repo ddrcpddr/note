@@ -1392,3 +1392,13 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - HTTP smoke 通过：health、app-data、notes-list、search、category-filter、member-filter、categories-api、storage-probe、manual-backup、json-export、frontend-shell 均为 ok；干净测试库 noteCount=0，members=2，categories=11。
 - /sw.js 可从 Docker 服务访问，状态 200；内容包含 home-notes-app-shell-v1 缓存名，并包含 /api/ 绕过逻辑，确认不会缓存 API 数据。
 - 当前 main 与 origin/main 对齐，阶段提交已推送。
+
+
+## 2026-07-04 - 离线 app-data 快照缓存
+
+- 在离线新建队列和 PWA 前端壳基础上，新增浏览器本地 app-data 快照缓存。
+- 在线成功加载 /api/app-data 后，前端会缓存最近 100 条非离线临时记录、当前分类、默认成员和当前成员。
+- Docker/NAS/API 不可用时，如果本机已有快照，页面进入 offline-cache 模式，继续展示上次成功加载的记录，同时仍允许新建记录进入待同步队列。
+- 缓存只作为离线兜底，不缓存 /api/ HTTP 响应，不替代服务端数据库；大规模长期离线和冲突合并后续再考虑 IndexedDB。
+
+- Docker 复验：docker compose up -d --build 通过；3300 HTTP smoke ok=true；/sw.js HTTP 200，确认仍包含 app-shell 缓存和 /api/ 绕过逻辑。

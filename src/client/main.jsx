@@ -243,6 +243,8 @@ const fallbackMembers = [
 
 const initialNotes = [];
 const OFFLINE_CREATE_QUEUE_KEY = 'home-notes-offline-create-queue-v1';
+const OFFLINE_APP_DATA_CACHE_KEY = 'home-notes-offline-app-data-cache-v1';
+const OFFLINE_APP_DATA_CACHE_LIMIT = 100;
 
 function readOfflineCreateQueue() {
   if (typeof window === 'undefined') return [];
@@ -261,6 +263,37 @@ function writeOfflineCreateQueue(queue) {
   } catch {
     // Keep the page usable even if browser storage quota is full.
   }
+}
+
+function readOfflineAppDataCache() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(OFFLINE_APP_DATA_CACHE_KEY) || 'null');
+    if (!parsed || !Array.isArray(parsed.notes)) return null;
+    return {
+      notes: parsed.notes,
+      categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+      members: Array.isArray(parsed.members) ? parsed.members : [],
+      currentMemberId: typeof parsed.currentMemberId === 'string' ? parsed.currentMemberId : 'self',
+      savedAt: parsed.savedAt || null
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeOfflineAppDataCache(snapshot) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(OFFLINE_APP_DATA_CACHE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // Cached app data is only a fallback; quota failures must not block daily notes.
+  }
+}
+
+function mergePendingAndCachedNotes(pendingNotes, cachedNotes) {
+  const pendingIds = new Set(pendingNotes.map((note) => note.id));
+  return [...pendingNotes, ...cachedNotes.filter((note) => !pendingIds.has(note.id))];
 }
 
 
@@ -335,6 +368,25 @@ function App() {
       } catch {
         if (!isMounted) return;
         const pendingNotes = readOfflineCreateQueue().map((item) => item.note).filter(Boolean);
+        const cached = readOfflineAppDataCache();
+        if (cached) {
+          const cachedCategories = normalizeCategories(cached.categories);
+          const cachedMembers = keepDefaultMembers(cached.members.length ? cached.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers);
+          const cachedNotes = cached.notes.map((note) => normalizeNote(note, cachedCategories));
+          const currentMember = cachedMembers.find((member) => member.id === cached.currentMemberId)
+            ?? cachedMembers.find((member) => member.isCurrent)
+            ?? cachedMembers[0]
+            ?? fallbackMembers[0];
+          const nextNotes = mergePendingAndCachedNotes(pendingNotes, cachedNotes);
+          setMembers(cachedMembers.map((member) => ({ ...member, isCurrent: member.id === currentMember.id })));
+          setCategoriesData(cachedCategories);
+          setCurrentMemberId(currentMember.id);
+          setNotesData(nextNotes);
+          setSelectedId((pendingNotes[0] || nextNotes[0])?.id ?? null);
+          setDataMode('offline-cache');
+          return;
+        }
+
         setNotesData(pendingNotes);
         setSelectedId(pendingNotes[0]?.id ?? null);
         setDataMode('mock');
@@ -500,6 +552,17 @@ function App() {
       syncOfflineCreateQueue();
     }
   }, [dataMode, offlineCreateQueue.length]);
+
+  useEffect(() => {
+    if (dataMode !== 'sqlite') return;
+    writeOfflineAppDataCache({
+      members,
+      categories: categoriesData,
+      currentMemberId,
+      notes: notesData.filter((note) => !note.isOffline).slice(0, OFFLINE_APP_DATA_CACHE_LIMIT),
+      savedAt: new Date().toISOString()
+    });
+  }, [dataMode, notesData, categoriesData, members, currentMemberId]);
 
   function openSearch() {
     navigate('search');

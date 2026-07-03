@@ -134,8 +134,13 @@ describe('Frontend mobile interactions', () => {
     const source = readText('src/client/main.jsx');
 
     assert.ok(source.includes('const OFFLINE_CREATE_QUEUE_KEY ='));
+    assert.ok(source.includes('const OFFLINE_APP_DATA_CACHE_KEY ='));
+    assert.ok(source.includes('const OFFLINE_APP_DATA_CACHE_LIMIT = 100'));
     assert.ok(source.includes('function readOfflineCreateQueue()'));
     assert.ok(source.includes('function writeOfflineCreateQueue(queue)'));
+    assert.ok(source.includes('function readOfflineAppDataCache()'));
+    assert.ok(source.includes('function writeOfflineAppDataCache(snapshot)'));
+    assert.ok(source.includes('function mergePendingAndCachedNotes(pendingNotes, cachedNotes)'));
     assert.ok(source.includes('const [offlineCreateQueue, setOfflineCreateQueue] = useState(() => readOfflineCreateQueue())'));
     assert.ok(source.includes('function enqueueOfflineCreate(payload'));
     assert.ok(source.includes("status: '待同步到 NAS'"));
@@ -144,6 +149,10 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('setSelectedId((current) => (current === item.localId ? syncedNote.id : current))'));
     assert.ok(source.includes('offlineQueueCount > 0'));
     assert.ok(source.includes('本机记录待同步'));
+    assert.ok(source.includes("setDataMode('offline-cache')"));
+    assert.ok(source.includes('writeOfflineAppDataCache({'));
+    assert.ok(source.includes('notesData.filter((note) => !note.isOffline).slice(0, OFFLINE_APP_DATA_CACHE_LIMIT)'));
+    assert.ok(source.includes('const nextNotes = mergePendingAndCachedNotes(pendingNotes, cachedNotes)'));
   });
 
   test('keeps member management aligned with compact mobile UI', () => {
