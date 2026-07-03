@@ -27,7 +27,7 @@ describe('Check script', () => {
       assert.equal(payload.ok, true);
       assert.equal(payload.integrityCheck, 'ok');
       assert.equal(payload.categoryCount, 11);
-      assert.ok(payload.noteCount >= 3);
+      assert.equal(payload.noteCount, 0);
       assert.equal(path.resolve(payload.dbPath), path.join(path.resolve(tempDataDir), 'database', 'app.db'));
     } finally {
       rmSync(tempDataDir, { recursive: true, force: true });

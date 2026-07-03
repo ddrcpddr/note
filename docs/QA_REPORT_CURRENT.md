@@ -491,3 +491,58 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 
 1. 用户刷新 3300 页面，打开刚才截图里的 Note Station 导入记录，确认图片是否直接出现在正文里。
 2. 如果某些记录仍显示正文外图片附件，记录该条的现象，再继续补对应的 NSX HTML 变体。
+
+
+---
+
+测试时间：2026-07-03
+
+当前目标：按用户要求清空当前所有测试数据，移除会误导测试的默认示例记录和硬编码关联记录，并重新准备 Docker 空库用于重新上传 `.nsx` 测试。
+
+## 复现步骤
+
+1. 打开历史 Note Station 导入记录详情。
+2. 页面仍显示旧图片附件列表。
+3. 页面下方仍显示“关联记录：去年卫生间防水维修 / 物业维修电话”。
+4. 用户希望当前所有测试数据清空，重新从页面上传 `.nsx` 测试。
+
+## 问题原因
+
+- 历史测试数据库和附件目录仍保留旧导入/旧 QA 数据。
+- 默认 `seedNotes` 和前端 `initialNotes` 仍会在空库或 API fallback 时带出示例记录。
+- 详情页“关联记录”是前端硬编码的展示，并不是数据库真实数据。
+
+## 修复内容
+
+- 清空运行数据库、附件、备份、导出目录，仅保留 `.gitkeep`。
+- 保留 `data/imports/notestation/*.nsx`，删除导入预览 JSON 和 sandbox 运行产物。
+- `seedNotes` 和 `initialNotes` 改为空数组。
+- 移除详情页硬编码关联记录区块。
+- HTTP smoke、check-script、恢复脚本测试和 API 测试同步支持干净空库。
+- 新增前端静态回归测试，防止示例记录和硬编码关联记录回归。
+
+## 运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+## 测试结果
+
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=0`。
+- `npm.cmd run test`：通过，11 suites / 51 tests / 51 pass。
+- `npm.cmd run build`：通过，仍有 Tiptap bundle size warning。
+
+## 仍然存在的问题
+
+- 需要重新启动 Docker 并在页面重新上传真实 `.nsx` 文件，确认网页端导入后的富文本、图片内联和附件引用是否符合预期。
+- 复杂 Note Station 富文本到可编辑 Tiptap JSON 的完全还原仍需要继续按真实样例完善。
+
+## 下一步建议
+
+1. 打开新的 Docker 3300 空库页面，确认首页记录数为 0。
+2. 在导入页面重新选择真实 `.nsx` 文件，检查 dry-run 数量。
+3. 确认导入后打开带图片的记录，检查图片是否在正文富文本中显示。
+4. 新建一条带图片/附件的富文本记录，确认新路径不再依赖旧独立附件入口。

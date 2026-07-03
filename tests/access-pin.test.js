@@ -106,6 +106,6 @@ describe('Access PIN', () => {
     const cookie = unlocked.response.headers.get('set-cookie').split(';')[0];
     const appData = await requestRaw('/api/app-data', { headers: { Cookie: cookie } });
     assert.equal(appData.response.status, 200);
-    assert.ok(appData.data.notes.length >= 1);
+    assert.ok(Array.isArray(appData.data.notes));
   });
 });

@@ -145,79 +145,7 @@ const fallbackMembers = [
   { id: 'partner', name: '爱人', avatar: '爱', color: 'rose', avatarImage: memberAvatarAssets.partner, colorClass: memberColorClasses.rose }
 ];
 
-const initialNotes = [
-  {
-    id: 'leak',
-    title: '下午联系师傅看漏水',
-    summary: '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。',
-    content:
-      '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。需要拍照留存，顺便问一下厨房水龙头是否也能一起检查。物业说如果确认是楼上管线问题，需要再联系楼上邻居一起处理。',
-    category: '家庭事务',
-    categoryId: 'family',
-    categoryIcon: Home,
-    categoryColor: 'text-teal-600',
-    icon: Wrench,
-    iconTone: 'bg-amber-50 text-amber-500',
-    tags: [
-      { label: '待办', tone: tagTones.todo },
-      { label: '重要', tone: tagTones.important },
-      { label: '维修', tone: tagTones.repair }
-    ],
-    time: '今天 10:42',
-    member: '我',
-    attachmentCount: 0,
-    status: '已保存到 NAS',
-    source: '手动创建',
-    createdAt: '2026年6月28日 10:42',
-    updatedAt: '今天 11:05',
-    attachments: []
-  },
-  {
-    id: 'bp',
-    title: '买了老人血压计',
-    summary: '欧姆龙 J710，上臂式，家里老人用更方便。',
-    content: '欧姆龙 J710，上臂式，家里老人用更方便。包装和发票先放在电视柜下面。',
-    category: '购物 / 消费',
-    categoryId: 'shopping',
-    categoryIcon: ShoppingBag,
-    categoryColor: 'text-teal-600',
-    icon: ShoppingBag,
-    iconTone: 'bg-green-50 text-green-600',
-    tags: [
-      { label: '购物', tone: tagTones.shopping },
-      { label: '重要', tone: tagTones.important }
-    ],
-    time: '昨天 18:35',
-    member: '爱人',
-    attachmentCount: 0,
-    status: '已保存到 NAS',
-    source: '手动创建',
-    createdAt: '2026年6月27日 18:35',
-    updatedAt: '昨天 18:52',
-    attachments: []
-  },
-  {
-    id: 'imported',
-    title: 'Note Station 导入记录待整理',
-    summary: '从 Note Station 导入的历史记录，需要统一分类和标签。',
-    content: '从 Note Station 导入的历史记录，需要统一分类和标签。先保留原始路径和来源，稍后慢慢整理。',
-    category: '临时记录',
-    categoryId: 'temporary',
-    categoryIcon: Folder,
-    categoryColor: 'text-teal-600',
-    icon: Download,
-    iconTone: 'bg-purple-50 text-purple-600',
-    tags: [{ label: '待办', tone: tagTones.todo }],
-    time: '昨天 09:21',
-    member: '我',
-    attachmentCount: 0,
-    status: '已保存到 NAS',
-    source: 'Note Station 导入',
-    createdAt: '2026年6月27日 09:21',
-    updatedAt: '昨天 09:35',
-    attachments: []
-  }
-];
+const initialNotes = [];
 
 const recordTypes = [
   { label: '普通记录', icon: FileText },
@@ -271,13 +199,13 @@ function App() {
 
         const loadedMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
         const nextMembers = keepDefaultMembers(loadedMembers);
-        const nextNotes = data.notes?.length ? data.notes.map(normalizeNote) : initialNotes;
+        const nextNotes = Array.isArray(data.notes) ? data.notes.map(normalizeNote) : initialNotes;
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
         setMembers(nextMembers);
         setCurrentMemberId(currentMember.id);
         setNotesData(nextNotes);
-        setSelectedId(nextNotes[0]?.id ?? 'leak');
+        setSelectedId(nextNotes[0]?.id ?? null);
         setAccessLocked(false);
         setDataMode('sqlite');
       } catch {
@@ -1849,11 +1777,6 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
           </div>
         </section>
       )}
-      <section className="soft-card mt-4 p-5">
-        <h2 className="text-[20px] font-bold text-teal-600">关联记录</h2>
-        <RelatedRow title="去年卫生间防水维修" meta="维修 · 已完成" />
-        <RelatedRow title="物业维修电话" meta="家庭事务 · 联系方式" />
-      </section>
       {showActions && (
         <section className="fixed bottom-[92px] left-1/2 z-40 w-[calc(100%-32px)] max-w-[398px] -translate-x-1/2 rounded-3xl border border-line bg-white p-3 shadow-float">
           <button className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left" type="button" onClick={() => onArchive(note.id)}>

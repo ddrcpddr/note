@@ -184,14 +184,17 @@ describe('MVP API', () => {
     assert.equal(path.resolve(paths.exportsDir), path.join(path.resolve(tempDataDir), 'exports'));
   });
 
-  test('reads seeded app data and note list', async () => {
+  test('reads clean app data and note list', async () => {
     const appData = await requestJson('/api/app-data');
 
     assert.equal(appData.members.length, 2);
     assert.deepEqual(appData.members.map((member) => member.name), ['我', '爱人']);
     assert.ok(appData.categories.length >= 11);
     assert.ok(appData.tags.length >= 10);
-    assert.ok(appData.notes.length >= 3);
+    assert.ok(Array.isArray(appData.notes));
+
+    const noteList = await requestJson('/api/notes');
+    assert.ok(Array.isArray(noteList.notes));
   });
 
   test('creates a note and reads its detail', async () => {

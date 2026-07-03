@@ -95,4 +95,16 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('附件（{visibleAttachments.length}）'));
     assert.ok(source.includes('visibleAttachments.map((attachment, index)'));
   });
+
+  test('does not ship hardcoded sample notes or related records', () => {
+    const source = readText('src/client/main.jsx');
+    const defaults = readText('src/shared/defaults.js');
+
+    assert.ok(source.includes('const initialNotes = [];'));
+    assert.ok(defaults.includes('export const seedNotes = [];'));
+    assert.ok(!source.includes('去年卫生间防水维修'));
+    assert.ok(!source.includes('物业维修电话'));
+    assert.ok(!source.includes('<RelatedRow title='));
+    assert.ok(!source.includes('Note Station 导入记录待整理'));
+  });
 });

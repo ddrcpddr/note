@@ -1162,7 +1162,7 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 处理结果：
 
 - 停止 Docker 服务后清理当前测试数据库和测试附件目录，保留原始 `data/imports/notestation/*.nsx` 文件。
-- 移除 seed/mock 中的假附件，清理后默认测试库为 3 条 seed 记录、11 个分类、2 个默认成员，不再显示旧测试附件。
+- 移除 seed/mock 中的假附件，清理后默认测试库为 0 条记录、11 个分类、2 个默认成员，不再显示旧测试附件。
 - 网页端导入页现在会以 `application/octet-stream` 上传真实 `.nsx` 文件内容，后端保存到被 Git 忽略的 `data/imports/notestation/` 后复用现有 NSX dry-run 解析器。
 - 网页端确认导入现在会复用正式导入链路：导入前自动备份数据库，写入富文本字段，复制附件到 `data/attachments/`，失败项写入 `import_failures`，不静默丢弃。
 - 用本地真实样例 `example-notestation-export.nsx` 对 Docker 3300 服务做 dry-run，仅预览不确认导入：识别 93 条记录、93 条成功、0 条失败、20 个附件、4 个原始分类。
@@ -1202,3 +1202,20 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 当前 Docker 数据中一条带 8 个图片附件的导入记录已验证：8 个附件全部作为正文内联图片返回，富文本 HTML 含本地附件图片地址，正文外可见附件数为 0。
 
 安全说明：本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+
+
+## 2026-07-03 - 清空测试数据并移除假关联记录
+
+用户反馈截图中的 Note Station 导入记录仍显示历史附件，且详情页还有“关联记录”数据。确认后发现当前不是只残留某一条记录，而是运行数据库、附件目录、备份/导出目录仍有历史测试产物，同时详情页存在硬编码的“关联记录”假数据。
+
+本轮处理：
+
+- 停止 Docker 容器，清空 `data/database/`、`data/attachments/`、`data/backups/`、`data/exports/` 下的运行产物，仅保留 `.gitkeep`。
+- 清理 `data/imports/notestation/` 中的 dry-run JSON / sandbox 等运行产物，但保留所有 `.nsx` 文件，避免删除用户原始群晖导出包。
+- 默认 `seedNotes` 改为空数组，前端 `initialNotes` 改为空数组，避免清库后自动出现历史示例记录。
+- 详情页移除写死的“关联记录：去年卫生间防水维修 / 物业维修电话”，避免无数据时仍显示假数据。
+- HTTP smoke 和相关测试改为支持干净空库：`noteCount=0` 时跳过详情项检查，但继续验证 health、app-data、搜索、分类、成员、备份、JSON 导出和前端壳。
+
+验证结果：`npm.cmd run check` 通过，`integrityCheck=ok`、`categoryCount=11`、`noteCount=0`；`npm.cmd run test` 通过，11 suites / 51 tests；`npm.cmd run build` 通过。接下来重新启动 Docker 后，用户可以从空库重新上传并测试 `.nsx` 导入。
+
+安全说明：本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、dry-run JSON、日志或真实隐私内容。

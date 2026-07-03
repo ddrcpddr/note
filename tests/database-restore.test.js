@@ -27,7 +27,30 @@ function runRestore(dataDir, backupPath, extraArgs = []) {
 }
 
 function firstNoteId(db) {
-  return db.prepare('SELECT id FROM notes ORDER BY created_at, id LIMIT 1').get().id;
+  const existing = db.prepare('SELECT id FROM notes ORDER BY created_at, id LIMIT 1').get();
+  if (existing?.id) return existing.id;
+
+  const id = 'restore-test-note';
+  const now = new Date().toISOString();
+  const sql = 'INSERT INTO notes (' +
+    'id, title, content, content_text, summary, category_id, member_id, note_type, source_type, save_status, visibility, created_at, updated_at' +
+    ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+  db.prepare(sql).run(
+    id,
+    '恢复测试记录',
+    '恢复测试内容',
+    '恢复测试内容',
+    '恢复测试内容',
+    'family',
+    'self',
+    'normal',
+    'manual',
+    'saved',
+    'family',
+    now,
+    now
+  );
+  return id;
 }
 
 function setMarker(dbPath, marker) {

@@ -76,13 +76,14 @@ export async function runHttpSmoke(options) {
   await runCheck(checks, 'notes-list', async () => {
     noteList = await requestJson(options.baseUrl, '/api/notes?limit=3');
     assert(Array.isArray(noteList.notes), 'notes list should include notes array');
-    assert(noteList.notes.length >= 1, 'notes list should include at least one note');
-    firstNote = noteList.notes[0];
-    return { notes: noteList.notes.length, firstNoteId: firstNote.id };
+    firstNote = noteList.notes[0] || null;
+    return { notes: noteList.notes.length, firstNoteId: firstNote?.id || null };
   });
 
   await runCheck(checks, 'note-detail', async () => {
-    assert(firstNote?.id, 'first note id should exist before detail check');
+    if (!firstNote?.id) {
+      return { skipped: true, reason: 'no notes in clean database' };
+    }
     const detail = await requestJson(options.baseUrl, `/api/notes?id=${encodeURIComponent(firstNote.id)}`);
     assert(detail.notes?.length === 1, 'detail query should return exactly one note');
     assert(detail.notes[0].id === firstNote.id, 'detail note id should match');
@@ -90,7 +91,7 @@ export async function runHttpSmoke(options) {
   });
 
   await runCheck(checks, 'search', async () => {
-    const keyword = String(firstNote?.title || '').slice(0, 2) || '家';
+    const keyword = String(firstNote?.title || '').slice(0, 2) || '__empty_smoke__';
     const result = await requestJson(options.baseUrl, `/api/notes?search=${encodeURIComponent(keyword)}`);
     assert(Array.isArray(result.notes), 'search should return notes array');
     return { keyword, notes: result.notes.length };

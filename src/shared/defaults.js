@@ -29,39 +29,4 @@ export const defaultMembers = [
 
 export const defaultTags = ['待办', '重要', '维修', '购物', '账单', '发票', '保修', 'NAS', '物业', '医院'];
 
-export const seedNotes = [
-  {
-    id: 'seed-leak',
-    title: '下午联系师傅看漏水',
-    content: '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。需要拍照留存，顺便问一下厨房水龙头是否也能一起检查。',
-    summary: '主卧卫生间天花板有渗水，联系王师傅下午 3 点上门查看。',
-    categoryId: 'family',
-    memberId: 'self',
-    noteType: 'family_task',
-    tags: ['待办', '重要', '维修'],
-    attachments: []
-  },
-  {
-    id: 'seed-bp',
-    title: '买了老人血压计',
-    content: '欧姆龙 J710，上臂式，家里老人用更方便。包装和发票先放在电视柜下面。',
-    summary: '欧姆龙 J710，上臂式，家里老人用更方便。',
-    categoryId: 'shopping',
-    memberId: 'partner',
-    noteType: 'shopping',
-    tags: ['购物', '重要'],
-    attachments: []
-  },
-  {
-    id: 'seed-imported',
-    title: 'Note Station 导入记录待整理',
-    content: '从 Note Station 导入的历史记录，需要统一分类和标签。先保留原始路径和来源，稍后慢慢整理。',
-    summary: '从 Note Station 导入的历史记录，需要统一分类和标签。',
-    categoryId: 'temporary',
-    memberId: 'self',
-    noteType: 'normal',
-    sourceType: 'notestation_import',
-    tags: ['待办', 'NAS'],
-    attachments: []
-  }
-];
+export const seedNotes = [];
