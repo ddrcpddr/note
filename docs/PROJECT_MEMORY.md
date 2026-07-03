@@ -1365,3 +1365,12 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 服务恢复为 sqlite 模式后自动逐条同步，成功后替换本地临时记录并清理队列。
 - 首页增加轻量提示：有多少条本机记录待同步 / 正在同步。
 - 新增 docs/OFFLINE_SYNC_PLAN.md 记录边界：第一版只做离线新建，不做离线编辑、删除、跨设备冲突合并。
+
+
+## 2026-07-04 - 离线同步 Docker 验证补充
+
+- `docker compose up -d --build`：通过，最新前端产物已进入 3300 容器。
+- `docker compose ps`：`note` 容器 healthy。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过。
+- 当前 Docker 测试库仍为干净状态：2 个成员、11 个分类、0 条记录。
+- 明早人工测试重点：新增分类、新建记录选择分类、停 Docker 后新建离线记录、恢复 Docker 后确认自动同步。
