@@ -183,6 +183,30 @@ describe('Safe rich text read-only rendering', () => {
     assert.doesNotMatch(richContent.html, /transparent.gif/);
   });
 
+  test('preserves Note Station block divs and appends unmatched image attachments', () => {
+    const sanitized = sanitizeRichTextHtml('<div style="text-align:center">第一段</div><figure data-attachment-id="attachment_keep"><img src="/api/attachments/attachment_keep/file" alt="图片" data-attachment-id="attachment_keep"><figcaption>图片说明</figcaption></figure>');
+    assert.match(sanitized, /<div[^>]+text-align:center[^>]*>第一段<\/div>/);
+    assert.match(sanitized, /<figure data-attachment-id="attachment_keep">/);
+    assert.match(sanitized, /<figcaption>图片说明<\/figcaption>/);
+
+    const richContent = buildRichContentFromNote(
+      {
+        sourceType: 'notestation_import',
+        contentHtml: '<p>只有正文，没有图片标签</p>',
+        sourceHtml: '<div><p>只有正文，没有图片标签</p></div>'
+      },
+      [
+        { id: 'attachment_unmatched_1', originalName: 'IMG_001.jpg', mimeType: 'image/jpeg', kind: 'image' },
+        { id: 'attachment_unmatched_2', originalName: 'IMG_002.png', mimeType: 'image/png', kind: 'image' }
+      ]
+    );
+
+    assert.equal(richContent.source, 'source_html');
+    assert.match(richContent.html, /data-notestation-inline-images="true"/);
+    assert.match(richContent.html, /\/api\/attachments\/attachment_unmatched_1\/file/);
+    assert.match(richContent.html, /\/api\/attachments\/attachment_unmatched_2\/file/);
+    assert.match(richContent.html, /<figcaption>IMG_002\.png<\/figcaption>/);
+  });
   test('converts plain text into safe editor html', () => {
     assert.equal(
       plainTextToRichTextHtml('第一行\n\n<script>坏</script> 第二段'),

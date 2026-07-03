@@ -172,11 +172,12 @@ export function commitNotestationImport(importId, memberId = 'self') {
         contentHtml: originalHtml,
         sourceHtml: originalHtml
       });
+      const plainContent = String(record.content || record.title || '').trim();
       insertNote.run(
         noteId,
         record.title,
-        richText.legacyContent || record.content,
-        richText.contentText || record.content,
+        plainContent || richText.legacyContent || record.content,
+        plainContent || richText.contentText || record.content,
         richText.contentHtml,
         richText.contentJson,
         richText.sourceHtml,
@@ -408,8 +409,10 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
       }
 
       const contentHtml = inlineNsxImageRefs(originalHtml, preparedAttachments);
+      const plainContent = String(record.content || record.summary || record.title || '').trim();
+      const summaryText = String(record.summary || plainContent || record.title || '').trim();
       const richText = prepareStoredRichText({
-        content: record.content || record.summary || record.title,
+        content: plainContent,
         contentHtml,
         sourceHtml: originalHtml
       });
@@ -417,14 +420,14 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
       insertNote.run(
         noteId,
         record.title,
-        richText.legacyContent || record.content || record.summary || record.title,
-        richText.contentText || record.content || record.summary || record.title,
+        plainContent || richText.legacyContent || record.content || record.summary || record.title,
+        plainContent || richText.contentText || record.content || record.summary || record.title,
         richText.contentHtml,
         richText.contentJson,
         richText.sourceHtml,
         richText.contentFormat,
         richText.contentVersion,
-        record.summary || richText.contentText || record.title,
+        summaryText || richText.contentText || record.title,
         memberId,
         batch.id,
         record.originalTitle,
@@ -485,17 +488,22 @@ function inlineNsxImageRefs(html, attachments) {
   if (!html || !attachments.length) return html;
   const byOriginalName = new Map();
   for (const attachment of attachments) {
-    if (attachment.result.error || !attachment.result.mimeType?.startsWith('image/')) continue;
-    byOriginalName.set(attachment.result.originalName, attachment);
+    const originalName = attachment.result.originalName || '';
+    const mimeType = attachment.result.mimeType || '';
+    const isImage = mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(originalName);
+    if (attachment.result.error || !isImage) continue;
+    byOriginalName.set(originalName, attachment);
   }
 
-  return String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+  const usedIds = new Set();
+  const withRefs = String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
     const ref = extractAttribute(attrs, 'ref');
     const decodedRef = decodeBase64Text(ref);
     const attachment = [...byOriginalName.entries()].find(([name]) => decodedRef.endsWith(name))?.[1];
     if (!attachment) return match;
 
     attachment.isInline = true;
+    usedIds.add(attachment.id);
     const width = extractAttribute(attrs, 'width');
     const height = extractAttribute(attrs, 'height');
     const sizeAttrs = [
@@ -504,6 +512,16 @@ function inlineNsxImageRefs(html, attachments) {
     ].join('');
     return `<img src="/api/attachments/${attachment.id}/file" alt="${escapeAttribute(attachment.result.originalName)}" data-attachment-id="${attachment.id}"${sizeAttrs}>`;
   });
+
+  const appendedImages = [...byOriginalName.values()]
+    .filter((attachment) => !usedIds.has(attachment.id))
+    .map((attachment) => {
+      attachment.isInline = true;
+      return `<figure data-attachment-id="${escapeAttribute(attachment.id)}"><img src="/api/attachments/${escapeAttribute(attachment.id)}/file" alt="${escapeAttribute(attachment.result.originalName)}" data-attachment-id="${escapeAttribute(attachment.id)}"><figcaption>${escapeHtml(attachment.result.originalName)}</figcaption></figure>`;
+    });
+
+  if (!appendedImages.length) return withRefs;
+  return `${withRefs}<div data-notestation-inline-images="true">${appendedImages.join('')}</div>`;
 }
 
 function extractAttribute(attrs, name) {
@@ -527,6 +545,15 @@ function escapeAttribute(value) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function backupDatabase(paths) {

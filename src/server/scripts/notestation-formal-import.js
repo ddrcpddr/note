@@ -109,7 +109,7 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
     INSERT INTO attachments
       (id, note_id, file_name, original_name, mime_type, file_size, storage_path, source_type, kind, source_attachment_id, source_path, sort_order, is_inline)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, 0)
+      (?, ?, ?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, ?)
   `);
 
   db.exec('BEGIN');
@@ -129,46 +129,9 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
 
     for (const record of preview.records || []) {
       const noteId = createId('note');
-      const rawMetadata = {
-        ...(record.rawMetadata || {}),
-        originalNotebookPath: record.originalPath || record.rawMetadata?.originalNotebookPath || null,
-        importSource: 'notestation_import'
-      };
-      const originalHtml = rawMetadata.originalContentFormat === 'html' ? String(rawMetadata.originalContent || '') : '';
-      const richText = prepareStoredRichText({
-        content: record.content || record.summary || record.title,
-        contentHtml: originalHtml,
-        sourceHtml: originalHtml
-      });
-
-      insertNote.run(
-        noteId,
-        record.title,
-        richText.legacyContent || record.content || record.summary || record.title,
-        richText.contentText || record.content || record.summary || record.title,
-        richText.contentHtml,
-        richText.contentJson,
-        richText.sourceHtml,
-        richText.contentFormat,
-        richText.contentVersion,
-        record.summary || richText.contentText || record.title,
-        importId,
-        record.originalTitle,
-        record.originalPath,
-        record.originalCategory || '未分类',
-        record.originalCreatedAt,
-        record.originalUpdatedAt,
-        JSON.stringify(rawMetadata),
-        record.originalCreatedAt
-      );
-
-      for (const tagName of record.tags || []) {
-        const tagId = slugifyTag(tagName);
-        insertTag.run(tagId, tagName, tagId);
-        insertNoteTag.run(noteId, tagId);
-      }
-
+      const preparedAttachments = [];
       for (const [index, attachment] of (record.attachments || []).entries()) {
+        const attachmentId = createId('attachment');
         const attachmentResult = copyAttachment(inputPath, paths, importId, noteId, attachment, index);
         if (attachmentResult.error) {
           attachmentStats.failed += 1;
@@ -191,18 +154,72 @@ function runConfirmedImport(inputPath, preview, preflight, dbTools) {
           attachmentStats.copied += 1;
         }
 
+        preparedAttachments.push({
+          id: attachmentId,
+          result: attachmentResult,
+          sourceAttachmentId: attachment.id || attachment.fileName || null,
+          sourcePath: attachment.id || attachment.fileName || null,
+          index,
+          isInline: false
+        });
+      }
+
+      const rawMetadata = {
+        ...(record.rawMetadata || {}),
+        originalNotebookPath: record.originalPath || record.rawMetadata?.originalNotebookPath || null,
+        importSource: 'notestation_import'
+      };
+      const originalHtml = rawMetadata.originalContentFormat === 'html' ? String(rawMetadata.originalContent || '') : '';
+      const contentHtml = inlineNsxImageRefs(originalHtml, preparedAttachments);
+      const plainContent = String(record.content || record.summary || record.title || '').trim();
+      const summaryText = String(record.summary || plainContent || record.title || '').trim();
+      const richText = prepareStoredRichText({
+        content: plainContent,
+        contentHtml,
+        sourceHtml: originalHtml
+      });
+
+      insertNote.run(
+        noteId,
+        record.title,
+        plainContent || richText.legacyContent || record.content || record.summary || record.title,
+        plainContent || richText.contentText || record.content || record.summary || record.title,
+        richText.contentHtml,
+        richText.contentJson,
+        richText.sourceHtml,
+        richText.contentFormat,
+        richText.contentVersion,
+        summaryText || richText.contentText || record.title,
+        importId,
+        record.originalTitle,
+        record.originalPath,
+        record.originalCategory || '未分类',
+        record.originalCreatedAt,
+        record.originalUpdatedAt,
+        JSON.stringify(rawMetadata),
+        record.originalCreatedAt
+      );
+
+      for (const tagName of record.tags || []) {
+        const tagId = slugifyTag(tagName);
+        insertTag.run(tagId, tagName, tagId);
+        insertNoteTag.run(noteId, tagId);
+      }
+
+      for (const attachment of preparedAttachments) {
         insertAttachment.run(
-          createId('attachment'),
+          attachment.id,
           noteId,
-          attachmentResult.fileName,
-          attachmentResult.originalName,
-          attachmentResult.mimeType,
-          attachmentResult.fileSize,
-          attachmentResult.storagePath,
-          attachmentResult.mimeType?.startsWith('image/') ? 'image' : 'file',
-          attachment.id || attachment.fileName || null,
-          attachment.id || attachment.fileName || null,
-          index
+          attachment.result.fileName,
+          attachment.result.originalName,
+          attachment.result.mimeType,
+          attachment.result.fileSize,
+          attachment.result.storagePath,
+          attachment.result.mimeType?.startsWith('image/') ? 'image' : 'file',
+          attachment.sourceAttachmentId,
+          attachment.sourcePath,
+          attachment.index,
+          attachment.isInline ? 1 : 0
         );
       }
     }
@@ -283,6 +300,77 @@ function copyAttachment(inputPath, paths, importId, noteId, attachment, index) {
   }
 }
 
+function inlineNsxImageRefs(html, attachments) {
+  if (!html || !attachments.length) return html;
+  const byOriginalName = new Map();
+  for (const attachment of attachments) {
+    const originalName = attachment.result.originalName || '';
+    const mimeType = attachment.result.mimeType || '';
+    const isImage = mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(originalName);
+    if (attachment.result.error || !isImage) continue;
+    byOriginalName.set(originalName, attachment);
+  }
+
+  const usedIds = new Set();
+  const withRefs = String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+    const ref = extractAttribute(attrs, 'ref');
+    const decodedRef = decodeBase64Text(ref);
+    const attachment = [...byOriginalName.entries()].find(([name]) => decodedRef.endsWith(name))?.[1];
+    if (!attachment) return match;
+
+    attachment.isInline = true;
+    usedIds.add(attachment.id);
+    const width = extractAttribute(attrs, 'width');
+    const height = extractAttribute(attrs, 'height');
+    const sizeAttrs = [
+      /^\d{1,5}$/.test(width) ? ` width="${width}"` : '',
+      /^\d{1,5}$/.test(height) ? ` height="${height}"` : ''
+    ].join('');
+    return `<img src="/api/attachments/${escapeAttribute(attachment.id)}/file" alt="${escapeAttribute(attachment.result.originalName)}" data-attachment-id="${escapeAttribute(attachment.id)}"${sizeAttrs}>`;
+  });
+
+  const appendedImages = [...byOriginalName.values()]
+    .filter((attachment) => !usedIds.has(attachment.id))
+    .map((attachment) => {
+      attachment.isInline = true;
+      return `<figure data-attachment-id="${escapeAttribute(attachment.id)}"><img src="/api/attachments/${escapeAttribute(attachment.id)}/file" alt="${escapeAttribute(attachment.result.originalName)}" data-attachment-id="${escapeAttribute(attachment.id)}"><figcaption>${escapeHtml(attachment.result.originalName)}</figcaption></figure>`;
+    });
+
+  if (!appendedImages.length) return withRefs;
+  return `${withRefs}<div data-notestation-inline-images="true">${appendedImages.join('')}</div>`;
+}
+
+function extractAttribute(attrs, name) {
+  const pattern = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>]+))`, 'i');
+  const match = String(attrs || '').match(pattern);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
+}
+
+function decodeBase64Text(value) {
+  if (!value) return '';
+  try {
+    return Buffer.from(String(value), 'base64').toString('utf8');
+  } catch {
+    return '';
+  }
+}
+
+function escapeAttribute(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 function safeFileName(value) {
   const normalized = String(value || 'attachment').replace(/[\\/:*?"<>|]+/g, '_').trim();
   return normalized || 'attachment';

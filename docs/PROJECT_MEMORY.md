@@ -1219,3 +1219,27 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 验证结果：`npm.cmd run check` 通过，`integrityCheck=ok`、`categoryCount=11`、`noteCount=0`；`npm.cmd run test` 通过，11 suites / 51 tests；`npm.cmd run build` 通过。接下来重新启动 Docker 后，用户可以从空库重新上传并测试 `.nsx` 导入。
 
 安全说明：本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、dry-run JSON、日志或真实隐私内容。
+
+## 2026-07-03 - 修复 Note Station 图片附件通用富文本内联
+
+用户重新导入 `.nsx` 后确认：部分群晖记录仍然表现为“正文 + 附件列表”，不是所有图片都进入富文本正文。进一步复现发现，旧修复只覆盖了 HTML 中存在可匹配 `<img ref="...">` 的图片；真实 NSX 中还有一类图片附件已经存在于记录附件列表，但正文 HTML 没有能匹配的 `ref`，因此这些图片仍掉到详情页独立附件区。
+
+本轮修复是应用级通用逻辑，不是逐条记录补丁：
+
+- 网页端 Note Station 确认导入时，所有成功复制的图片附件都会进入富文本正文：能匹配 `ref` 的图片替换原 `<img>`，不能匹配的图片以 `figure/img/figcaption` 追加到正文末尾。
+- CLI 正式导入脚本同步同一逻辑，避免以后命令行导入再次回到旧格式。
+- 已导入测试数据读取时也会动态回填未匹配图片附件，因此当前库无需逐条手工处理。
+- 富文本 sanitizer 增加 `div`、`figure`、`figcaption` 支持，并保留 Note Station 自动内联图片容器标记。
+- 纯文本字段继续使用 NSX 解析出的正文，不从带图片的 HTML 反推，避免搜索和摘要被图片文件名污染。
+- 详情页正文增强 h1/h4/div/figure/figcaption 样式，让 Note Station HTML 不再退化成一大段无格式纯文本。
+
+验证结果：
+
+- `npm.cmd run check`：通过，当前测试库 `noteCount=93`。
+- `npm.cmd run test`：通过，11 suites / 52 tests / 52 pass。
+- `npm.cmd run build`：通过，仍只有 Tiptap bundle size warning。
+- `docker compose up -d --build`：通过，3300 容器已重建。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，Docker API / 前端壳 / 备份 / JSON 导出正常。
+- Docker 3300 API 实测：93 条 Note Station 记录，20 个图片附件，20 个都能在富文本 HTML 中找到，漏掉 0 个。
+
+安全说明：本轮未提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。`data/` 下 Git 仍只跟踪 `.gitkeep`。

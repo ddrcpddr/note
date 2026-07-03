@@ -94,8 +94,13 @@
     overflow-wrap: anywhere;
   }
 
-  .rich-text-content p {
+  .rich-text-content p,
+  .rich-text-content div {
     @apply mb-3 last:mb-0;
+  }
+
+  .rich-text-content h1 {
+    @apply mb-3 mt-1 text-[20px] font-bold leading-8 text-ink first:mt-0;
   }
 
   .rich-text-content h2 {
@@ -104,6 +109,10 @@
 
   .rich-text-content h3 {
     @apply mb-2 mt-3 text-[15px] font-semibold leading-6 text-ink first:mt-0;
+  }
+
+  .rich-text-content h4 {
+    @apply mb-2 mt-3 text-[14px] font-semibold leading-6 text-ink first:mt-0;
   }
 
   .rich-text-content strong,
@@ -142,6 +151,14 @@
 
   .rich-text-content blockquote {
     @apply my-3 rounded-xl border-l-4 border-teal-500 bg-teal-50/80 py-2 pl-3 text-[#4B5563];
+  }
+
+  .rich-text-content figure {
+    @apply my-4;
+  }
+
+  .rich-text-content figcaption {
+    @apply mt-1 break-words text-[11px] text-muted;
   }
 
   .rich-text-content a {

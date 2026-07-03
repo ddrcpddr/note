@@ -83,7 +83,9 @@ function createWebImportNsxFixture() {
   const notebookId = 'WEB_NOTEBOOK_1';
   const noteId = 'WEB_NOTE_1';
   const attachmentHash = 'abcdef1234567890';
+  const extraAttachmentHash = 'fedcba0987654321';
   const attachmentName = 'ns_attach_image_1.png';
+  const extraAttachmentName = 'ns_attach_unmatched_2.jpg';
   const imageRef = Buffer.from(`1700000000000${attachmentName}`).toString('base64');
   return createStoredZip([
     { name: 'config.json', data: JSON.stringify({ note: [noteId], notebook: [notebookId], todo: [] }) },
@@ -99,11 +101,13 @@ function createWebImportNsxFixture() {
         parent_id: notebookId,
         tag: ['网页导入'],
         attachment: {
-          first: { md5: attachmentHash, name: attachmentName, size: 7, type: 'image', ext: 'png' }
+          first: { md5: attachmentHash, name: attachmentName, size: 7, type: 'image', ext: 'png' },
+          second: { md5: extraAttachmentHash, name: extraAttachmentName, size: 8, type: 'image', ext: 'jpg' }
         }
       })
     },
-    { name: 'file_' + attachmentHash, data: Buffer.from('pngdata') }
+    { name: 'file_' + attachmentHash, data: Buffer.from('pngdata') },
+    { name: 'file_' + extraAttachmentHash, data: Buffer.from('jpgdata2') }
   ]);
 }
 
@@ -732,7 +736,7 @@ describe('MVP API', () => {
     assert.ok(preview.importId);
     assert.equal(preview.successCount, 1);
     assert.equal(preview.failedCount, 0);
-    assert.equal(preview.attachmentCount, 1);
+    assert.equal(preview.attachmentCount, 2);
     assert.equal(preview.records[0].title, '网页 NSX 富文本记录');
     assert.match(preview.records[0].content, /网页端上传解析/);
 
@@ -745,13 +749,15 @@ describe('MVP API', () => {
     assert.equal(committed.importedNoteIds.length, 1);
     assert.equal(committed.notes.length, 1);
     assert.equal(committed.notes[0].sourceType, 'notestation_import');
-    assert.equal(committed.notes[0].attachments.length, 1);
+    assert.equal(committed.notes[0].attachments.length, 2);
 
     const detail = await requestJson(`/api/notes?id=${encodeURIComponent(committed.importedNoteIds[0])}`);
-    assert.equal(detail.notes[0].attachments.length, 1);
-    assert.equal(detail.notes[0].attachments[0].isInline, true);
-    assert.match(detail.notes[0].richContent.html, /<img[^>]+\/api\/attachments\//);
-    assert.match(detail.notes[0].richContent.html, /data-attachment-id=/);
+    assert.equal(detail.notes[0].attachments.length, 2);
+    assert.ok(detail.notes[0].attachments.every((attachment) => attachment.isInline));
+    const richImageRefs = detail.notes[0].richContent.html.match(/\/api\/attachments\//g) || [];
+    assert.equal(richImageRefs.length, 2);
+    assert.match(detail.notes[0].richContent.html, /data-notestation-inline-images="true"/);
+    assert.match(detail.notes[0].richContent.html, /ns_attach_unmatched_2\.jpg/);
 
     const search = await requestJson(`/api/notes?search=${encodeURIComponent('网页端上传解析正文')}`);
     assert.ok(search.notes.some((note) => committed.importedNoteIds.includes(note.id)));

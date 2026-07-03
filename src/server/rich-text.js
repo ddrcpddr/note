@@ -9,14 +9,16 @@ const SANITIZE_OPTIONS = {
     'h1', 'h2', 'h3', 'h4',
     'ul', 'ol', 'li',
     'blockquote', 'hr',
-    'a', 'img',
+    'a', 'img', 'figure', 'figcaption',
     'pre', 'code',
     'table', 'thead', 'tbody', 'tr', 'th', 'td',
-    'span', 'label', 'input'
+    'div', 'span', 'label', 'input'
   ],
   allowedAttributes: {
     a: ['href', 'title', 'target', 'rel'],
     img: ['src', 'alt', 'width', 'height', 'data-attachment-id'],
+    div: ['style', 'data-text-align', 'data-notestation-inline-images'],
+    figure: ['data-attachment-id'],
     span: ['style', 'data-checked'],
     ul: ['data-type'],
     label: [],
@@ -43,6 +45,7 @@ const SANITIZE_OPTIONS = {
     h2: sanitizeAlignedTag,
     h3: sanitizeAlignedTag,
     h4: sanitizeAlignedTag,
+    div: sanitizeAlignedTag,
     input: sanitizeCheckboxTag
   },
   exclusiveFilter(frame) {
@@ -115,16 +118,18 @@ function inlineNsxImageRefsFromAttachments(html, attachments = []) {
   if (!html || !attachments.length) return html;
   const imageAttachments = attachments.filter((attachment) => {
     const mimeType = String(attachment.mimeType || attachment.mime_type || '').toLowerCase();
-    return mimeType.startsWith('image/') || attachment.kind === 'image';
+    return mimeType.startsWith('image/') || attachment.kind === 'image' || /\.(png|jpe?g|gif|webp)$/i.test(String(attachment.originalName || attachment.original_name || attachment.fileName || attachment.file_name || ''));
   });
   if (!imageAttachments.length) return html;
 
-  return String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+  const usedIds = new Set();
+  const withRefs = String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
     const decodedRef = decodeBase64Text(extractAttribute(attrs, 'ref'));
     const attachment = imageAttachments.find((item) => decodedRef.endsWith(String(item.originalName || item.original_name || item.fileName || item.file_name || '')));
     if (!attachment) return match;
     const attachmentId = attachment.id;
     if (!attachmentId) return match;
+    usedIds.add(String(attachmentId));
     const originalName = attachment.originalName || attachment.original_name || attachment.fileName || attachment.file_name || '图片';
     const width = extractAttribute(attrs, 'width');
     const height = extractAttribute(attrs, 'height');
@@ -134,6 +139,17 @@ function inlineNsxImageRefsFromAttachments(html, attachments = []) {
     ].join('');
     return `<img src="/api/attachments/${escapeAttribute(attachmentId)}/file" alt="${escapeAttribute(originalName)}" data-attachment-id="${escapeAttribute(attachmentId)}"${sizeAttrs}>`;
   });
+
+  const appendedImages = imageAttachments
+    .filter((attachment) => attachment.id && !usedIds.has(String(attachment.id)))
+    .map((attachment) => {
+      const attachmentId = String(attachment.id);
+      const originalName = attachment.originalName || attachment.original_name || attachment.fileName || attachment.file_name || '图片';
+      return `<figure data-attachment-id="${escapeAttribute(attachmentId)}"><img src="/api/attachments/${escapeAttribute(attachmentId)}/file" alt="${escapeAttribute(originalName)}" data-attachment-id="${escapeAttribute(attachmentId)}"><figcaption>${escapeHtml(originalName)}</figcaption></figure>`;
+    });
+
+  if (!appendedImages.length) return withRefs;
+  return `${withRefs}<div data-notestation-inline-images="true">${appendedImages.join('')}</div>`;
 }
 
 function hasInlineAttachmentImage(html) {
@@ -322,6 +338,9 @@ function sanitizeAlignedTag(tagName, attribs) {
     styleParts.push(`text-align:${textAlign}`);
   }
   if (styleParts.length) next.style = [...new Set(styleParts)].join(';');
+  if (tagName === 'div' && attribs['data-notestation-inline-images'] === 'true') {
+    next['data-notestation-inline-images'] = 'true';
+  }
   return { tagName, attribs: next };
 }
 
