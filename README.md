@@ -1,53 +1,57 @@
 # note
 
-家庭生活记录工具，用来替代 Synology Note Station 的本地 / NAS 部署版本。
+家庭自用的 NAS 生活记录工具。它用于替代 Synology Note Station 的家庭记录场景：家人用手机快速记录家里的小事、维修、账单、购物、备忘、导入旧笔记，数据集中保存在自己的设备或 NAS 上。
 
-它是一个移动端优先的家庭生活记录系统：家人可以通过手机浏览器或 PWA 访问，快速记录家庭事务、维修、购物、账号资料、老人健康、孩子教育、宠物事项和临时备忘。所有数据集中保存在本地 `data/` 目录，后续可整体放到家庭 NAS 上备份和长期保存。
+当前阶段：RC1 / 家庭局域网试运行版。
 
+最新状态请优先看：
 
-## MVP 试运行冻结版本
+- `docs/PROJECT_STATUS.md`：当前真实功能状态
+- `docs/ROADMAP_RELEASE_PLAN.md`：发布路线图
+- `docs/RUN_RESULT_HANDOFF.md`：交接和启动方式
+- `docs/QA_REPORT_CURRENT.md`：当前 QA 结果
+- `docs/MOBILE_TRIAL_CHECKLIST.md`：手机试运行清单
+- `docs/BACKUP_RESTORE_DRILL.md`：备份恢复演练
+- `docs/RICH_TEXT_PLAN.md`：富文本只读阶段方案
 
-当前已冻结为 MVP 家庭试运行版本。冻结说明见：
+## 当前已实现
 
-- [MVP 试运行版本冻结说明](docs/RELEASE_MVP_TRIAL.md)
-- [手机端试运行验收清单](docs/MOBILE_TRIAL_CHECKLIST.md)
-- [备份与回滚演练](docs/BACKUP_RESTORE_DRILL.md)
+- 手机端页面： 首页、分类、搜索、详情、新建/编辑、导入 Note Station、设置、成员管理。
+- 记录持久化：SQLite 数据库存储正式记录。
+- 记录操作：新建、查看、编辑、归档、删除。
+- 搜索筛选：关键词、分类、标签、成员、来源筛选。
+- 默认成员：只内置 `我`、`爱人`。
+- 成员资料：支持切换当前成员，并对两个默认成员改名、改头像、改颜色。
+- 分类：11 个默认分类，未分类记录展示为 `未分类 / 待整理`。
+- 标签：支持预置标签和自定义标签，允许记录无标签。
+- 附件：支持基础附件上传到 `data/attachments/`，数据库保存附件元数据和相对路径。
+- Note Station：真实 `.nsx` 已完成分析、dry-run、sandbox、正式导入和导入后查看。
+- 富文本：详情页支持 Note Station 原始 HTML / 富文本的安全只读渲染，保留纯文本 fallback。
+- 备份：设置页手动备份，可配置自动备份。
+- 恢复：`npm.cmd run restore-db` 支持 dry-run 和确认恢复。
+- 导出：支持 JSON 和 Markdown 导出。
+- PWA：基础 manifest 和图标已接入，可用于添加到桌面试运行。
+- Docker / NAS：已有 Dockerfile、docker-compose.yml 和 NAS 部署说明。
+- 可选访问口令：通过 `NOTE_ACCESS_PIN` 启用简单访问保护。
 
-冻结后不继续盲目新增功能。下一步应先在真实手机 / NAS / Docker 环境中人工试运行；P0 / P1 问题按 `mvp-bugfix-qa` 流程小步修复。
-## 当前状态
+## 当前未实现或受限
 
-当前已经是可运行 MVP：
+- 不支持新增真实家庭成员，当前只保留 `我 / 爱人`。
+- 没有家庭账号、权限、私密记录或复杂登录体系。
+- 没有完整富文本编辑器，目前只做安全只读渲染。
+- 没有复杂离线同步。
+- 没有 Android 原生封装。
+- 附件管理仍是基础能力，删除、替换、下载、预览和批量管理后续再做。
+- Note Station 其他未知导出变体必须先 dry-run，不能硬猜格式。
+- 视觉如需继续高保真还原 Product Design 7 图，必须按 Figma 实现规格逐页重建，不再凭感觉微调。
 
-- React + Vite 移动端前端
-- Express API
-- SQLite 本地数据库
-- 默认成员、分类、标签和示例记录初始化
-- 首页、详情、新建、编辑、删除 / 归档、搜索、分类、导入、设置页面
-- Note Station 真实 `.nsx` dry-run、sandbox、正式导入和导入后未分类整理流程
-- 本地模拟 NAS 存储、NAS 数据目录读写探测、真实附件上传、可选访问口令、手动 / 定时数据库备份、JSON / Markdown 导出
-- 家庭成员切换、改名、头像字和颜色编辑
+## 本地启动
 
-当前仍未实现：
-
-- 真实登录
-- 复杂权限隔离
-- 真实 NAS 账号 / 外网连接
-- 附件删除、附件替换和更大文件上传体验
-- 其他 Synology Note Station 导出变体自动适配
-
-## 安装
+安装依赖：
 
 ```bash
 npm install
 ```
-
-Windows PowerShell 如果遇到执行策略问题，可以使用：
-
-```bash
-npm.cmd install
-```
-
-## 运行
 
 开发模式：
 
@@ -55,80 +59,51 @@ npm.cmd install
 npm run dev
 ```
 
-默认地址：
-
-- 前端：http://localhost:5173
-- 后端：http://localhost:3300
-- 健康检查：http://localhost:3300/api/health
-
-Windows 可使用：
+分别启动前后端：
 
 ```bash
-npm.cmd run dev
+npm run server
+npm run web
 ```
 
-## 手机添加到桌面
-
-项目已包含基础 PWA 配置和 runtime 图标。部署或本地启动后，在同一局域网手机浏览器中访问前端地址，然后使用浏览器菜单里的“添加到主屏幕”或“安装应用”。
-
-MVP 阶段暂不启用 service worker 或复杂离线同步；手机需要能访问家庭 NAS / 局域网服务才能正常读取和保存数据。
-
-## 构建
+构建：
 
 ```bash
 npm run build
 ```
 
-预览构建产物：
+生产模式可先构建，再启动 Express 服务：
 
 ```bash
-npm run preview
+npm run build
+npm run server
 ```
 
-## 测试
-
-运行 MVP 自动化测试：
-
-```bash
-npm run test
-```
-
-Windows PowerShell 可使用：
-
-```bash
-npm.cmd run test
-```
-
-当前测试会临时启动一个独立 Express 服务，并使用临时 `NOTE_DATA_DIR`，不会污染项目下的正式 `data/` 目录。覆盖范围包括读取记录列表、新建记录、读取详情、关键词搜索、分类筛选、成员筛选、标签筛选、成员切换、数据库备份、NAS 离线备份失败、数据目录读写探测、JSON / Markdown 全量导出、Note Station 样例导入和真实导入 dry-run。
-
-## 初始化数据
-
-第一次启动后端或运行检查脚本时，会自动创建数据库和默认数据。检查脚本也会执行 SQLite `PRAGMA integrity_check`；如果正式数据库损坏，`npm run check` 会失败并提示先恢复备份。
-
-```bash
-npm run check
-```
-
-如果检查提示数据库损坏，先停止 Docker / Node 服务，再使用确认门恢复命令预检备份：
-
-```bash
-npm.cmd run restore-db -- --backup data/backups/your-healthy-backup.db
-```
-
-确认要替换正式库时再追加 `--confirm`。
-
-默认数据库：
+默认访问地址通常是：
 
 ```text
-data/database/app.db
+http://127.0.0.1:3300
 ```
 
-默认会初始化：
+健康检查：
 
-- 默认家庭成员：我、爱人；当前版本只支持在这两个成员之间切换，改名和新增成员以后再做
-- 分类：家庭事务、房屋 / 设备、维修 / 售后、购物 / 消费、证件 / 账号、孩子 / 教育、老人 / 健康、宠物、工作 / 杂事、临时记录、未分类
-- 常用标签：待办、重要、维修、购物、账单、发票、保修、NAS、物业、医院
-- 3 条示例记录
+```text
+http://127.0.0.1:3300/api/health
+```
+
+## 检查和测试
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+HTTP smoke：
+
+```bash
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
 
 ## 数据目录
 
@@ -136,256 +111,52 @@ data/database/app.db
 
 ```text
 data/
-  database/
-    app.db
-  attachments/
-  backups/
-  imports/
-    notestation/
-  exports/
 ```
 
-可以通过环境变量修改数据根目录：
-
-```bash
-NOTE_DATA_DIR=/your/nas/path/note-data npm run server
-```
-
-Windows PowerShell 示例：
-
-```powershell
-$env:NOTE_DATA_DIR="X:\note-data"
-npm.cmd run server
-```
-
-## Docker / NAS 部署准备
-
-项目已提供基础容器配置：
-
-```bash
-docker compose up -d --build
-```
-
-默认容器端口：
+主要子目录：
 
 ```text
-http://localhost:3300
-```
-
-`docker-compose.yml` 会把项目下的 `data/` 挂载到容器内 `/data`，并通过 `NOTE_DATA_DIR=/data` 让数据库、附件、备份、导入和导出都集中写入该目录。部署到 NAS 时，把 compose 里的 `./data:/data` 改成 NAS 上的实际目录即可；文档只使用 `/your/nas/path/note-data:/data` 这类占位示例，不写入真实 NAS 地址。
-
-## 备份
-
-设置页可以点击“立即备份”，会把 SQLite 数据库复制到：
-
-```text
+data/database/
+data/attachments/
 data/backups/
-```
-
-也可以直接调用 API：
-
-```http
-POST /api/storage/backup
-```
-
-请求体：
-
-```json
-{
-  "nasOnline": true
-}
-```
-
-当 `nasOnline` 为 `false` 时，会模拟 NAS 离线并返回失败提示。
-
-## 导出 JSON
-
-设置页可以点击“导出 JSON”，导出文件会保存到：
-
-```text
 data/exports/
+data/imports/notestation/
 ```
 
-API：
+这些目录用于本机或 NAS 运行数据，不应提交到 Git。仓库只保留 `.gitkeep` 占位文件。
 
-```http
-POST /api/storage/export-json
-```
+## Docker / NAS
 
-## Note Station 导入
-
-当前真实 `.nsx` 样例已经完成结构分析、dry-run、sandbox 导入和正式导入。导入记录会标记为 `notestation_import`，并在详情页保留来源、原始分类 / 笔记本路径、原始路径和附件元数据。
-
-浏览器里的导入页用于展示安全导入流程和导入状态；正式写入数据库前仍应先 dry-run、确认预览并自动备份正式数据库。
-
-其他 Synology Note Station 导出变体不要硬猜格式，后续必须先 dry-run 验证，再考虑导入。
-
-## 当前可演示流程
-
-1. 切换当前家庭成员
-2. 新建记录
-3. 查看详情
-4. 按分类、成员、标签、关键词搜索
-5. 查看已导入的 Note Station 历史记录
-6. 手动备份数据库
-7. 导出 JSON
-
-## 当前真实功能
-
-- Express API 可运行。
-- SQLite 数据库可本地持久化。
-- 首页、详情、新建、编辑、搜索、分类、导入、设置页面可访问。
-- 新建记录会写入 SQLite，刷新后不丢失；已有记录可从详情页进入编辑，也可以从详情页“更多”里归档或软删除。
-- 分类、成员、标签和关键词筛选可用。
-- 手动备份会复制 SQLite 数据库到备份目录。
-- JSON 导出会写入导出目录，并已用超过 200 条记录的自动化测试确认会导出全量记录。
-- Docker / NAS 部署配置已准备，容器内数据目录统一使用 `/data`。
-- PWA manifest 和 runtime 图标已准备，可添加到手机桌面。
-- Note Station 真实 `.nsx` 已完成 dry-run、sandbox 和正式导入流程；导入后可查看来源信息并在未分类中整理。
-
-## 当前模拟功能
-
-- NAS 在线 / 离线状态仍是模拟，不连接真实 NAS。
-- 新建记录支持真实附件上传，附件文件保存到 `data/attachments/`，数据库只保存附件元数据和相对路径。
-- Note Station 导入已支持当前真实 `.nsx` 样例；其他 Synology Note Station 导出变体仍需要先 dry-run 验证。
-- 家庭成员切换不等于真实登录。
-- 私密记录 / 权限隔离只预留字段，暂不启用。
-- 复杂离线同步暂不实现。
-
-## 后续需要提供
-
-- 目标 NAS 的部署方式，例如 Docker Compose、群晖 Container Manager，还是普通 Node 服务。
-- NAS 上用于挂载 `/data` 的实际目录规划。
-- 是否需要简单访问口令；默认成员当前只保留“我 / 爱人”。
-- 是否需要外网访问，以及计划使用的内网穿透或反向代理方式。
-
-## 常见问题
-
-### 端口被占用怎么办？
-
-开发模式默认使用：
-
-- 前端：`5173`
-- 后端：`3300`
-
-如果端口被占用，可以先关闭占用该端口的旧服务，或临时指定后端端口：
-
-```powershell
-$env:PORT="3310"
-npm.cmd run server
-```
-
-如果只改后端端口，开发前端代理也需要同步调整 `vite.config.js`。
-
-### 数据库什么时候初始化？
-
-第一次启动后端或运行检查命令时会自动初始化：
+本地 Docker：
 
 ```bash
-npm run check
+docker compose build
+docker compose up -d
 ```
 
-如果检查提示数据库损坏，先停止 Docker / Node 服务，再使用确认门恢复命令预检备份：
+NAS 部署请看：
 
-```bash
-npm.cmd run restore-db -- --backup data/backups/your-healthy-backup.db
-```
+- `docs/NAS_DEPLOYMENT.md`
+- `docs/TRIAL_RUN_READINESS_REPORT.md`
+- `docs/BACKUP_RESTORE_DRILL.md`
 
-确认要替换正式库时再追加 `--confirm`。
+不要在代码或文档中写死真实 NAS 地址、账号、密码或 token。
 
-初始化会创建默认成员、分类、标签和示例记录。
+## 安全规则
 
-### 如何确认当前数据目录？
+禁止提交：
 
-打开健康接口即可看到：
+- `data/` 运行数据
+- SQLite 数据库
+- `.nsx` 文件
+- dry-run JSON
+- 备份文件
+- 导出文件
+- 附件文件
+- 解压后的真实 Note Station 内容
+- 日志文件
+- 密码、token、真实 NAS 地址、账号信息
 
-```text
-http://localhost:3300/api/health
-```
+## 下一步
 
-返回内容里会包含数据库、附件、备份、导入和导出目录。
-
-在设置页也可以点击“检查当前数据目录”，服务端会在数据库、附件、备份和导出目录各写入一个临时探测文件并立即删除，用于确认当前本机或 NAS 挂载目录是否可写。
-
-### 如何重置本地测试数据？
-
-停止服务后删除本地数据库文件：
-
-```text
-data/database/app.db
-```
-
-然后重新运行：
-
-```bash
-npm run check
-```
-
-如果检查提示数据库损坏，先停止 Docker / Node 服务，再使用确认门恢复命令预检备份：
-
-```bash
-npm.cmd run restore-db -- --backup data/backups/your-healthy-backup.db
-```
-
-确认要替换正式库时再追加 `--confirm`。
-
-注意：这会清空当前本地记录。真实试用或 NAS 部署时，重置前请先备份 `data/`。
-
-### 为什么 Windows PowerShell 要用 `npm.cmd`？
-
-有些 Windows 环境会禁止执行 `npm.ps1`。遇到执行策略提示时，使用：
-
-```powershell
-npm.cmd run check
-npm.cmd run test
-npm.cmd run build
-```
-
-## Git 忽略规则
-
-不会提交到 GitHub 的内容：
-
-- `data/database/app.db`
-- `data/backups/*`
-- `data/exports/*`
-- `data/attachments/*`
-- `data/imports/*`
-
-目录通过 `.gitkeep` 保留。
-
-## 文档
-
-- [产品需求](docs/PRD.md)
-- [数据模型](docs/DATA_MODEL.md)
-- [Note Station 导入](docs/NOTESTATION_IMPORT.md)
-- [NAS 部署与备份](docs/NAS_DEPLOYMENT.md)
-- [V1 风格指南](docs/V1_STYLE_GUIDE.md)
-- [产品设计上下文](docs/PRODUCT_DESIGN_CONTEXT.md)
-- [项目记忆](docs/PROJECT_MEMORY.md)
-- [当前 QA 报告](docs/QA_REPORT_CURRENT.md)
-- [下一步建议](docs/NEXT_STEPS.md)
-- [真实 Note Station 导入计划](docs/NOTESTATION_REAL_IMPORT_PLAN.md)
-
-## 后续待办
-
-- 针对其他 Note Station 导出变体继续执行 dry-run 验证和解析适配。
-- 完善附件删除、附件替换和更大文件上传体验。
-- 验证手机端添加到桌面流程，并补充清晰的离线提示。
-- 在真实 NAS / Container Manager 环境人工验证数据目录权限、手机局域网访问和设置页目录探测。
-- 持续补充导入后整理、成员编辑和其他导入变体的自动化测试。
-
-## HTTP 烟测
-
-启动 Node 服务或 Docker 容器后，可以用烟测命令快速确认 API、首页、筛选、备份和导出是否可用：
-
-```bash
-npm.cmd run smoke -- --base-url http://127.0.0.1:3300
-```
-
-如果只想做只读检查，不触发备份和导出，可追加：
-
-```bash
-npm.cmd run smoke -- --base-url http://127.0.0.1:3300 --read-only
-```
-
-如果正式 `data/database/app.db` 损坏，先停止 Docker / Node 服务，按 `docs/BACKUP_RESTORE_DRILL.md` 使用健康备份 dry-run，再确认恢复。恢复后必须重新运行 `npm.cmd run check` 和 HTTP 烟测。
+建议进入 RC1 家庭局域网试运行，不再继续盲目新增功能。试运行后再决定富文本编辑、Android、NAS 运维增强、附件管理增强、导入后整理增强等大功能。

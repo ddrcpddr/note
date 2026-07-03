@@ -990,3 +990,32 @@ MVP 需要覆盖：
 - 详情页仅对 Note Station 导入且存在安全 HTML 的记录显示 `原始格式 / 纯文本` 切换；首页卡片、搜索、分类、成员筛选仍使用纯文本摘要和 `notes.content`。
 - 新增 `tests/rich-text.test.js`，覆盖恶意 `script/iframe/on*` 清理、危险链接移除、图片占位、纯文本 fallback、搜索仍基于纯文本、默认导出查询不包含 `richContent`。
 - 验证结果：`npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`；`npm.cmd run test` 通过，11 个测试套件 / 36 项测试全部通过；`npm.cmd run build` 通过。
+
+## 2026-07-03 - 项目状态收口与发布路线图同步
+
+本轮进入“项目状态收口 + 文档同步 + 发布路线图”阶段，不开发新功能、不改 UI、不改数据库、不处理 Android / Figma / 完整富文本编辑器。
+
+当前基线为 `5fff73d Add safe rich text read-only rendering`。本轮确认当前项目已经处于 RC1 / 家庭局域网试运行准备阶段：核心记录、搜索、分类、成员、备份、导出、真实 Note Station 导入结果查看、基础附件上传、富文本安全只读渲染、Docker/NAS 基础部署文件均已具备。
+
+本轮统一了旧文档里的冲突状态：
+
+- 默认成员只保留 `我 / 爱人`；支持切换和资料编辑，但不支持新增成员。
+- Note Station 当前真实样例已经完成正式导入，未知 `.nsx` 仍必须先 dry-run。
+- JSON 导出和 Markdown 导出均已实现。
+- 基础附件上传已实现，附件管理增强仍是后续功能。
+- 富文本第一阶段已完成安全只读渲染，完整编辑器未实现。
+- 当前阶段建议冻结 RC1，先做真实手机与 NAS/Docker 试运行，再决定 P1/P2。
+
+新增/更新文档：
+
+- `docs/PROJECT_STATUS.md`
+- `docs/DOCS_SYNC_AUDIT.md`
+- `docs/ROADMAP_RELEASE_PLAN.md`
+- `README.md`
+- `docs/NEXT_STEPS.md`
+- `docs/RUN_RESULT_HANDOFF.md`
+- `docs/QA_REPORT_CURRENT.md`
+
+数据安全状态：Git 只跟踪 `data/` 下 `.gitkeep` 占位文件；真实数据库、备份、导出、附件、`.nsx`、dry-run JSON、日志和隐私内容不得提交。
+
+本轮验证结果：`npm.cmd run check` 通过，SQLite `integrityCheck=ok`，`noteCount=113`，`categoryCount=11`；`npm.cmd run test` 通过 11 suites / 36 tests；`npm.cmd run build` 通过。

@@ -1,511 +1,200 @@
-# Run Result Handoff
+# 运行结果交接
+
+更新时间：2026-07-03
 
 ## 1. 当前分支
 
-- 分支：`main`
-- 远端：`origin/main`
-- 报告生成前状态：本地与远端一致，工作区干净。
+`main`
 
-## 2. 最新 commit
+## 2. 当前基线 commit
 
-报告生成前最新已推送提交：
+`5fff73d Add safe rich text read-only rendering`
 
-```text
-ccd9992 Refresh-MVP-QA-docs
-```
+本轮文档同步提交完成后，最新 commit 应为：`Sync project status and release roadmap`。
 
-本文件提交后，请以 `git log --oneline -1` 的输出作为最终最新提交。
+## 3. 当前阶段
 
-## 3. 本轮新增 commit 列表
+RC1 / 家庭局域网试运行版。
 
-```text
-ccd9992 Refresh-MVP-QA-docs
-ca08d70 Strengthen-MVP-API-coverage
-8916685 Document-agent-workplan
-```
+当前不继续新增功能，不做 UI 重建、不做 Android、不做完整富文本编辑器。下一步重点是家庭手机和 NAS/Docker 真实试运行。
 
-## 4. 两个 Agent 分别做了什么
+## 4. 当前真实可用功能
 
-本轮实际使用了主控 Agent 与只读审计子 Agent，最终收口不再继续开新 Agent。
+- 首页记录列表和筛选。
+- 新建、编辑、详情、归档、删除记录。
+- 搜索、分类筛选、标签筛选、成员筛选、来源筛选。
+- 默认成员 `我 / 爱人` 的切换和资料编辑。
+- 11 个默认分类，未分类展示为 `未分类 / 待整理`。
+- 标签可为空，可选择预置标签和新增自定义标签。
+- 基础附件上传和附件元数据展示。
+- Note Station 当前真实 `.nsx` 样例导入已经完成，导入记录可查看、搜索、分类、整理。
+- Note Station 原始 HTML / 富文本可安全只读渲染，纯文本继续作为 fallback 和搜索来源。
+- 设置页手动备份、JSON 导出、Markdown 导出。
+- 数据库恢复工具 `npm.cmd run restore-db`。
+- Docker / NAS 基础部署文件。
+- 可选 `NOTE_ACCESS_PIN` 简单访问口令。
 
-### QA Agent
+## 5. 当前仍然模拟或待开发
 
-- 只读审计现有 API 测试、QA 报告、BUG 列表和主要后端路由。
-- 发现 JSON 导出复用 `listNotes()` 的 200 条列表窗口，长期使用会造成导出不完整。
-- 建议补成员切换、NAS 离线备份失败、样例导入闭环和导出全量测试。
+- 新增成员功能未实现，当前只保留 `我 / 爱人`。
+- 没有账号、权限、私密记录。
+- 没有完整富文本编辑器。
+- 没有 Android 原生应用。
+- 没有复杂离线同步。
+- 附件管理增强未完成，包括删除、替换、下载、预览和批量管理。
+- NAS 运维增强仍待真实试运行反馈完善。
+- 未知 Note Station 导出格式仍需先 dry-run。
+- 高保真视觉还原若继续，需要按 Figma 规格逐页重建。
 
-### Docs / Deploy Agent
+## 6. 如何启动前端和后端
 
-- 只读审计 README、NAS 部署、用户手册、开发交接、Docker 配置、忽略规则。
-- 发现 README / NEXT_STEPS 中 PWA、Docker、最新提交和测试数量描述过期。
-- 确认没有真实 NAS 地址、账号、密码或 token 写死。
-
-### Import Agent
-
-- 只读审计 Note Station dry-run、样例导入和真实导入计划。
-- 确认当前没有硬猜 Synology 真实导出格式。
-- 建议明确 dry-run 不生成可提交 `importId`，样例 commit 只适用于 sample-preview 批次。
-
-## 5. 当前真实可用功能
-
-- React + Vite 移动端页面可打开。
-- Express API 可运行。
-- SQLite 本地持久化可用。
-- 首页记录列表可显示。
-- 记录详情可打开。
-- 新建记录可写入 SQLite。
-- 新建后刷新式读取不丢失。
-- 搜索、分类筛选、成员筛选可用。
-- 分类页显示分类和记录数量。
-- 设置页显示数据库、附件、备份、导出目录。
-- 手动备份可用。
-- JSON 导出可用，并已修复为全量导出。
-- Note Station 样例导入预览 / 确认导入可走通。
-- 导入后的记录可搜索到。
-- PWA manifest 已存在，可用于添加到桌面。
-- Dockerfile / docker-compose.yml 已准备。
-
-## 6. 当前仍然是模拟的功能
-
-- NAS 在线 / 离线状态仍是模拟，不连接真实 NAS。
-- 附件上传仍只保存元数据，不保存真实文件。
-- 真实 Synology Note Station 导出文件解析尚未实现。
-- 家庭成员切换不等于真实登录。
-- 复杂权限、私密记录、离线同步仍未实现。
-- Markdown 导出仍是后续功能。
-
-## 7. 如何启动前端
-
-开发模式会同时启动前端和后端：
+开发模式：
 
 ```bash
-npm.cmd run dev
+npm run dev
 ```
 
-前端地址：
-
-```text
-http://localhost:5173
-```
-
-## 8. 如何启动后端
-
-单独启动后端：
+分别启动：
 
 ```bash
-npm.cmd run server
+npm run server
+npm run web
 ```
 
-后端地址：
+构建后以 Express 提供前端和 API：
+
+```bash
+npm run build
+npm run server
+```
+
+默认访问：
 
 ```text
-http://localhost:3300
+http://127.0.0.1:3300
 ```
 
 健康接口：
 
 ```text
-http://localhost:3300/api/health
+http://127.0.0.1:3300/api/health
 ```
 
-## 9. 如何运行测试
+## 7. 如何运行测试
 
 ```bash
 npm.cmd run check
 npm.cmd run test
-```
-
-当前 `npm.cmd run test` 覆盖 9 项 API 集成测试。
-
-## 10. 如何构建
-
-```bash
 npm.cmd run build
 ```
 
-构建产物输出到：
+HTTP smoke：
 
-```text
-dist/
+```bash
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 ```
 
-## 11. 数据库位置
+## 8. 数据目录
 
-默认本地数据库：
+默认数据目录：
+
+```text
+data/
+```
+
+数据库：
 
 ```text
 data/database/app.db
 ```
 
-当前本机验收中的实际路径：
+附件：
 
 ```text
-D:\工作文件夹\XYZL\领航未来\GitHub项目\note\data\database\app.db
+data/attachments/
 ```
 
-## 12. 备份文件位置
-
-默认备份目录：
+备份：
 
 ```text
 data/backups/
 ```
 
-本次验收生成过本地备份文件，属于 `.gitignore` 忽略的运行数据，不提交 GitHub。
-
-## 13. 导出文件位置
-
-默认导出目录：
+导出：
 
 ```text
 data/exports/
 ```
 
-本次验收生成过本地 JSON 导出文件，属于 `.gitignore` 忽略的运行数据，不提交 GitHub。
-
-## 14. 已知问题
-
-- Docker 镜像构建和本机启动已验证，但当前正式数据库损坏，业务 API 需要先恢复数据库后复验。
-- 真实附件上传已实现；手机端附件查看和下载体验仍需人工验收。
-- 真实 Note Station 导入已针对当前样例走通；其他导出变体仍需先 dry-run，不硬猜格式。
-- 可选访问 PIN 已实现；完整登录和多用户权限系统未实现，也暂不作为家庭 MVP 必需项。
-- 编辑记录流程已实现；长文本、附件记录和导入记录的手机端编辑体验仍需试运行反馈。
-
-## 15. 我下一步需要提供什么
-
-- 一份脱敏后的 Synology Note Station 真实导出样例。
-- NAS 部署方式：Docker Compose、群晖 Container Manager，还是普通 Node 服务。
-- NAS 数据目录规划。
-- 家庭成员名单。
-- 是否需要简单访问口令 / PIN。
-- 是否需要外网访问，以及计划使用的反向代理或内网穿透方式。
-
-## 16. 建议人工验收的 5 个流程
-
-1. 手机浏览器打开首页，检查记录卡片、筛选胶囊和底部导航。
-2. 新建一条记录，刷新后再次搜索该记录。
-3. 切换家庭成员，再新建记录，确认创建人正确。
-4. 设置页执行“立即备份”和“导出 JSON”，确认文件出现在 NAS / 本地数据目录。
-5. 导入 Note Station 样例，确认预览、失败项、确认导入和搜索导入记录都正常。
-
-## 本次最终收口验证
-
-| 检查项 | 结果 |
-| --- | --- |
-| `git status` | 工作区干净，分支跟踪 `origin/main` |
-| `npm.cmd run check` | 通过 |
-| `npm.cmd run test` | 通过，9 项测试通过 |
-| `npm.cmd run build` | 通过 |
-| 开发服务 | `npm.cmd run dev` 已启动，前端 5173，后端 3300 |
-| `/api/health` | 通过，返回 `ok: true` |
-| 本机浏览器打开 | 通过，页面标题 `家事记` |
-| 390px 移动宽度 | 首页、详情、新建、搜索、分类、设置、导入页均未发现横向溢出 |
-| 浏览器控制台 | 0 error，0 warning；仅 React DevTools info |
-| 文件安全 | 运行数据均被忽略，Git 只跟踪 `data/**/.gitkeep` |
-
-## 验收时间
+Note Station 导入文件：
 
 ```text
-2026-06-29 11:05:20 +08:00
+data/imports/notestation/
 ```
 
-## 项目同步交接补充（2026-06-29 13:55:04 +08:00）
+这些运行数据不应进入 Git。仓库只跟踪 `.gitkeep`。
 
-### 当前 Git 状态
+## 9. Docker / NAS
 
-- 当前分支：`main`
-- 同步前最新功能提交：`76a1a99 Fix: import Note Station attachments`
-- 本地相对远程：同步检查开始时 `main...origin/main [ahead 6]`
-- 同步前未推送提交数：6
-- 本轮同步文档提交完成后，以 `git log --oneline -10` 的最新提交为准。
-
-### 当前真实可用功能
-
-- SQLite 持久化记录。
-- 首页记录列表、详情页、新建记录、搜索、分类筛选、成员筛选。
-- 家庭成员切换。
-- 手动备份 SQLite 数据库。
-- JSON 全量导出。
-- PWA 基础 manifest，可用于手机添加到桌面。
-- Note Station `.nsx` dry-run 解析。
-- Note Station sandbox 导入验证。
-- Note Station 正式导入已执行，导入 93 条记录、20 个附件元数据，失败 0。
-
-### 当前仍是模拟或待确认功能
-
-- NAS 在线 / 离线状态仍是本地模拟，不连接真实 NAS 服务。
-- 登录、密码、PIN、复杂权限仍未实现。
-- Note Station 原始分类目前统一进入 `uncategorized`，后续需要人工整理分类映射。
-- 标签在当前真实样例中为 0，真实标签映射还无法验证。
-- 附件 MIME 主要按文件名基础推断，建议后续人工抽查附件可打开性。
-- Figma 原型设计文档和 image2 图片素材说明文档尚未开始。
-
-### 如何启动项目
+构建并启动：
 
 ```bash
-npm.cmd run dev
+docker compose build
+docker compose up -d
 ```
 
-默认地址：
-
-- 前端：`http://localhost:5173`
-- 后端：`http://localhost:3300`
-- 健康检查：`http://localhost:3300/api/health`
-
-### 如何运行测试
+验证：
 
 ```bash
-npm.cmd run check
-npm.cmd run test
-npm.cmd run build
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 ```
 
-### 如何验证 Note Station 导入结果
-
-1. 打开首页，确认记录总数和导入记录可见。
-2. 搜索一条已知导入记录关键词，确认可搜到。
-3. 打开分类页或使用 `uncategorized` 筛选，确认可看到导入记录。
-4. 打开一条带附件的导入记录详情，确认标题、正文、来源、原始时间、原始路径和附件元数据可见。
-5. 在设置页执行手动备份和 JSON 导出，确认生成文件位于被 Git 忽略的 `data/backups/` 与 `data/exports/`。
-
-### 下一阶段建议
-
-可以在用户确认后进入 Figma 原型设计文档阶段，但建议只做文档和流程整理，不重做 UI、不调用 Product Design、不生成新 PNG、不改变 V1 风格。进入前需要确认是否允许使用当前真实导入后的页面状态做脱敏参考，以及 image2 图片素材说明文档的目标格式。
-
-## 移动端 MVP 家庭 NAS 试用阶段交接（2026-06-29）
-
-### 当前分支与提交
-
-- 当前分支：`main`
-- 本段编写前最新提交：`02da316 Expand automated MVP QA coverage`
-- 本轮阶段提交列表：
-  - `1cd10a8` Polish runtime asset mobile UI
-  - `326088c` Refine MVP trial experience copy
-  - `33ea842` Clarify MVP member scope
-  - `d4a8fd5` Improve Note Station import review display
-  - `cfe5fba` Tighten NAS deployment readiness
-  - `02da316` Expand automated MVP QA coverage
-
-### 两端状态
-
-- 前端：Vite / React 移动端页面，runtime 图片素材已接入，PWA manifest 和图标已接入。
-- 后端：Express + Node 内置 SQLite，生产服务可同时提供 API 和 `dist/` 静态前端。
-- 数据目录：默认 `data/`；容器 / NAS 可通过 `NOTE_DATA_DIR=/data` 统一写入 `/data/database`、`/data/attachments`、`/data/backups`、`/data/imports/notestation`、`/data/exports`。
-
-### 当前真实可用功能
-
-- 首页记录列表、记录详情、新建记录、搜索、分类筛选、成员筛选、来源筛选。
-- 默认成员只保留“我 / 爱人”，可切换当前记录人；不新增真实成员。
-- 分类页使用 11 个默认分类，`uncategorized` 统一表达为“未分类 / 待整理”。
-- Note Station 真实 `.nsx` 已完成 dry-run、sandbox、正式导入和导入后查看；详情页可显示来源信息、原始分类和原始路径。
-- 设置页可查看数据目录、附件目录、备份目录、导出目录。
-- 手动备份和 JSON 全量导出可用。
-- PWA manifest 和 runtime 图标可用于手机添加到桌面。
-- Docker / NAS 配置已准备，`.dockerignore` 已增强保护运行数据。
-
-### 当前仍模拟或待确认
-
-- NAS 在线 / 离线状态仍是应用内测试状态，不探测真实 NAS。
-- 真实附件上传已实现；导入附件元数据和上传文件路径可用，但仍需手机实机验收附件查看体验。
-- 可选访问 PIN 已实现；完整登录、多用户权限系统未实现，也暂不作为家庭 MVP 必需项。
-- 其他 Note Station 导出变体仍需先 dry-run 验证，不硬猜格式。
-- Docker 已在当前机器完成 `docker compose build/up` 验证；容器和 SPA 可启动，但业务 API 因正式数据库损坏返回 500，需恢复数据库后重新验收。
-
-### 启动方式
-
-开发模式：
-
-```bash
-npm.cmd run dev
-```
-
-默认地址：
+部署前请确认 NAS 上的持久化目录映射到 `/data`，并保留：
 
 ```text
-http://localhost:5173
-http://localhost:3300/api/health
+/data/database
+/data/attachments
+/data/backups
+/data/exports
+/data/imports/notestation
 ```
 
-生产构建和本机服务：
+不要在仓库中写入真实 NAS 地址、账号、密码或 token。
 
-```bash
-npm.cmd run build
-npm.cmd run server
-```
+## 10. 如何验证 Note Station 导入结果
 
-Docker / NAS 试用：
+1. 首页查看导入记录。
+2. 搜索导入记录标题或纯文本内容。
+3. 分类页查看 `未分类 / 待整理` 或整理后的分类。
+4. 详情页查看来源、创建时间、更新时间、原始路径、附件元数据。
+5. 详情页切换原始格式 / 纯文本，确认富文本只读展示和 fallback 正常。
+6. 设置页执行备份和 JSON / Markdown 导出。
 
-```bash
-docker compose up -d --build
-```
+## 11. 本轮验证结果
 
-部署时只修改数据卷挂载为自己的 NAS 数据目录，不要把真实 NAS 地址、账号、密码或 token 写进仓库。
-
-### 测试方式
-
-```bash
-npm.cmd run check
-npm.cmd run test
-npm.cmd run build
-```
-
-当前自动化测试覆盖 16 项：MVP API、`NOTE_DATA_DIR`、新建/详情/搜索/分类/成员/标签/来源筛选、成员切换、备份、JSON 全量导出、Note Station dry-run / 正式导入保护、PWA manifest 和 Docker ignore 安全规则。
-
-### 数据位置
-
-- 数据库：`data/database/app.db`
-- 附件：`data/attachments/`
-- 备份：`data/backups/`
-- Note Station 导入文件：`data/imports/notestation/`
-- JSON 导出：`data/exports/`
-
-以上均为运行数据，除 `.gitkeep` 外不提交 GitHub。
-
-### 建议人工验收的 5 个流程
-
-1. 手机在同一局域网打开首页，检查记录列表、底部导航、runtime 图标和 PWA 添加到桌面。
-2. 新建一条“我 / 爱人”记录，刷新后确认不丢失，并能在搜索中找到。
-3. 搜索页分别测试成员、分类、来源为 “Note Station 导入” 的筛选。
-4. 分类页打开“未分类 / 待整理”，再进入一条导入记录详情，检查来源信息和附件元数据。
-5. 设置页执行“立即备份”和“导出 JSON”，确认文件落在 NAS / 本地数据目录且没有进入 Git。
-
-### 下一步需要用户确认
-
-- NAS 上最终使用 Docker Compose、群晖 Container Manager，还是普通 Node 服务。
-- NAS 数据目录的真实挂载路径；只在本机 / NAS 配置中使用，不写入仓库。
-- 是否需要简单访问口令 / PIN。
-- 是否优先做真实附件上传，还是先做导入后分类整理。
-
-## 当前 Docker / Android 决策交接补充（2026-06-30）
-
-### 当前最新状态
-
-- 最新提交：`4aa5cd8 Document Android wrapper decisions`
-- 当前分支：`main`
-- 本地相对远程：`main...origin/main [ahead 11]`
-- Docker 容器：`note` 已因数据库完整性问题停止；恢复前不要继续试运行
-- 恢复并重启后本机测试地址：`http://127.0.0.1:3300/`
-- 恢复并重启后健康接口：`http://127.0.0.1:3300/api/health`
-
-### 最新可用功能
-
-当前功能已不再停留在早期 MVP：真实附件上传、访问口令、成员资料编辑、导入后未分类整理、定时备份、Markdown 导出、NAS 数据目录探测都已经完成本地开发并通过自动化验证。
-
-### 最新验证
-
-- `npm.cmd run check` 通过，正式库记录数 112。
-- `npm.cmd run test` 通过，26 项测试全部通过。
-- `npm.cmd run build` 通过。
-- Docker 健康接口曾返回 200，但后续业务 API 因数据库损坏返回 500；不要只依赖 healthcheck。
-
-### Android 封装状态
-
-Android 原生 App 封装仍排最后。当前已完成封装准备文档和决策清单：
-
-- `docs/ANDROID_WRAPPER_PLAN.md`
-- `docs/ANDROID_WRAPPER_DECISION_CHECKLIST.md`
-
-真正创建 Android 工程前，需要用户确认包名、App 名称、最低 Android 版本、封装路线、NAS 地址配置策略、签名方式和是否允许引入 Android / Gradle 相关依赖。
-
-### 安全状态
-
-运行数据仍由 `.gitignore` 保护；`data/` 下数据库、备份、导出、附件和真实 Note Station 导入内容均未进入 Git 跟踪。
-
-### 数据库完整性阻塞（2026-06-30）
-
-后续 Docker 烟测发现：容器 healthcheck 曾为 healthy，但业务 API `/api/app-data`、`/api/notes?limit=3`、`/api/categories` 返回 500。主机和容器对 `data/database/app.db` 执行 `PRAGMA integrity_check` 均失败，错误为 `database disk image is malformed`。
-
-当前已停止 Docker 容器以避免继续读写损坏库。最近健康备份为 `data/backups/app-2026-06-29T05-40-32-597Z.db`，111 条记录；最新 `app-2026-06-30T04-06-15-239Z.db` 同样损坏，不建议恢复。
-
-恢复前不要继续用当前正式库试运行。详见 `docs/DATABASE_INTEGRITY_RECOVERY.md`。
-### 数据库恢复工具补充（2026-06-30）
-
-已新增确认门恢复命令：
-
-```bash
-npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db
-```
-
-上述命令默认 dry-run，不替换正式库。用户确认后才追加 `--confirm` 执行恢复。当前尚未执行 `--confirm`，正式 `data/database/app.db` 仍处于损坏状态，Docker / 手机试运行继续暂停。
-
-## Docker 临时试运行补充（2026-06-30）
-
-- 已按用户要求先启动一个可测试 Docker：`note-trial`。
-- 测试地址：`http://127.0.0.1:3310/`。
-- 启动方式：当前镜像 `note-trial:current`，端口 `3310:3300`，数据卷 `note-trial-data:/data`。
-- 该实例只用于当前本机测试，不挂载项目正式 `data/`，不会污染正式数据库、备份、导出、附件或真实 Note Station 导入内容。
-- 新增烟测命令：`npm.cmd run smoke -- --base-url http://127.0.0.1:3310`。
-- 当前烟测结果：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、分类 API、存储探测、手动备份、JSON 导出和前端 shell 均通过。
-- 自动化验证：`node --test tests/http-smoke.test.js` 通过；`npm.cmd run test` 通过 32 项；`npm.cmd run build` 通过。
-- 正式 `data/database/app.db` 仍损坏，`npm.cmd run check` 正确失败；未执行 `restore-db --confirm`，等待用户确认。
-## 正式数据库恢复完成（2026-06-30）
-
-- 恢复前状态：`npm.cmd run check` 对 `data/database/app.db` 执行 SQLite `PRAGMA integrity_check` 失败，错误包含 `database disk image is malformed` 相关的 B-tree / page 损坏信息。
-- 恢复前服务状态：已执行 `docker compose down`，并停止 `note-trial` 临时容器；未发现本地当前项目的 `node` / `npm` 服务进程占用数据库。
-- Git 安全状态：恢复前工作区干净；`data/` 下正式数据库、备份、附件、导出、真实导入文件仍被 `.gitignore` 忽略，Git 只跟踪 `.gitkeep`。
-- dry-run 命令：`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db`，结果 `ok=true`、`dryRun=true`、`restored=false`。
-- 确认恢复命令：`npm.cmd run restore-db -- --backup data/backups/app-2026-06-29T05-40-32-597Z.db --confirm`。
-- 使用的健康备份：`data/backups/app-2026-06-29T05-40-32-597Z.db`，大小 `17526784` bytes。
-- 损坏库副本：恢复工具已自动保存到 `data/backups/app-before-restore-2026-06-30T08-31-44-809Z.db`，该文件属于运行备份数据，不提交 Git。
-- 恢复后 `npm.cmd run check` 通过，输出 `integrityCheck: "ok"`、`categoryCount: 11`、`noteCount: 111`。
-- 记录数说明：此前损坏库记忆中曾出现 112 条；本次恢复到最近健康备份后为 111 条。额外 1 条位于损坏库中，不能直接信任，本轮没有从损坏库硬读或 salvage。
-- 恢复后 `npm.cmd run test` 通过，32 项测试全部通过；`npm.cmd run build` 通过。
-- Docker 真实 data 验证：`docker compose build` 通过，`docker compose up -d` 后容器 `note` 为 healthy，使用默认 `./data:/data` 挂载。
-- 关键 API 验证：`/api/health`、`/api/app-data`、`/api/notes?limit=3`、`/api/categories` 均返回 200，不再返回 500。
-- HTTP 烟测：`npm.cmd run smoke -- --base-url http://127.0.0.1:3300` 通过；app-data 返回 `notes: 111`，手动备份、JSON 导出和前端 shell 均通过。
-- 当前风险：最近健康备份之后、损坏发生之前的 1 条记录未恢复；如确实需要找回，必须单独做只读 salvage 评估，并在用户确认后进行，不能直接从损坏库写回。
-- 当前建议：可以继续进入真实手机 / NAS 试运行，但试运行前保留本次恢复用备份和 `app-before-restore` 损坏库副本，避免后续误删。
-
-## Gate 4：备份 / 恢复演练强化交接（2026-06-30）
-
-- 已强化 `docs/BACKUP_RESTORE_DRILL.md`，把正式库损坏后的恢复经验转成试运行前后必须执行的流程。
-- 关键规则：恢复前停 Node / Docker；`restore-db` 先 dry-run；只有 `--confirm` 替换正式库；坏备份不恢复；恢复后必须 check/test/build，Docker / NAS 场景必须 smoke。
-- 试运行前需要保存：`data/database/app.db`、`data/attachments/`、最近健康备份、最近导出文件和当前 Git commit。
-- 运行数据仍只保存在 `.gitignore` 覆盖的 `data/` 下，不提交 GitHub。
-
-### Gate 4 验证结果
-
-- `npm.cmd run check` 通过，正式库 `integrityCheck=ok`、`noteCount=113`。
-- `npm.cmd run test` 通过，33 项测试全部通过。
-- `npm.cmd run build` 通过。
-- `git ls-files data` 只跟踪 5 个 `.gitkeep`；正式数据库、备份、导出、附件、sandbox DB 和真实导入目录均未进入 Git 跟踪。
-
-## MVP 试运行版本冻结（2026-06-30）
-
-- 用户已确认可以冻结 MVP 试运行版本。
-- 新增 `docs/RELEASE_MVP_TRIAL.md`，作为当前家庭局域网 / NAS 试运行版本的冻结说明。
-- 当前版本进入“真实手机 / NAS 人工试运行 + P0/P1 小步修复”阶段，不继续盲目新增功能。
-- 冻结前状态：Gate 0-4 已完成，正式库 `integrityCheck=ok`，Docker 真实 data smoke 已通过，手机试运行清单和备份恢复演练已准备。
-- 冻结后如果发现问题，先记录到 `docs/TRIAL_FEEDBACK_LOG.md`，再按 `mvp-bugfix-qa` 流程一个 bug 一个 `Fix:` commit 修复。
-
-### Gate 9 冻结验证结果
-
-- `npm.cmd run check`：通过，正式库 `integrityCheck=ok`，`noteCount=113`。
-- `npm.cmd run test`：通过，10 个测试套件 / 33 项测试全部通过。
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=113`。
+- `npm.cmd run test`：通过，11 个 suite，36 个 test，0 fail。
 - `npm.cmd run build`：通过。
-- 本次冻结提交只包含文档和发布说明，不包含任何真实运行数据。
 
-## Gate 6：Product Design 7 图还原审计交接（2026-06-30）
+## 12. 已知风险
 
-- 已创建 `docs/PRODUCT_DESIGN_RESTORE_AUDIT.md`。
-- 本轮只做审计，不改前端业务代码、不改数据库、不生成新图片、不调用 Product Design。
-- 已按 7 张 V1 / Product Design 页面图审计首页、新建记录、详情、搜索、分类、导入 Note Station、设置 / 备份。
-- 本轮曾临时生成 390px 页面截图用于审计；截图已删除，不提交 Git。
-- 下一步如继续，应先由用户确认 Gate 7；建议第一批只修“分类页 + 设置页”。
+- 真实 NAS 环境仍需要用户本机人工试运行。
+- 富文本只读已经完成，但完整编辑器属于后续高风险功能。
+- 附件上传可用，但附件管理体验仍是 P1/P2。
+- 未知 `.nsx` 变体不可直接正式导入，必须先 dry-run。
+- 如果继续做视觉还原，必须逐页按 Product Design / Figma 规格重建，不再全站微调。
 
-### Gate 6 验证结果
+## 13. 建议人工验收的 5 个流程
 
-- `npm.cmd run check`：通过，正式库 `integrityCheck=ok`，`noteCount=113`。
-- `npm.cmd run test`：通过，10 个测试套件 / 33 项测试全部通过。
-- `npm.cmd run build`：通过。
-- 本轮只提交审计报告和项目文档，不提交本地截图或真实运行数据。
-## Gate 7 第一批视觉修复交接（2026-06-30）
+1. 手机打开局域网地址，新建一条记录，刷新后确认不丢失。
+2. 搜索刚才新建的记录，并用成员筛选 `我 / 爱人` 验证。
+3. 打开一条 Note Station 导入详情，检查纯文本和原始格式展示。
+4. 在设置页执行手动备份，并确认备份文件生成在 `data/backups/`。
+5. 执行 JSON / Markdown 导出，确认导出文件在 `data/exports/` 且 Git 不跟踪。
 
-- 当前完成范围：分类页 + 设置页 V1 / Product Design 对齐第一批。
-- 修改文件：`src/client/main.jsx`，只调整 Tailwind class / 视觉层级，不改状态流、API、数据库、导入或真实数据。
-- 分类页：标题、副标题、搜索框、导入整理卡、分类卡片、图标和文本层级已增强。
-- 设置页：标题、顶部生活化装饰留白、备份卡、设置项层级已增强；备份状态测试和数据目录检查视觉权重已下调。
-- 移动端检查：使用 Codex bundled Playwright 点击底部导航进入分类 / 设置，390px 和 430px 均无横向溢出，`overflowCount=0`。
-- 验证命令：`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 均通过。
-- 当前仍未做：Gate 7 第二批首页 + 搜索页；第三批新建 + 详情；第四批导入页和导航细节。
-- 注意：Playwright 检查不要再用失败的 `npx --package ... require(...)` 路径；这台机子稳定方式已写入 Codex 本地记忆。
+## 14. 下一步需要用户提供
+
+- 真实 NAS / Docker 试运行结果。
+- 手机端实际使用反馈。
+- 是否优先做 NAS 运维增强、导入后整理、附件管理、富文本编辑或 Android。
+- 如果涉及 NAS 地址、账号、密码、token，需要用户手动配置，不写入仓库。
