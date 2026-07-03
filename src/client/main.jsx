@@ -236,6 +236,27 @@ const fallbackMembers = [
 ];
 
 const initialNotes = [];
+const OFFLINE_CREATE_QUEUE_KEY = 'home-notes-offline-create-queue-v1';
+
+function readOfflineCreateQueue() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(OFFLINE_CREATE_QUEUE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.filter((item) => item?.localId && item?.payload && item?.note) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeOfflineCreateQueue(queue) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(OFFLINE_CREATE_QUEUE_KEY, JSON.stringify(queue));
+  } catch {
+    // Keep the page usable even if browser storage quota is full.
+  }
+}
+
 
 const recordTypes = [
   { label: '普通记录', icon: FileText },
@@ -249,6 +270,9 @@ const recordTypes = [
 
 function App() {
   const [notesData, setNotesData] = useState(initialNotes);
+  const [offlineCreateQueue, setOfflineCreateQueue] = useState(() => readOfflineCreateQueue());
+  const offlineSyncingRef = useRef(false);
+  const [offlineSyncing, setOfflineSyncing] = useState(false);
   const [categoriesData, setCategoriesData] = useState(fallbackCategories);
   const [members, setMembers] = useState(fallbackMembers);
   const [currentMemberId, setCurrentMemberId] = useState('self');
@@ -291,18 +315,22 @@ function App() {
         const loadedMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
         const nextMembers = keepDefaultMembers(loadedMembers);
         const nextCategories = normalizeCategories(data.categories);
+        const pendingNotes = readOfflineCreateQueue().map((item) => item.note).filter(Boolean);
         const nextNotes = Array.isArray(data.notes) ? data.notes.map((note) => normalizeNote(note, nextCategories)) : initialNotes;
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
         setMembers(nextMembers);
         setCategoriesData(nextCategories);
         setCurrentMemberId(currentMember.id);
-        setNotesData(nextNotes);
-        setSelectedId(nextNotes[0]?.id ?? null);
+        setNotesData([...pendingNotes, ...nextNotes]);
+        setSelectedId((pendingNotes[0] || nextNotes[0])?.id ?? null);
         setAccessLocked(false);
         setDataMode('sqlite');
       } catch {
         if (!isMounted) return;
+        const pendingNotes = readOfflineCreateQueue().map((item) => item.note).filter(Boolean);
+        setNotesData(pendingNotes);
+        setSelectedId(pendingNotes[0]?.id ?? null);
         setDataMode('mock');
       }
     }
@@ -371,6 +399,102 @@ function App() {
     window.setTimeout(() => setToast(''), 1800);
   }
 
+  function persistOfflineCreateQueue(nextQueue) {
+    writeOfflineCreateQueue(nextQueue);
+    setOfflineCreateQueue(nextQueue);
+  }
+
+  function enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml }) {
+    const localId = 'offline-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    const note = {
+      id: localId,
+      title,
+      summary: body.slice(0, 42),
+      content: body,
+      contentHtml: bodyHtml || null,
+      contentJson: payload.contentJson || null,
+      richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : null,
+      category: category.name,
+      categoryId: category.id,
+      categoryIcon: category.icon,
+      categoryImageSrc: category.imageSrc,
+      categoryColor: 'text-teal-600',
+      icon: category.icon,
+      iconTone: category.tone,
+      tags: payload.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
+      time: '刚刚',
+      member: currentMember.name,
+      memberId: currentMember.id,
+      memberAvatar: currentMember.avatar,
+      memberAvatarImage: currentMember.avatarImage,
+      attachmentCount: payload.attachments?.length || 0,
+      status: '待同步到 NAS',
+      source: '手动创建',
+      sourceType: 'manual',
+      isOffline: true,
+      syncStatus: 'pending',
+      createdAt: '今天 刚刚',
+      updatedAt: '刚刚',
+      attachments: payload.attachments?.length ? payload.attachments : []
+    };
+    const queueItem = { localId, payload, note, createdAt: new Date().toISOString() };
+    const nextQueue = [queueItem, ...readOfflineCreateQueue()];
+    persistOfflineCreateQueue(nextQueue);
+    setNotesData((current) => [note, ...current.filter((item) => item.id !== localId)]);
+    setSelectedId(localId);
+    setScreen('detail');
+    showToast('服务暂时不可用，记录已保存在本机，恢复后会同步');
+    return note;
+  }
+
+  async function syncOfflineCreateQueue() {
+    if (offlineSyncingRef.current) return;
+    const queue = readOfflineCreateQueue();
+    if (!queue.length || dataMode !== 'sqlite') return;
+
+    offlineSyncingRef.current = true;
+    setOfflineSyncing(true);
+    let remaining = [...queue];
+    let syncedCount = 0;
+
+    try {
+      while (remaining.length) {
+        const item = remaining[0];
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item.payload)
+        });
+        if (!response.ok) throw new Error('offline sync failed');
+        const data = await response.json();
+        const syncedNote = normalizeNote(data.note, categoriesData);
+        setNotesData((current) => (
+          current.some((note) => note.id === item.localId)
+            ? current.map((note) => (note.id === item.localId ? syncedNote : note))
+            : [syncedNote, ...current]
+        ));
+        setSelectedId((current) => (current === item.localId ? syncedNote.id : current));
+        remaining = remaining.slice(1);
+        persistOfflineCreateQueue(remaining);
+        syncedCount += 1;
+      }
+      if (syncedCount) showToast('已同步 ' + syncedCount + ' 条本机记录');
+    } catch {
+      persistOfflineCreateQueue(remaining);
+      if (syncedCount) showToast('已同步 ' + syncedCount + ' 条，还有记录待同步');
+      else showToast('服务还没恢复，记录继续保存在本机');
+    } finally {
+      offlineSyncingRef.current = false;
+      setOfflineSyncing(false);
+    }
+  }
+
+  useEffect(() => {
+    if (dataMode === 'sqlite' && offlineCreateQueue.length) {
+      syncOfflineCreateQueue();
+    }
+  }, [dataMode, offlineCreateQueue.length]);
+
   function openSearch() {
     navigate('search');
   }
@@ -435,23 +559,24 @@ function App() {
     const title = draft.title.trim() || body.slice(0, 24);
     const selectedMemberId = draft.memberId || currentMemberId;
     const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
+    const payload = {
+      title,
+      content: body,
+      contentHtml: bodyHtml || undefined,
+      contentJson: draft.bodyJson || undefined,
+      categoryId: category.id,
+      memberId: currentMember.id,
+      noteType: draft.type,
+      tags: draft.tags,
+      attachments: draft.attachments?.length ? draft.attachments : []
+    };
 
     if (dataMode === 'sqlite') {
       try {
         const response = await fetch('/api/notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            content: body,
-            contentHtml: bodyHtml || undefined,
-            contentJson: draft.bodyJson || undefined,
-            categoryId: category.id,
-            memberId: currentMember.id,
-            noteType: draft.type,
-            tags: draft.tags,
-            attachments: draft.attachments?.length ? draft.attachments : []
-          })
+          body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -466,46 +591,12 @@ function App() {
         showToast('记录已保存到本地数据库');
         return;
       } catch {
-        showToast('暂时没有连上家庭记录服务，已先留在当前页面');
+        enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml });
+        return;
       }
     }
 
-    const note = {
-      id: `mock-${Date.now()}`,
-      title,
-      summary: body.slice(0, 42),
-      content: body,
-      contentHtml: bodyHtml || null,
-      contentJson: draft.bodyJson || null,
-      richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : null,
-      category: category.name,
-      categoryId: category.id,
-      categoryIcon: category.icon,
-      categoryColor: 'text-teal-600',
-      icon: category.icon,
-      iconTone: category.tone,
-      tags: draft.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
-      time: '刚刚',
-      member: currentMember.name,
-      memberId: currentMember.id,
-      attachmentCount: draft.attachments?.length || 0,
-      status: '仅当前页面可见',
-      source: '手动创建',
-      createdAt: '今天 刚刚',
-      updatedAt: '刚刚',
-      attachments: draft.attachments?.length ? draft.attachments : []
-    };
-
-    setNotesData((current) => [note, ...current]);
-    setSelectedId(note.id);
-    setScreen('detail');
-    showToast('记录已临时保存在当前页面');
-
-    window.setTimeout(() => {
-      setNotesData((current) =>
-        current.map((item) => (item.id === note.id ? { ...item, status: '等待家庭记录服务恢复', updatedAt: '刚刚' } : item))
-      );
-    }, 900);
+    enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml });
   }
 
   async function updateExistingNote(draft) {
@@ -745,6 +836,8 @@ function App() {
         <HomeScreen
           notes={notesData}
           categories={categoriesData}
+          offlineQueueCount={offlineCreateQueue.length}
+          offlineSyncing={offlineSyncing}
           filter={homeFilter}
           member={homeMember}
           category={homeCategory}
@@ -1064,7 +1157,7 @@ function AccessLockScreen({ message, onUnlock }) {
   );
 }
 
-function HomeScreen({ notes, categories, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote }) {
+function HomeScreen({ notes, categories, offlineQueueCount, offlineSyncing, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote }) {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const hasAdvancedFilter = member !== 'all' || category !== 'all';
   const visibleNotes = filterNotes(notes, { filter, member, category }, categories);
@@ -1086,6 +1179,11 @@ function HomeScreen({ notes, categories, filter, member, category, members, onFi
       </header>
       <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
       <QuickFilters active={filter} onChange={onFilterChange} showMore={showMoreFilters} onToggleMore={() => setShowMoreFilters((value) => !value)} />
+      {offlineQueueCount > 0 && (
+        <section className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700">
+          {offlineSyncing ? '正在同步本机记录...' : '有 ' + offlineQueueCount + ' 条本机记录待同步'}
+        </section>
+      )}
       {(showMoreFilters || hasAdvancedFilter) && (
         <section className="mt-3 rounded-2xl border border-line/70 bg-white px-3 py-3 shadow-card">
           <p className="px-1 text-[12px] text-muted">更多筛选</p>

@@ -130,6 +130,22 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('新分类'));
   });
 
+  test('keeps an offline create queue and syncs it after the service returns', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('const OFFLINE_CREATE_QUEUE_KEY ='));
+    assert.ok(source.includes('function readOfflineCreateQueue()'));
+    assert.ok(source.includes('function writeOfflineCreateQueue(queue)'));
+    assert.ok(source.includes('const [offlineCreateQueue, setOfflineCreateQueue] = useState(() => readOfflineCreateQueue())'));
+    assert.ok(source.includes('function enqueueOfflineCreate(payload'));
+    assert.ok(source.includes("status: '待同步到 NAS'"));
+    assert.ok(source.includes('function syncOfflineCreateQueue()'));
+    assert.ok(source.includes("fetch('/api/notes'"));
+    assert.ok(source.includes('setSelectedId((current) => (current === item.localId ? syncedNote.id : current))'));
+    assert.ok(source.includes('offlineQueueCount > 0'));
+    assert.ok(source.includes('本机记录待同步'));
+  });
+
   test('keeps member management aligned with compact mobile UI', () => {
     const source = readText('src/client/main.jsx');
 
