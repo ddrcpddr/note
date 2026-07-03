@@ -1,5 +1,46 @@
 # Note Station 导入
 
+更新时间：2026-07-03
+
+## 最新方向：面向富文本最终结构重新导入
+
+当前项目仍处于测试阶段，现有 SQLite 数据库、测试记录、测试附件、已导入测试数据都可以丢失。产品功能完善后，将重新导入 Synology Note Station 导出的 `.nsx` 文件。因此后续 Note Station 导入不再围绕当前测试库做过度兼容，而是服务于最终富文本数据结构。
+
+新的导入目标：
+
+- 不删除原始 `.nsx` 文件。
+- `.nsx`、dry-run JSON、数据库、附件、备份、导出和日志仍然禁止提交 Git。
+- 允许清空测试库、重建附件测试目录、调整 `notes` 字段和导入逻辑。
+- 重新导入时尽量保留原始 HTML / 富文本结构、表格、图片引用、附件关联、链接、列表、待办状态、颜色、高亮、删除线和下划线。
+- 无法完整转换为编辑器结构的复杂内容，至少要能通过安全 HTML 展示。
+
+建议新字段映射：
+
+| Note Station 内容 | 新字段 / 表 | 策略 |
+| --- | --- | --- |
+| 纯文本正文 | `notes.content_text` | 搜索、列表摘要、降级展示、Markdown fallback |
+| 安全富文本 HTML | `notes.content_html` | 详情页展示和 HTML 导出，必须经服务端清理 |
+| 编辑器结构 | `notes.content_json` | Tiptap / ProseMirror JSON，用于再次编辑；无法转换时可为空 |
+| 原始 HTML | `notes.source_html` | 保留原始 Note Station 内容用于溯源和未来增强，不直接渲染 |
+| 原始路径 / 笔记本 | `notes.original_path` / `notes.original_category` / metadata | 用于导入后整理 |
+| 图片 | `attachments` | 复制到 `data/attachments/notestation/<importId>/<noteId>/`，正文 Image 节点引用附件 id |
+| 普通附件 | `attachments` | 保存元数据、相对路径、source_attachment_id，不保存二进制到数据库 |
+| 表格 | `content_html` + `content_json` | 尽量转换为 Tiptap Table；失败时保留安全 HTML 展示 |
+| 待办列表 | `content_json` TaskList / TaskItem | 尽量保留 checked 状态；失败时保留 HTML / 文本 |
+| 链接 | `content_html` / `content_json` | 仅保留安全协议，详情页安全打开 |
+| 颜色 / 高亮 | `content_html` / `content_json` | 只允许白名单颜色和背景色 |
+
+重新导入建议流程：
+
+1. 停止当前服务或确认没有写库进程。
+2. 保留原始 `.nsx` 在 `data/imports/notestation/`，不要提交。
+3. 可清空测试数据库和测试附件目录，但不要删除 `.nsx`。
+4. 运行新版 dry-run，输出字段质量、附件映射、HTML/表格/待办识别结果。
+5. 用户确认 dry-run 后，再写入测试库或正式试用库。
+6. 导入完成后验证首页、搜索、分类、详情富文本、图片、附件、表格、JSON 导出、Markdown 导出。
+
+---
+
 阶段 3 实现的是可扩展导入框架和可演示样例流程。因为还没有真实 Synology Note Station 导出样例，本阶段不猜测真实格式。
 
 ## 当前能力

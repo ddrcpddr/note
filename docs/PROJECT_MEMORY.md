@@ -1081,3 +1081,13 @@ pm.cmd run build 通过；docker compose up -d --build 后
 pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - Playwright 390px / 430px 验证：设置页和导入页均无页面级横向溢出；设置页 上次备份 文案高度 18px，不再竖排；导入页 .nsx 标题完整显示且不再使用 	runcate。
 - 临时截图和测试文件已从 output/playwright/ 删除；Docker smoke 生成的备份/导出文件仍位于 data/ 下并被 .gitignore 忽略。
+
+## 2026-07-03 - 富文本开发前提更新：允许重建测试数据，面向重新导入 NSX
+
+用户明确更新富文本开发前提：当前项目仍处于测试阶段，现有数据库、测试记录、测试附件、已导入测试数据都可以丢失；产品功能完善后会重新导入 Synology Note Station `.nsx` 文件。
+
+新的原则：可以调整数据库结构、做破坏性迁移、清空测试数据库、重建测试附件目录、重新设计 notes 正文字段、重新实现 Note Station 导入后的富文本存储方式；但不要删除原始 `.nsx` 文件，不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+
+富文本目标改为“面向重新导入 Note Station 数据的最终富文本能力补齐”。推荐采用 Tiptap / ProseMirror，不再继续扩展轻量 `contenteditable`。建议长期字段为 `notes.content_text`、`notes.content_html`、`notes.content_json`、`notes.source_html`，并由 `attachments` 统一管理图片和附件。
+
+本轮仅更新方案文档，不开发代码、不改数据库、不清空数据。已更新：`docs/RICH_TEXT_IMPLEMENTATION_PLAN.md`、`docs/RICH_TEXT_FEATURE_PARITY.md`、`docs/NOTESTATION_IMPORT.md`、`docs/NEXT_STEPS.md` 和 `docs/PROJECT_MEMORY.md`。
