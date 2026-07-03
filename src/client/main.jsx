@@ -221,10 +221,25 @@ function App() {
     };
   }, [accessNonce]);
 
-  function openDetail(id) {
+  async function openDetail(id) {
     setSelectedId(id);
     setScreen('detail');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (dataMode !== 'sqlite') return;
+    try {
+      const response = await fetch(`/api/notes?id=${encodeURIComponent(id)}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      const detailNote = data.notes?.[0];
+      if (!detailNote) return;
+      const normalized = normalizeNote(detailNote);
+      setNotesData((current) => current.some((note) => note.id === id)
+        ? current.map((note) => (note.id === id ? normalized : note))
+        : [normalized, ...current]);
+    } catch {
+      // Keep the list item as a usable fallback when detail refresh fails.
+    }
   }
 
   function openEdit() {
@@ -1689,6 +1704,8 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
     if (typeof attachment === 'string') return true;
     const richHtml = note.richContent?.html || '';
     const isReferencedInRichText = attachment.id && richHtml.includes(`data-attachment-id="${attachment.id}"`);
+    const isImageAttachment = String(attachment.mimeType || '').startsWith('image/') || attachment.kind === 'image' || /\.(png|jpe?g|gif|webp)$/i.test(attachment.originalName || attachment.fileName || '');
+    if (note.sourceType === 'notestation_import' && isImageAttachment && hasRichContent) return false;
     return !attachment.isInline && !isReferencedInRichText;
   });
 

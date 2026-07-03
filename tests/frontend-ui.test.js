@@ -91,9 +91,19 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('const visibleAttachments = (note.attachments || []).filter'));
     assert.ok(source.includes('return !attachment.isInline && !isReferencedInRichText'));
     assert.ok(source.includes('isReferencedInRichText'));
+    assert.ok(source.includes("note.sourceType === 'notestation_import' && isImageAttachment && hasRichContent"));
     assert.ok(source.includes('{visibleAttachments.length > 0 && ('));
     assert.ok(source.includes('附件（{visibleAttachments.length}）'));
     assert.ok(source.includes('visibleAttachments.map((attachment, index)'));
+  });
+
+  test('refreshes full note detail before rendering imported attachments', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('async function openDetail(id)'));
+    assert.ok(source.includes("fetch(`/api/notes?id=${encodeURIComponent(id)}`)"));
+    assert.ok(source.includes('const normalized = normalizeNote(detailNote)'));
+    assert.ok(source.includes('setNotesData((current) => current.some((note) => note.id === id)'));
   });
 
   test('does not ship hardcoded sample notes or related records', () => {

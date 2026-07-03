@@ -1243,3 +1243,31 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - Docker 3300 API 实测：93 条 Note Station 记录，20 个图片附件，20 个都能在富文本 HTML 中找到，漏掉 0 个。
 
 安全说明：本轮未提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。`data/` 下 Git 仍只跟踪 `.gitkeep`。
+
+## 2026-07-03 - 修正详情页仍显示 Note Station 图片附件区
+
+用户截图确认：虽然上一轮已把 Note Station 图片写入 `richContent.html`，详情页仍会显示“附件（4）”独立区块，实际体验仍像“文本是文本、附件是附件”。
+
+根因：
+
+- 详情页使用的是首页 / 搜索列表中的 `notesData` 选中项，不一定是 `/api/notes?id=...` 返回的完整详情对象。
+- 列表态记录可能保留了旧附件数组，导致 `visibleAttachments` 过滤没有基于完整 `richContent` 和 `isInline` 状态执行。
+- 上一轮验证偏向 API 数据，没有覆盖详情页打开时的前端状态刷新。
+
+本轮修复：
+
+- `openDetail(id)` 改为异步：进入详情后会请求 `/api/notes?id={id}`，用完整详情刷新 `notesData` 中对应记录。
+- 详情页附件过滤增加 Note Station 图片附件兜底：只要是 `notestation_import` 且存在富文本内容，图片附件不再渲染为外部附件卡片。
+- 新增前端回归测试，防止详情页再次只使用列表态旧附件。
+
+验证结果：
+
+- `node --test tests/frontend-ui.test.js`：通过，10 tests。
+- `npm.cmd run check`：通过，`noteCount=93`。
+- `npm.cmd run test`：通过，11 suites / 53 tests / 53 pass。
+- `npm.cmd run build`：通过，新前端产物为 `index-DBQZCcv9.js`。
+- `docker compose up -d --build`：通过，3300 已重建。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过。
+- 3300 首页 HTML 已确认引用新 JS：`index-DBQZCcv9.js`。
+
+安全说明：本轮未提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
