@@ -1384,3 +1384,11 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 这使得用户已访问过页面或添加到桌面后，在 Docker/NAS 短暂不可用时仍能打开前端壳并写入本地待同步队列。
 - 冷启动前提：浏览器至少需要在在线状态成功访问过一次页面，让 Service Worker 完成安装和缓存。
 - 验证：npm.cmd run check 通过；npm.cmd run test 通过，59 tests；npm.cmd run build 通过。
+
+
+## 2026-07-04 - PWA 离线壳 Docker smoke 验证
+
+- Docker 容器 note 已重新构建并启动，状态为 healthy，端口映射为 3300。
+- HTTP smoke 通过：health、app-data、notes-list、search、category-filter、member-filter、categories-api、storage-probe、manual-backup、json-export、frontend-shell 均为 ok；干净测试库 noteCount=0，members=2，categories=11。
+- /sw.js 可从 Docker 服务访问，状态 200；内容包含 home-notes-app-shell-v1 缓存名，并包含 /api/ 绕过逻辑，确认不会缓存 API 数据。
+- 当前 main 与 origin/main 对齐，阶段提交已推送。

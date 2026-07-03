@@ -886,3 +886,11 @@ npm.cmd run build
 - 这使得用户已访问过页面或添加到桌面后，在 Docker/NAS 短暂不可用时仍能打开前端壳并写入本地待同步队列。
 - 冷启动前提：浏览器至少需要在在线状态成功访问过一次页面，让 Service Worker 完成安装和缓存。
 - 验证：npm.cmd run check 通过；npm.cmd run test 通过，59 tests；npm.cmd run build 通过。
+
+
+## 2026-07-04 - PWA 离线壳 Docker smoke 验证
+
+- Docker 状态：note 容器 healthy，3300 端口可访问。
+- npm.cmd run smoke -- --base-url http://127.0.0.1:3300：通过，ok=true。
+- /sw.js 检查：HTTP 200，包含 app-shell 缓存名，并包含 /api/ 绕过逻辑。
+- 当前仍需人工验证：手机或浏览器先在线打开一次页面，随后停止 Docker/NAS，新建记录进入本地待同步队列；恢复 Docker/NAS 后自动同步。
