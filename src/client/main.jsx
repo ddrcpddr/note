@@ -1004,7 +1004,7 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] } }),
+      StarterKit.configure({ heading: { levels: [2, 3] }, link: false, underline: false }),
       UnderlineExtension,
       LinkExtension.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
       RichImageExtension.configure({ allowBase64: true }),

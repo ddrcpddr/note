@@ -1271,3 +1271,26 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 3300 首页 HTML 已确认引用新 JS：`index-DBQZCcv9.js`。
 
 安全说明：本轮未提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+
+## 2026-07-03 - 修复 Tiptap 重复扩展控制台警告
+
+用户截图反馈浏览器控制台出现：`[tiptap warn]: Duplicate extension names found: ['link', 'underline']`。
+
+根因：Tiptap v3 的 `StarterKit` 已包含 `link` 和 `underline` 扩展，当前编辑器又单独注册了 `LinkExtension` 与 `UnderlineExtension`，导致重复扩展名警告。
+
+修复：
+
+- `StarterKit.configure()` 中显式设置 `link: false`、`underline: false`。
+- 保留单独的 `LinkExtension.configure({ openOnClick: false, autolink: true, linkOnPaste: true })` 和 `UnderlineExtension`，不改变工具栏行为。
+- 新增前端静态测试，防止重复扩展配置回归。
+
+验证结果：
+
+- `node --test tests/frontend-ui.test.js`：通过，11 tests。
+- `npm.cmd run check`：通过，当前测试库 `noteCount=186`。
+- `npm.cmd run test`：通过，11 suites / 54 tests / 54 pass。
+- `npm.cmd run build`：通过，新前端产物为 `index-WZcMH9Av.js`。
+- `docker compose up -d --build`：通过，3300 已重建。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过。
+
+说明：控制台里的 Microsoft 图片 lazy-load Intervention 是浏览器提示，不是应用代码错误。本轮只修复 Tiptap duplicate extension warning。

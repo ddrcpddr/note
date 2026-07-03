@@ -40,6 +40,13 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes("['color', '文字色', Palette, toggleTextColor"));
   });
 
+  test('disables duplicated StarterKit link and underline extensions', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('StarterKit.configure({ heading: { levels: [2, 3] }, link: false, underline: false })'));
+    assert.ok(source.includes('UnderlineExtension'));
+    assert.ok(source.includes('LinkExtension.configure({ openOnClick: false, autolink: true, linkOnPaste: true })'));
+  });
   test('styles italic text inside both rich text display and editor surfaces', () => {
     const styles = readText('src/client/styles.css');
 

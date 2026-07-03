@@ -660,3 +660,57 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 1. 用户强制刷新 3300 页面后重新打开刚才截图记录。
 2. 检查图片是否只在正文富文本中出现，不再出现外部“附件（4）”区块。
 3. 若非图片附件也希望完全正文化，再做文件附件的富文本链接块展示。
+
+---
+
+测试时间：2026-07-03
+
+当前目标：修复浏览器控制台中的 Tiptap 重复扩展警告。
+
+## 复现步骤
+
+1. 打开 3300 页面。
+2. 打开浏览器 DevTools Console。
+3. 看到警告：`[tiptap warn]: Duplicate extension names found: ['link', 'underline']`。
+
+## 问题原因
+
+- `StarterKit` 已注册 `link` 和 `underline`。
+- 代码中又单独注册 `LinkExtension` 和 `UnderlineExtension`。
+- Tiptap 检测到同名扩展重复，输出警告。
+
+## 修复内容
+
+- 在 `StarterKit.configure()` 中关闭内置 `link` 和 `underline`。
+- 保留项目自定义的 Link / Underline 扩展，避免影响链接粘贴、自动链接、下划线按钮等现有功能。
+- 增加前端静态测试覆盖该配置。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker compose up -d --build
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+## 测试结果
+
+- 前端回归测试：通过，11 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，54 tests。
+- `npm.cmd run build`：通过。
+- Docker 3300 重建并 smoke 通过。
+- 3300 当前引用新 JS：`index-WZcMH9Av.js`。
+
+## 仍然存在的问题
+
+- Microsoft 图片 lazy-load Intervention 是浏览器提示，不是应用代码错误。
+
+## 下一步建议
+
+1. 强制刷新 3300 页面。
+2. 打开控制台确认 Tiptap duplicate extension warning 不再出现。
+3. 简单测试链接、下划线、粘贴链接仍可用。
