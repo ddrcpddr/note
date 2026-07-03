@@ -346,3 +346,18 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/20
 - `attachments.kind` / `source_attachment_id` / `source_path`：用于保留图片和附件来源关系。
 
 当前 sample、sandbox、formal import 脚本均已接入上述字段。重新正式导入前仍建议先 dry-run，并重点人工检查表格、待办、图片、附件、链接、颜色和高亮的恢复效果。
+## 2026-07-03 网页端 `.nsx` 选择与富文本导入约束
+
+当前导入页已接入真实 `.nsx` 文件选择控件，可以在手机 / 浏览器里点击选择导出文件并进入安全预检状态。网页端完整上传解析仍需后续接入现有 NSX 解析器；在这之前，页面不会写入正式数据库，也不会假装已解析真实正文。
+
+后续实现网页端真实导入时必须遵守：
+
+- `.nsx` 文件先上传或复制到 `data/imports/notestation/`，该目录继续由 `.gitignore` 保护。
+- 复用现有 NSX dry-run / formal import 解析链路，不重新硬猜格式。
+- 正式导入前继续自动备份数据库。
+- Note Station 原始 HTML / 富文本结构优先进入 `content_html` 和 `source_html`。
+- 如果可以稳定转换，生成对应 `content_json` 供富文本编辑器再次编辑。
+- 图片和附件复制到 `data/attachments/`，数据库只保存元数据、相对路径和正文引用。
+- 富文本正文中要尽量恢复图片、附件引用、链接、列表、待办、表格、颜色和高亮。
+- 不再开发独立的正文外附件上传入口；附件列表只作为下载、兼容和失败排查辅助。
+- 解析失败项必须记录原因，不得静默丢弃。

@@ -23,15 +23,15 @@ export function createNotestationDryRunPreview(payload = {}) {
         id: 'notestation-real-sample-required',
         originalTitle: fileName,
         originalPath: '',
-        errorMessage: '尚未提供真实 Note Station 导出样例；dry-run 只做预检，不会写入正式数据库。'
+        errorMessage: '网页端目前只完成 .nsx 文件选择与安全预检，尚未上传解析文件内容；不会写入正式数据库。'
       }
     ],
     requiredSampleInfo: [
-      '导出文件类型，例如 zip、json、html、md',
-      '是否包含附件',
-      '是否包含创建时间和更新时间',
-      '是否保留原始文件夹或路径',
-      '任选 3-5 条脱敏记录用于结构分析'
+      '接入网页端 .nsx 上传到 data/imports/notestation/',
+      '复用现有 NSX dry-run 解析器生成预览',
+      '正式导入前自动备份数据库',
+      '把 Note Station HTML、图片和附件映射到富文本正文内引用',
+      '保留失败项报告并禁止直接污染正式库'
     ]
   };
 }

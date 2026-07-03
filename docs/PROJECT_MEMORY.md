@@ -1135,3 +1135,17 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 修复内容：富文本编辑区和详情区的 `em/i` 改为 `display: inline-block` + `transform: skewX(-10deg)`，让中文斜体真实可见；新增 `toggleTextColor()`，当前选区已有固定文字色时再次点击会 `unsetColor()`。新增前端静态回归测试覆盖文字色可取消和斜体 transform。
 
 验证结果：`node --test tests/frontend-ui.test.js` 通过 5 项；`npm.cmd run check` 通过，SQLite `integrityCheck=ok`、`noteCount=114`；`npm.cmd run test` 通过 11 suites / 45 tests；`npm.cmd run build` 通过；Docker 3300 重建后 healthy，HTTP smoke 通过。Playwright 复测确认斜体元素 transform 为 `matrix(1, 0, -0.176327, 1, 0, 0)`；文字色第一次点击生成 color span，第二次点击移除 color span 并取消按钮选中。本轮不提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或真实隐私内容。
+## 2026-07-03 - 收口附件入口与 Note Station `.nsx` 文件选择
+
+用户确认富文本编辑器已经基本满足日常使用，因此旧的新建 / 编辑页独立附件上传渠道不再需要。后续图片和附件都应从富文本编辑器的“插入 -> 图片 / 附件”进入，正文和附件不再分成两套编辑入口。
+
+本轮修复：
+
+- 移除新建 / 编辑记录页旧的独立“附件”上传区、隐藏 input 和底部“保留原附件 / 存为模板”类辅助入口。
+- 保留富文本编辑器内部图片上传、粘贴图片和附件插入能力。
+- 新建记录不再自动写入假附件；只有用户通过富文本编辑器插入的图片 / 附件才会进入保存 payload。
+- 导入 Note Station 页面接入真实 `.nsx` 文件选择 input，点击页面按钮或底部主按钮会打开文件选择器，选择后显示文件名和大小。
+- 当前网页端 `.nsx` 选择后只进入安全预检 / dry-run 占位，不写正式数据库；完整网页上传解析仍需后续把现有 NSX 解析器接到页面。
+- 后续真实 `.nsx` 导入必须把 HTML、图片、附件引用尽量恢复到富文本正文，附件列表只作为下载和兼容展示，不再作为主要编辑入口。
+
+安全约束不变：不提交 `data/`、数据库、附件、备份、导出、`.nsx`、dry-run JSON、日志或真实隐私内容。

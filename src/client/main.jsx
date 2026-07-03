@@ -414,7 +414,7 @@ function App() {
             memberId: currentMember.id,
             noteType: draft.type,
             tags: draft.tags,
-            attachments: draft.attachments?.length ? draft.attachments : draft.hasAttachment ? [{ fileName: '家庭记录附件.jpg', originalName: '家庭记录附件.jpg' }] : []
+            attachments: draft.attachments?.length ? draft.attachments : []
           })
         });
 
@@ -452,12 +452,12 @@ function App() {
       time: '刚刚',
       member: currentMember.name,
       memberId: currentMember.id,
-      attachmentCount: draft.attachments?.length || (draft.hasAttachment ? 1 : 0),
+      attachmentCount: draft.attachments?.length || 0,
       status: '仅当前页面可见',
       source: '手动创建',
       createdAt: '今天 刚刚',
       updatedAt: '刚刚',
-      attachments: draft.attachments?.length ? draft.attachments : draft.hasAttachment ? [{ originalName: '家庭记录附件.jpg', fileName: '家庭记录附件.jpg' }] : []
+      attachments: draft.attachments?.length ? draft.attachments : []
     };
 
     setNotesData((current) => [note, ...current]);
@@ -838,14 +838,6 @@ function findCategoryForType(type) {
   return categories.find((item) => item.name === type) ?? categories[0];
 }
 
-function attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment) {
-  if (isEditing && attachmentFiles.length === 0) return `保留原附件，可继续添加（${initialNote?.attachmentCount || 0}）`;
-  if (attachmentFiles.length === 1) return attachmentFiles[0].name;
-  if (attachmentFiles.length > 1) return `已选择 ${attachmentFiles.length} 个附件`;
-  if (hasAttachment) return '已添加附件';
-  return '添加照片 / 文件';
-}
-
 function makeDraftRef(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -866,6 +858,14 @@ function fileToAttachmentPayload(file) {
     reader.onerror = () => reject(reader.error || new Error('attachment read failed'));
     reader.readAsDataURL(file);
   });
+}
+
+function formatBytes(size = 0) {
+  const bytes = Number(size || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
 function recordTypeForNote(note) {
@@ -1264,8 +1264,6 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   const [tags, setTags] = useState(initialTags);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTag, setNewTag] = useState('');
-  const [hasAttachment, setHasAttachment] = useState(Boolean(initialNote?.attachmentCount));
-  const [attachmentFiles, setAttachmentFiles] = useState([]);
   const [selectedMemberId, setSelectedMemberId] = useState(initialNote?.memberId || currentMemberId);
   const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
   const tagOptions = ['待办', '重要', '维修', '购物', '账单'];
@@ -1286,9 +1284,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
   async function save() {
     const originalType = initialNote ? recordTypeForNote(initialNote) : null;
     const preservedCategoryId = isEditing && type === originalType ? initialNote.categoryId : undefined;
-    const selectedAttachments = await Promise.all(attachmentFiles.map(fileToAttachmentPayload));
-    const attachments = [...selectedAttachments, ...inlineAttachments];
-    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, bodyJson, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, hasAttachment: hasAttachment || attachments.length > 0, attachments });
+    const attachments = inlineAttachments;
+    onSave({ id: initialNote?.id, title, body: bodyText, bodyHtml, bodyJson, type, categoryId: preservedCategoryId, memberId: currentMember.id, tags, attachments });
   }
 
   return (
@@ -1317,7 +1314,6 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
             }}
             onAttachmentDraft={(attachment) => {
               setInlineAttachments((current) => [...current, attachment]);
-              setHasAttachment(true);
             }}
           />
         </div>
@@ -1404,30 +1400,8 @@ function NewRecordScreen({ members, currentMemberId, onBack, onSave, mode = 'cre
           </button>
         )}
       </section>
-      <SectionTitle>附件</SectionTitle>
-      <input
-          className="hidden"
-          id="record-attachment-input"
-          multiple
-          type="file"
-          onChange={(event) => {
-            const files = Array.from(event.target.files || []);
-            setAttachmentFiles(files);
-            setHasAttachment(files.length > 0 || inlineAttachments.length > 0);
-          }}
-        />
-      <label className="soft-card flex min-h-[56px] w-full cursor-pointer items-center justify-between px-4 py-3 text-left" htmlFor="record-attachment-input">
-        <span className="inline-flex min-w-0 items-center gap-3 text-[13px] text-muted">
-          <Paperclip className="shrink-0 text-teal-600" size={20} />
-          <span className="min-w-0">{attachmentLabel(isEditing, initialNote, attachmentFiles, hasAttachment)}</span>
-        </span>
-        {hasAttachment ? <CheckCircle2 className="shrink-0 text-teal-600" /> : <ChevronRight className="shrink-0 text-muted" />}
-      </label>
-      <div className="bottom-action-bar flex h-[72px] items-center gap-3 px-4 py-3">
-        <button className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-[14px] font-medium text-teal-600" type="button">
-          <FileText size={22} /> {isEditing ? '保留原附件' : '存为模板'}
-        </button>
-        <button className="flex h-12 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float" type="button" onClick={save}>
+      <div className="bottom-action-bar flex h-[72px] items-center px-4 py-3">
+        <button className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float" type="button" onClick={save}>
           <Check size={24} /> {isEditing ? '保存修改' : '保存记录'}
         </button>
       </div>
@@ -1571,8 +1545,10 @@ function CategoriesScreen({ notes, onSelectCategory }) {
   );
 }
 function ImportScreen({ currentMemberId, onBack, onImported }) {
+  const nsxInputRef = useRef(null);
   const [stage, setStage] = useState(1);
   const [preview, setPreview] = useState(null);
+  const [selectedNsxFile, setSelectedNsxFile] = useState(null);
   const [error, setError] = useState('');
   const steps = [
     ['1', '选择文件'],
@@ -1581,14 +1557,37 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
     ['4', '导入完成']
   ];
   const canPreview = stage >= 2;
+  const canCommitPreview = Boolean(preview?.importId);
+  const displayFileName = canPreview ? preview?.fileName || 'Note Station 导入摘要' : selectedNsxFile?.name || '等待选择 .nsx 文件';
+  const displayFileMeta = selectedNsxFile ? formatBytes(selectedNsxFile.size) + ' · 网页端预检' : '先预览导入记录，再决定是否写入';
+
+  function handleNsxFileChange(event) {
+    const file = event.target.files?.[0];
+    setError('');
+    setPreview(null);
+    setStage(1);
+    setSelectedNsxFile(file || null);
+  }
+
+  function resetSelectedFile() {
+    setStage(1);
+    setPreview(null);
+    setSelectedNsxFile(null);
+    setError('');
+    if (nsxInputRef.current) nsxInputRef.current.value = '';
+  }
 
   async function createPreview() {
     setError('');
     try {
-      const response = await fetch('/api/imports/notestation/sample-preview', {
+      if (!selectedNsxFile) {
+        nsxInputRef.current?.click();
+        return;
+      }
+      const response = await fetch('/api/imports/notestation/dry-run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ memberId: currentMemberId })
+        body: JSON.stringify({ fileName: selectedNsxFile.name, fileType: selectedNsxFile.type || 'application/octet-stream', fileSize: selectedNsxFile.size, memberId: currentMemberId })
       });
       if (!response.ok) throw new Error('无法创建导入预览');
       const data = await response.json();
@@ -1624,6 +1623,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       return;
     }
     if (stage === 2) {
+      if (!canCommitPreview) return;
       setStage(3);
       return;
     }
@@ -1645,19 +1645,20 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </div>
         ))}
       </section>
+      <input ref={nsxInputRef} className="hidden" type="file" accept=".nsx" onChange={handleNsxFileChange} />
       <section className="soft-card mt-4 p-4">
         <div className="flex items-center gap-3">
           <div className="grid h-[60px] w-12 shrink-0 place-items-center rounded-xl bg-teal-600 text-[18px] font-bold text-white">
             ZIP
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[16px] font-bold leading-snug text-ink" style={{ overflowWrap: 'anywhere' }}>{canPreview ? preview?.fileName || 'Note Station 导入摘要' : '等待选择 .nsx 文件'}</h2>
-            <p className="mt-1 text-[12px] leading-relaxed text-muted">{canPreview ? '已完成 dry-run 预览' : '先预览导入记录，再决定是否写入'}</p>
+            <h2 className="text-[16px] font-bold leading-snug text-ink" style={{ overflowWrap: 'anywhere' }}>{displayFileName}</h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted">{canPreview ? '已完成 dry-run 预检' : displayFileMeta}</p>
           </div>
         </div>
-        <span className="mt-4 inline-flex items-center gap-2 text-[14px] font-medium text-teal-600">
-          {canPreview ? <><CheckCircle2 size={18} /> 已解析</> : <><Upload size={18} /> 选择 .nsx 文件</>}
-        </span>
+        <button className="mt-4 inline-flex items-center gap-2 text-[14px] font-medium text-teal-600" type="button" onClick={() => nsxInputRef.current?.click()}>
+          {canPreview ? <><CheckCircle2 size={18} /> 已预检</> : selectedNsxFile ? <><Upload size={18} /> 重新选择 .nsx 文件</> : <><Upload size={18} /> 选择 .nsx 文件</>}
+        </button>
       </section>
       {error && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[15px] text-amber-600">
@@ -1728,11 +1729,11 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
         </>
       )}
       <div className="bottom-action-bar grid h-[80px] grid-cols-2 gap-3 px-4 py-3">
-        <button className="rounded-2xl border border-teal-600 text-[14px] font-medium text-teal-600" type="button" onClick={() => { setStage(1); setPreview(null); }}>
-          {canPreview ? '重新选择文件' : '取消'}
+        <button className="rounded-2xl border border-teal-600 text-[14px] font-medium text-teal-600" type="button" onClick={canPreview || selectedNsxFile ? resetSelectedFile : onBack}>
+          {canPreview || selectedNsxFile ? '重新选择文件' : '取消'}
         </button>
-        <button className="rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float" type="button" onClick={handlePrimaryAction}>
-          {stage === 1 ? '预览导入记录' : stage === 2 ? '继续确认' : stage === 3 ? '开始导入' : '已完成'}
+        <button className="rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float disabled:bg-slate-300 disabled:shadow-none" type="button" onClick={handlePrimaryAction} disabled={canPreview && !canCommitPreview}>
+          {stage === 1 ? (selectedNsxFile ? '预览导入记录' : '选择 .nsx 文件') : stage === 2 ? (canCommitPreview ? '继续确认' : '等待网页解析接入') : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>
     </>

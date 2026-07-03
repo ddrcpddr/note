@@ -1,5 +1,60 @@
 测试时间：2026-07-03
 
+当前目标：收口富文本之后遗留的旧附件上传入口，并修复导入 Note Station 页无法点击选择 `.nsx` 文件的问题。本轮不改数据库结构、不修改真实 Note Station 导入数据、不提交任何运行数据。
+
+## 复现步骤
+
+1. 打开新建 / 编辑记录页。
+2. 检查正文下方是否仍有独立“附件 / 添加照片 / 文件”上传区。
+3. 打开导入 Note Station 页面。
+4. 点击文件卡和底部主按钮，检查是否存在真实 `.nsx` file input 绑定。
+
+## 问题原因
+
+- 富文本编辑器已经有图片上传、粘贴图片和附件插入能力，但新建 / 编辑页仍保留了旧的独立附件 input，造成两套入口并存。
+- 导入页此前主要是静态视觉按钮，没有把页面按钮和 `.nsx` 文件选择 input 绑定起来。
+
+## 修复内容
+
+- 移除新建 / 编辑页旧的独立附件上传区，保留富文本编辑器内部图片 / 附件插入。
+- 新建记录不再自动生成假附件，保存时只提交富文本编辑器产生的 inline attachments。
+- 导入页新增隐藏 `.nsx` 文件 input，文件卡按钮和底部主按钮都能触发选择文件。
+- 选择文件后显示文件名和文件大小；当前网页端完整 NSX 上传解析尚未接入时，只进入安全预检，不写正式数据库。
+- 更新 Note Station 导入文档：后续真实导入必须把 HTML、图片和附件引用恢复到富文本正文中，不再恢复独立附件上传入口。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker compose up -d --build
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+## 测试结果
+
+- `node --test tests/frontend-ui.test.js`：通过，7 项测试通过。
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=115`。
+- `npm.cmd run test`：通过，11 suites / 47 tests / 47 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap bundle size warning。
+- `docker compose up -d --build`：通过，3300 容器 healthy。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，health、app-data、notes-list、note-detail、search、category-filter、member-filter、backup、JSON export、frontend shell 均为 ok。
+
+## 仍然存在的问题
+
+- 网页端 `.nsx` 完整上传解析还没有接入；现有真实解析能力仍主要在服务端脚本链路中。
+- 真实 `.nsx` 重新导入后，图片、附件和富文本正文的一体化恢复仍需下一阶段专项实现和人工验收。
+
+## 下一步建议
+
+- 用户可先验证：新建 / 编辑页是否只剩富文本编辑器里的图片 / 附件入口；导入页点击“选择 .nsx 文件”是否能打开文件选择器。
+- 下一阶段如继续导入功能，应接入网页端 `.nsx` 上传到 `data/imports/notestation/`，并复用现有 NSX dry-run / formal import 解析器。
+
+---
+测试时间：2026-07-03
+
 当前目标：继续修复富文本编辑器两个真实反馈：斜体选中后文字视觉上不明显；“更多”里的文字色按钮无法再次点击取消。本轮不改数据库结构、不改导入逻辑、不新增功能，只修富文本编辑交互。
 
 ## 复现步骤

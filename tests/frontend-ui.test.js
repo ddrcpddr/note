@@ -48,6 +48,29 @@ describe('Frontend mobile interactions', () => {
     assert.ok(styles.includes('transform: skewX(-10deg);'));
   });
 
+  test('keeps attachment upload inside the rich text editor only', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes("['attach', '附件', Paperclip, () => attachmentInputRef.current?.click()]"));
+    assert.ok(source.includes('ref={attachmentInputRef}'));
+    assert.ok(!source.includes('record-attachment-input'));
+    assert.ok(!source.includes('function attachmentLabel('));
+    assert.ok(!source.includes('setAttachmentFiles'));
+  });
+
+  test('wires Note Station import page to a real nsx file picker', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('const nsxInputRef = useRef(null)'));
+    assert.ok(source.includes('accept=".nsx"'));
+    assert.ok(source.includes('onChange={handleNsxFileChange}'));
+    assert.ok(source.includes("nsxInputRef.current?.click()"));
+    assert.ok(source.includes('selectedNsxFile?.name'));
+    assert.ok(source.includes('disabled={canPreview && !canCommitPreview}'));
+    assert.ok(source.includes('等待网页解析接入'));
+    assert.ok(source.includes("/api/imports/notestation/dry-run"));
+  });
+
   test('wires the home today card to the new-record screen', () => {
     const source = readText('src/client/main.jsx');
 
