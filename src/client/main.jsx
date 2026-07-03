@@ -1757,6 +1757,12 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
   const hasRichContent = hasSafeRichContent(note);
   const [contentMode, setContentMode] = useState(hasRichContent ? 'rich' : 'plain');
   const showRichContent = hasRichContent && contentMode === 'rich';
+  const visibleAttachments = (note.attachments || []).filter((attachment) => {
+    if (typeof attachment === 'string') return true;
+    const richHtml = note.richContent?.html || '';
+    const isReferencedInRichText = attachment.id && richHtml.includes(`data-attachment-id="${attachment.id}"`);
+    return !attachment.isInline && !isReferencedInRichText;
+  });
 
   useEffect(() => {
     setContentMode(hasRichContent ? 'rich' : 'plain');
@@ -1818,10 +1824,11 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
         </div>
         {showRichContent ? <RichTextContent html={note.richContent.html} /> : <p className="mt-4 whitespace-pre-line text-[18px] leading-[1.8]">{note.content}</p>}
       </section>
-      <section className="soft-card mt-4 p-5">
-        <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Paperclip size={23} /> 附件（{note.attachments.length}）</h2>
-        <div className="mt-4 space-y-3">
-          {note.attachments.map((attachment, index) => {
+      {visibleAttachments.length > 0 && (
+        <section className="soft-card mt-4 p-5">
+          <h2 className="flex items-center gap-3 text-[20px] font-bold text-teal-600"><Paperclip size={23} /> 附件（{visibleAttachments.length}）</h2>
+          <div className="mt-4 space-y-3">
+            {visibleAttachments.map((attachment, index) => {
             const item = typeof attachment === 'string' ? { originalName: attachment, fileName: attachment } : attachment;
             const name = item.originalName || item.fileName || '附件';
             const isImage = String(item.mimeType || '').startsWith('image/') || item.kind === 'image';
@@ -1838,9 +1845,10 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
               </div>
             );
             return item.downloadUrl ? <a href={item.downloadUrl} key={item.id || name || index} target="_blank" rel="noreferrer">{row}</a> : row;
-          })}
-        </div>
-      </section>
+            })}
+          </div>
+        </section>
+      )}
       <section className="soft-card mt-4 p-5">
         <h2 className="text-[20px] font-bold text-teal-600">关联记录</h2>
         <RelatedRow title="去年卫生间防水维修" meta="维修 · 已完成" />

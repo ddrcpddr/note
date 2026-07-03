@@ -84,4 +84,15 @@ describe('Frontend mobile interactions', () => {
     assert.match(source, /<button[\s\S]*aria-label="快速记录"[\s\S]*onClick=\{onCreateNote\}/);
     assert.doesNotMatch(source, /function TodayCard\(\) \{[\s\S]*<section className="soft-card mt-4/);
   });
+
+  test('hides rich text inline attachments from the separate detail attachment list', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('const visibleAttachments = (note.attachments || []).filter'));
+    assert.ok(source.includes('return !attachment.isInline && !isReferencedInRichText'));
+    assert.ok(source.includes('isReferencedInRichText'));
+    assert.ok(source.includes('{visibleAttachments.length > 0 && ('));
+    assert.ok(source.includes('附件（{visibleAttachments.length}）'));
+    assert.ok(source.includes('visibleAttachments.map((attachment, index)'));
+  });
 });

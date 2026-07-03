@@ -435,3 +435,59 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 1. 用户在 3300 页面重新选择真实 `.nsx`，确认预览数量是否与本次 dry-run 一致。
 2. 如果预览合理，再点击确认导入，检查首页、搜索、详情页富文本和附件引用。
 3. 若导入效果可接受，再决定是否再次清空测试库并做最终重新导入。
+
+---
+
+测试时间：2026-07-03
+
+当前目标：修复 Note Station 导入记录仍按“正文 + 附件列表”旧格式展示的问题，让导入图片尽量在富文本正文中直接显示。
+
+## 复现步骤
+
+1. 打开一条从 Note Station `.nsx` 导入、带图片附件的记录详情。
+2. 正文区域只显示文字内容。
+3. 图片都落在下方“附件（N）”列表中，表现为旧的正文外附件格式。
+
+## 问题原因
+
+- Note Station 导出的图片不是直接使用真实图片地址，而是 `<img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="...">`。
+- `ref` 是 base64 编码后的原始图片文件名线索。
+- 旧导入链路只把附件复制到 `data/attachments/` 并写入附件元数据，没有把 `ref` 解码后替换成 `/api/attachments/{id}/file`。
+- 富文本 sanitizer 会移除不能安全识别的 `transparent.gif` 图片，因此最终详情页只能看到正文外附件列表。
+
+## 修复内容
+
+- Note Station 确认导入时，先复制附件并生成附件 ID，再把原始 HTML 中的 `<img ref="...">` 替换为本地安全图片地址。
+- 被正文引用的图片附件标记为 `is_inline=1`。
+- 对已经导入过的测试数据增加读取时兼容：如果 `source_html` 中仍有 Note Station 图片 ref，API 会用附件元数据动态回填富文本图片地址。
+- 详情页附件列表过滤正文内联附件，避免图片在正文里显示一次、下方附件列表再显示一次。
+- 新增测试覆盖：NSX web import 图片内联、旧导入 source_html 图片回填、详情页隐藏内联附件。
+
+## 运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker compose up -d --build
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
+```
+
+## 测试结果
+
+- `npm.cmd run check`：通过，`integrityCheck=ok`，`categoryCount=11`，`noteCount=96`。
+- `npm.cmd run test`：通过，11 suites / 50 tests / 50 pass。
+- `npm.cmd run build`：通过，仍有 Tiptap bundle size warning。
+- Docker 3300 重建后启动成功。
+- `npm.cmd run smoke -- --base-url http://127.0.0.1:3300`：通过，Docker 服务 healthy，当前导入记录数 93。
+- 当前 Docker 数据中一条带 8 个图片附件的 Note Station 导入记录验证结果：`inlineCount=8`、`hasRichImage=true`、正文外可见附件数为 0。
+
+## 仍然存在的问题
+
+- 复杂 Note Station HTML 到 Tiptap JSON 的完全可编辑转换仍需继续增强；当前优先保证安全展示和图片内联查看。
+- 非图片附件仍保留在附件列表中，用于下载和兼容展示。
+
+## 下一步建议
+
+1. 用户刷新 3300 页面，打开刚才截图里的 Note Station 导入记录，确认图片是否直接出现在正文里。
+2. 如果某些记录仍显示正文外图片附件，记录该条的现象，再继续补对应的 NSX HTML 变体。

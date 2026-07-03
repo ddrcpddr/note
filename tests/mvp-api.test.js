@@ -83,6 +83,8 @@ function createWebImportNsxFixture() {
   const notebookId = 'WEB_NOTEBOOK_1';
   const noteId = 'WEB_NOTE_1';
   const attachmentHash = 'abcdef1234567890';
+  const attachmentName = 'ns_attach_image_1.png';
+  const imageRef = Buffer.from(`1700000000000${attachmentName}`).toString('base64');
   return createStoredZip([
     { name: 'config.json', data: JSON.stringify({ note: [noteId], notebook: [notebookId], todo: [] }) },
     { name: notebookId, data: JSON.stringify({ title: '网页导入测试', stack: '' }) },
@@ -91,17 +93,17 @@ function createWebImportNsxFixture() {
       data: JSON.stringify({
         title: '网页 NSX 富文本记录',
         brief: '网页端上传解析摘要',
-        content: '<div><strong>网页端上传解析正文</strong><ul><li>能进入富文本</li></ul></div>',
+        content: `<div><strong>网页端上传解析正文</strong><ul><li>能进入富文本</li></ul><p><img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="${imageRef}" width="320"></p></div>`,
         ctime: '2026-07-03T08:00:00Z',
         mtime: '2026-07-03T08:30:00Z',
         parent_id: notebookId,
         tag: ['网页导入'],
         attachment: {
-          first: { md5: attachmentHash, name: 'web-import.txt', size: 5, type: 'text', ext: 'txt' }
+          first: { md5: attachmentHash, name: attachmentName, size: 7, type: 'image', ext: 'png' }
         }
       })
     },
-    { name: 'file_' + attachmentHash, data: Buffer.from('hello') }
+    { name: 'file_' + attachmentHash, data: Buffer.from('pngdata') }
   ]);
 }
 
@@ -741,6 +743,12 @@ describe('MVP API', () => {
     assert.equal(committed.notes.length, 1);
     assert.equal(committed.notes[0].sourceType, 'notestation_import');
     assert.equal(committed.notes[0].attachments.length, 1);
+
+    const detail = await requestJson(`/api/notes?id=${encodeURIComponent(committed.importedNoteIds[0])}`);
+    assert.equal(detail.notes[0].attachments.length, 1);
+    assert.equal(detail.notes[0].attachments[0].isInline, true);
+    assert.match(detail.notes[0].richContent.html, /<img[^>]+\/api\/attachments\//);
+    assert.match(detail.notes[0].richContent.html, /data-attachment-id=/);
 
     const search = await requestJson(`/api/notes?search=${encodeURIComponent('网页端上传解析正文')}`);
     assert.ok(search.notes.some((note) => committed.importedNoteIds.includes(note.id)));

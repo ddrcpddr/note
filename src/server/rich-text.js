@@ -85,20 +85,69 @@ export function buildRichContentFromMetadata(rawMetadataValue) {
   return buildRichContent(originalContent, 'raw_metadata.originalContent');
 }
 
-export function buildRichContentFromNote(row = {}) {
+export function buildRichContentFromNote(row = {}, attachments = []) {
   const userHtml = String(row.contentHtml || row.content_html || '').trim();
+  const sourceHtml = String(row.sourceHtml || row.source_html || '').trim();
+  const sourceType = String(row.sourceType || row.source_type || '').trim();
+  const sourceWithAttachments = sourceHtml && sourceType === 'notestation_import'
+    ? inlineNsxImageRefsFromAttachments(sourceHtml, attachments)
+    : '';
+
+  if (sourceWithAttachments && hasInlineAttachmentImage(sourceWithAttachments) && !hasInlineAttachmentImage(userHtml)) {
+    const richContent = buildRichContent(sourceWithAttachments, 'source_html');
+    if (richContent) return richContent;
+  }
+
   if (userHtml) {
     const richContent = buildRichContent(userHtml, 'content_html');
     if (richContent) return richContent;
   }
 
-  const sourceHtml = String(row.sourceHtml || row.source_html || '').trim();
   if (sourceHtml) {
-    const richContent = buildRichContent(sourceHtml, 'source_html');
+    const richContent = buildRichContent(sourceWithAttachments || sourceHtml, 'source_html');
     if (richContent) return richContent;
   }
 
   return buildRichContentFromMetadata(row.rawMetadata || row.raw_metadata);
+}
+
+function inlineNsxImageRefsFromAttachments(html, attachments = []) {
+  if (!html || !attachments.length) return html;
+  const imageAttachments = attachments.filter((attachment) => {
+    const mimeType = String(attachment.mimeType || attachment.mime_type || '').toLowerCase();
+    return mimeType.startsWith('image/') || attachment.kind === 'image';
+  });
+  if (!imageAttachments.length) return html;
+
+  return String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+    const decodedRef = decodeBase64Text(extractAttribute(attrs, 'ref'));
+    const attachment = imageAttachments.find((item) => decodedRef.endsWith(String(item.originalName || item.original_name || item.fileName || item.file_name || '')));
+    if (!attachment) return match;
+    const attachmentId = attachment.id;
+    if (!attachmentId) return match;
+    const originalName = attachment.originalName || attachment.original_name || attachment.fileName || attachment.file_name || '图片';
+    const width = extractAttribute(attrs, 'width');
+    const height = extractAttribute(attrs, 'height');
+    const sizeAttrs = [
+      /^\d{1,5}$/.test(width) ? ` width="${width}"` : '',
+      /^\d{1,5}$/.test(height) ? ` height="${height}"` : ''
+    ].join('');
+    return `<img src="/api/attachments/${escapeAttribute(attachmentId)}/file" alt="${escapeAttribute(originalName)}" data-attachment-id="${escapeAttribute(attachmentId)}"${sizeAttrs}>`;
+  });
+}
+
+function hasInlineAttachmentImage(html) {
+  return /<img\b[^>]+\/api\/attachments\//i.test(String(html || ''));
+}
+
+
+function decodeBase64Text(value) {
+  if (!value) return '';
+  try {
+    return Buffer.from(String(value), 'base64').toString('utf8');
+  } catch {
+    return '';
+  }
 }
 
 function buildRichContent(htmlValue, source) {

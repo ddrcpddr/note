@@ -366,7 +366,7 @@ export function listNotes(query = {}) {
     .all(...params)
     .map((row) => {
       const tags = JSON.parse(row.tags || '[]');
-      const attachments = JSON.parse(row.attachments || '[]').map((attachment) => ({
+      let attachments = JSON.parse(row.attachments || '[]').map((attachment) => ({
         ...attachment,
         isInline: Boolean(attachment.isInline)
       }));
@@ -380,8 +380,15 @@ export function listNotes(query = {}) {
       delete note.rawMetadata;
 
       if (includeRichText) {
-        const richContent = buildRichContentFromNote(row);
-        if (richContent) note.richContent = richContent;
+        const richContent = buildRichContentFromNote(row, attachments);
+        if (richContent) {
+          note.richContent = richContent;
+          attachments = attachments.map((attachment) => ({
+            ...attachment,
+            isInline: attachment.isInline || richContent.html.includes(`data-attachment-id="${attachment.id}"`)
+          }));
+          note.attachments = attachments;
+        }
       } else {
         delete note.contentJson;
         delete note.sourceHtml;

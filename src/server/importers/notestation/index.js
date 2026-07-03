@@ -343,7 +343,7 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
     INSERT INTO attachments
       (id, note_id, file_name, original_name, mime_type, file_size, storage_path, source_type, kind, source_attachment_id, source_path, sort_order, is_inline)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, 0)
+      (?, ?, ?, ?, ?, ?, ?, 'notestation_import', ?, ?, ?, ?, ?)
   `);
 
   db.exec('BEGIN');
@@ -371,9 +371,46 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
         importSource: 'notestation_import'
       };
       const originalHtml = rawMetadata.originalContentFormat === 'html' ? String(rawMetadata.originalContent || '') : '';
+      const preparedAttachments = [];
+
+      for (const [index, attachment] of (record.attachments || []).entries()) {
+        const attachmentResult = copyNsxAttachment(batch.file_path, paths, batch.id, noteId, attachment, index);
+        const preparedAttachment = {
+          id: createId('attachment'),
+          sourceAttachmentId: attachment.id || attachment.fileName || null,
+          sourcePath: attachment.id || attachment.fileName || null,
+          index,
+          isInline: false,
+          result: attachmentResult
+        };
+        preparedAttachments.push(preparedAttachment);
+
+        if (attachmentResult.error) {
+          attachmentStats.failed += 1;
+          const failure = {
+            originalTitle: record.title,
+            originalPath: record.originalPath,
+            attachment: attachment.fileName || attachment.id,
+            errorMessage: attachmentResult.error
+          };
+          attachmentFailures.push(failure);
+          insertFailure.run(
+            createId('import_failure'),
+            batch.id,
+            record.title,
+            record.originalPath,
+            `附件导入失败：${attachmentResult.error}`,
+            JSON.stringify(failure)
+          );
+        } else {
+          attachmentStats.copied += 1;
+        }
+      }
+
+      const contentHtml = inlineNsxImageRefs(originalHtml, preparedAttachments);
       const richText = prepareStoredRichText({
         content: record.content || record.summary || record.title,
-        contentHtml: originalHtml,
+        contentHtml,
         sourceHtml: originalHtml
       });
 
@@ -405,41 +442,20 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
         insertNoteTag.run(noteId, tagId);
       }
 
-      for (const [index, attachment] of (record.attachments || []).entries()) {
-        const attachmentResult = copyNsxAttachment(batch.file_path, paths, batch.id, noteId, attachment, index);
-        if (attachmentResult.error) {
-          attachmentStats.failed += 1;
-          const failure = {
-            originalTitle: record.title,
-            originalPath: record.originalPath,
-            attachment: attachment.fileName || attachment.id,
-            errorMessage: attachmentResult.error
-          };
-          attachmentFailures.push(failure);
-          insertFailure.run(
-            createId('import_failure'),
-            batch.id,
-            record.title,
-            record.originalPath,
-            `附件导入失败：${attachmentResult.error}`,
-            JSON.stringify(failure)
-          );
-        } else {
-          attachmentStats.copied += 1;
-        }
-
+      for (const attachment of preparedAttachments) {
         insertAttachment.run(
-          createId('attachment'),
+          attachment.id,
           noteId,
-          attachmentResult.fileName,
-          attachmentResult.originalName,
-          attachmentResult.mimeType,
-          attachmentResult.fileSize,
-          attachmentResult.storagePath,
-          attachmentResult.mimeType?.startsWith('image/') ? 'image' : 'file',
-          attachment.id || attachment.fileName || null,
-          attachment.id || attachment.fileName || null,
-          index
+          attachment.result.fileName,
+          attachment.result.originalName,
+          attachment.result.mimeType,
+          attachment.result.fileSize,
+          attachment.result.storagePath,
+          attachment.result.mimeType?.startsWith('image/') ? 'image' : 'file',
+          attachment.sourceAttachmentId,
+          attachment.sourcePath,
+          attachment.index,
+          attachment.isInline ? 1 : 0
         );
       }
     }
@@ -463,6 +479,54 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
     error.message = `${error.message}。本次导入已回滚，可用备份恢复：${backupPath}`;
     throw error;
   }
+}
+
+function inlineNsxImageRefs(html, attachments) {
+  if (!html || !attachments.length) return html;
+  const byOriginalName = new Map();
+  for (const attachment of attachments) {
+    if (attachment.result.error || !attachment.result.mimeType?.startsWith('image/')) continue;
+    byOriginalName.set(attachment.result.originalName, attachment);
+  }
+
+  return String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
+    const ref = extractAttribute(attrs, 'ref');
+    const decodedRef = decodeBase64Text(ref);
+    const attachment = [...byOriginalName.entries()].find(([name]) => decodedRef.endsWith(name))?.[1];
+    if (!attachment) return match;
+
+    attachment.isInline = true;
+    const width = extractAttribute(attrs, 'width');
+    const height = extractAttribute(attrs, 'height');
+    const sizeAttrs = [
+      /^\d{1,5}$/.test(width) ? ` width="${width}"` : '',
+      /^\d{1,5}$/.test(height) ? ` height="${height}"` : ''
+    ].join('');
+    return `<img src="/api/attachments/${attachment.id}/file" alt="${escapeAttribute(attachment.result.originalName)}" data-attachment-id="${attachment.id}"${sizeAttrs}>`;
+  });
+}
+
+function extractAttribute(attrs, name) {
+  const pattern = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>]+))`, 'i');
+  const match = String(attrs || '').match(pattern);
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? '';
+}
+
+function decodeBase64Text(value) {
+  if (!value) return '';
+  try {
+    return Buffer.from(String(value), 'base64').toString('utf8');
+  } catch {
+    return '';
+  }
+}
+
+function escapeAttribute(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function backupDatabase(paths) {

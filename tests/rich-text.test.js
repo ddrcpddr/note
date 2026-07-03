@@ -165,6 +165,24 @@ describe('Safe rich text read-only rendering', () => {
     assert.doesNotMatch(richContent.html, /Note Station 原文/);
   });
 
+  test('backfills Note Station image refs from copied attachment metadata', () => {
+    const imageName = 'ns_attach_image_1.png';
+    const imageRef = Buffer.from(`1700000000000${imageName}`).toString('base64');
+    const richContent = buildRichContentFromNote(
+      {
+        sourceType: 'notestation_import',
+        contentHtml: '<p>带图片的正文</p>',
+        sourceHtml: `<p>带图片的正文</p><p><img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="${imageRef}" width="320"></p>`
+      },
+      [{ id: 'attachment_inline_1', originalName: imageName, mimeType: 'image/png', kind: 'image' }]
+    );
+
+    assert.equal(richContent.source, 'source_html');
+    assert.match(richContent.html, /<img[^>]+\/api\/attachments\/attachment_inline_1\/file/);
+    assert.match(richContent.html, /data-attachment-id="attachment_inline_1"/);
+    assert.doesNotMatch(richContent.html, /transparent.gif/);
+  });
+
   test('converts plain text into safe editor html', () => {
     assert.equal(
       plainTextToRichTextHtml('第一行\n\n<script>坏</script> 第二段'),

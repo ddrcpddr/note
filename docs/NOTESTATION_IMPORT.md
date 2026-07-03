@@ -391,3 +391,21 @@ node src/server/scripts/notestation-formal-import.js data/imports/notestation/ex
 - 解析失败项必须记录原因，不得静默丢弃。
 
 当前测试数据可以清空；用户后续会在功能稳定后重新导入 `.nsx`。不要删除原始 `.nsx`，不要提交上传副本、数据库、附件、备份、导出或任何真实笔记内容。
+
+## 2026-07-03 Note Station 图片内联展示修正
+
+Note Station 导出的图片可能表现为：
+
+```html
+<img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="...">
+```
+
+其中 `ref` 是 base64 编码后的图片文件名线索。当前导入链路已支持：
+
+- 解码 `ref` 并匹配已复制的图片附件。
+- 将图片标签替换为安全的本地附件 URL：`/api/attachments/{id}/file`。
+- 将正文内引用的图片附件标记为 `is_inline=1`。
+- 详情页优先在富文本正文中展示这些图片，不再把正文内图片重复列到下方附件列表。
+- 对旧测试导入数据，API 读取时也会从 `source_html` 和附件元数据动态回填图片引用。
+
+非图片附件仍保留在附件列表中，作为下载和兼容展示。
