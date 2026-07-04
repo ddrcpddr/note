@@ -189,3 +189,21 @@ Android / WebView / TWA 继续排最后。进入前需要确认：
 3. 再下一步处理冲突标记：服务端记录和本地 dirty 记录同时变化时，不自动覆盖，提示用户选择。
 4. Android 后续可考虑把前端静态资源打进 APK，让首次冷启动也不依赖服务器前端壳。
 5. 最后再考虑 Android 原生 SQLite / Room；当前优先保持 WebView 和浏览器共用同一套离线能力。
+
+## 2026-07-04 镜像 / APK 交付前必跑检查
+
+后续继续开发前，交付 Docker 镜像或 APK 必须先跑：
+
+1. 
+pm.cmd run check
+2. 
+pm.cmd run test
+3. 
+pm.cmd run build
+4. 本机 Docker 或 GHCR 镜像启动后执行写入版 smoke：
+pm.cmd run smoke -- --base-url http://127.0.0.1:3300
+5. 确认 smoke 中包含 create-note、created-note-detail、
+otestation-web-import 三项。
+6. Android APK 如涉及导入，必须验证 WebView 文件选择器能打开 .nsx。
+
+当前建议下一步：重新构建本地 Docker 与 APK，先在用户手机和浏览器确认保存笔记、富文本附件、.nsx 选择和导入，再考虑继续长期离线增强。

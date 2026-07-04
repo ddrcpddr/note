@@ -23,6 +23,10 @@ app.get('/api/health', (_request, response) => {
   response.json({
     ok: true,
     name: 'note',
+    build: {
+      commit: process.env.NOTE_BUILD_COMMIT || 'local',
+      buildTime: process.env.NOTE_BUILD_TIME || 'local'
+    },
     dbPath: getDbPath(),
     dataPaths: getDataPaths()
   });

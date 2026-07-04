@@ -946,3 +946,53 @@ npm.cmd run build
 - `npm.cmd run test` 通过，62 个测试全部通过。
 - `npm.cmd run build` 通过，只有 Vite chunk-size warning。
 - `npm.cmd run android:build` 通过，APK 签名校验通过。
+
+## 2026-07-04 - 发布镜像 / APK 关键入口补救验收
+
+测试时间：2026-07-04 17:49:57
+
+### 用户反馈
+
+- 本地 Docker http://192.168.110.98:3300/ 功能正常。
+- 用户部署/使用发布到 GitHub 的 Docker 镜像时，浏览器端不能正常导入 .nsx，并反馈新建笔记不能保存。
+- 基础 Android APK 中无法选择 .nsx 文件。
+
+### 复现与定位
+
+- 本地工作区 main...origin/main 干净，当前最新提交为 ca5e1b4 Add GHCR image deployment for NAS。
+- 拉取并运行 ghcr.io/ddrcpddr/note:latest 临时容器，digest：sha256:323fb57d799d083c4034eec37e8af36a077f32fd9535d7c79276c6bd5a4adcaa。
+- 临时容器 127.0.0.1:3311 上手工 HTTP 验证：
+  - health 通过；
+  - 新建富文本记录保存成功；
+  - 详情读取成功；
+  - .nsx dry-run 解析成功；
+  - .nsx commit 成功；
+  - 导入记录富文本 HTML 中出现 2 个 /api/attachments/ 内联引用。
+- Android 源码确认未实现 WebChromeClient.onShowFileChooser，这是 APK 无法选择 .nsx 的直接原因。
+
+### 修复内容
+
+- Android WebView 接入文件选择器：ACTION_OPEN_DOCUMENT、onShowFileChooser、onActivityResult。
+- health 接口增加 build 信息，便于确认 NAS 上实际运行版本。
+- Dockerfile / GHCR workflow 增加 build args：commit 和 build time。
+- HTTP smoke 增加真实写入与 Note Station web import 检查，不再只测 health/list/export。
+
+### 已运行命令
+
+- 
+pm.cmd run test -- tests/android-wrapper.test.js
+- 
+pm.cmd run test -- tests/http-smoke.test.js tests/ghcr-deployment.test.js
+- 手工 GHCR 临时容器 HTTP 验证脚本：保存新笔记 + .nsx dry-run + commit + 富文本内联附件检查。
+
+### 结果
+
+- Android wrapper 测试通过。
+- HTTP smoke / GHCR 相关测试通过。
+- GHCR latest 在本机全新容器下保存和导入均通过。
+
+### 仍需人工确认
+
+- NAS 上是否已经重新拉取最新 GHCR 镜像并重建容器。
+- 浏览器或 APK 是否仍缓存旧前端；必要时清站点数据或卸载重装 APK。
+- 新 APK 重新打包后，在手机端实际选择 .nsx 文件。

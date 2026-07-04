@@ -184,3 +184,40 @@ imports/notestation/
 - 不要提交数据库、附件、备份、导出、`.nsx`。
 - 不要把真实 NAS 地址、账号、密码、token 写进 Git。
 - 如果手机访问不了，检查 NAS 防火墙是否放行 TCP `3300`。
+
+## 8. 确认 NAS 实际运行的是最新镜像
+
+后续镜像会在 `/api/health` 中返回 build 信息：
+
+```text
+http://你的NAS-IP:3300/api/health
+```
+
+重点查看：
+
+```json
+{
+  "build": {
+    "commit": "GitHub commit sha",
+    "buildTime": "GitHub Actions run id"
+  }
+}
+```
+
+如果页面功能和本地 Docker 表现不一致，优先检查：
+
+1. NAS 是否重新拉取了 `ghcr.io/ddrcpddr/note:latest`。
+2. 容器是否删除旧容器后重新创建，而不是继续跑旧镜像。
+3. NAS 挂载目录 `/data` 是否可写。
+4. 手机浏览器 / WebView 是否缓存了旧前端；可以清站点数据或重新安装 APK 后再测。
+5. 用写入版 smoke 验证测试环境：
+
+```powershell
+npm.cmd run smoke -- --base-url http://你的NAS-IP:3300
+```
+
+注意：写入版 smoke 会创建一条测试记录、一次测试导入、备份和 JSON 导出。真实家庭数据环境如不想写测试数据，可使用：
+
+```powershell
+npm.cmd run smoke -- --base-url http://你的NAS-IP:3300 --read-only
+```

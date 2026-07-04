@@ -74,3 +74,14 @@ Android APK 仍然是 WebView 壳，但前端已经开始转向 IndexedDB 本地
 - 新建和编辑会先写入手机本地，恢复连接后再同步到 NAS。
 
 注意：当前不是 Android 原生 SQLite / Room 应用。长期离线能力优先放在 WebView 可复用的 IndexedDB 层，后续如需完全不依赖首次加载服务端前端壳，可以再评估把前端静态资源打进 APK。
+
+## 2026-07-04 文件选择器补充
+
+已补上 Android WebView 文件选择器能力：
+
+- 使用 `WebChromeClient.onShowFileChooser` 接管网页 `<input type=file>`。
+- 使用 `Intent.ACTION_OPEN_DOCUMENT` 打开系统文件选择器。
+- 支持 `.nsx`、图片和普通附件选择。
+- 使用 `onActivityResult` 把选择结果回传给 WebView。
+
+这一步是 Note Station 导入在 APK 内可用的前提。后续重新打包 APK 后，需要在手机上人工验证：导入页点击选择 `.nsx` 是否能打开系统文件选择器，并能完成 dry-run 预览。

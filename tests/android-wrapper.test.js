@@ -36,6 +36,13 @@ describe('Android WebView wrapper', () => {
     assert.ok(activity.includes('保存并打开'));
     assert.ok(activity.includes('修改服务器地址'));
     assert.ok(activity.includes('http://192.168.1.100:3300'));
+
+    assert.ok(activity.includes('WebChromeClient'));
+    assert.ok(activity.includes('onShowFileChooser'));
+    assert.ok(activity.includes('ValueCallback<Uri[]>'));
+    assert.ok(activity.includes('ACTION_OPEN_DOCUMENT'));
+    assert.ok(activity.includes('FILE_CHOOSER_REQUEST_CODE'));
+    assert.ok(activity.includes('onActivityResult'));
     assert.ok(buildScript.includes('aapt2'));
     assert.ok(buildScript.includes('d8'));
     assert.ok(buildScript.includes('zipalign'));

@@ -23,6 +23,9 @@ describe('GHCR image deployment', () => {
     assert.ok(workflow.includes('push: true'));
     assert.ok(workflow.includes('ghcr.io/${{ github.repository }}:latest'));
     assert.ok(workflow.includes('ghcr.io/${{ github.repository }}:${{ github.sha }}'));
+    assert.ok(workflow.includes('build-args:'));
+    assert.ok(workflow.includes('GIT_COMMIT=${{ github.sha }}'));
+    assert.ok(workflow.includes('BUILD_TIME=${{ github.run_id }}'));
     assert.ok(workflow.includes('packages: write'));
     assert.ok(workflow.includes('workflow_dispatch:'));
   });
@@ -38,6 +41,10 @@ describe('GHCR image deployment', () => {
     assert.ok(compose.includes('NOTE_DATA_DIR: "/data"'));
     assert.ok(compose.includes('/volume1/docker/home-note/data:/data'));
     assert.ok(compose.includes('NOTE_ACCESS_PIN: "${NOTE_ACCESS_PIN:-}"'));
+
+    const dockerfile = readText('Dockerfile');
+    assert.ok(dockerfile.includes('ARG GIT_COMMIT=local'));
+    assert.ok(dockerfile.includes('ENV NOTE_BUILD_COMMIT=$GIT_COMMIT'));
   });
 
   test('documents QNAP and Synology image deployment without storing secrets or real NAS credentials', () => {

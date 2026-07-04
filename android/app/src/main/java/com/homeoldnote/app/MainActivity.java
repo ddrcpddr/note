@@ -2,6 +2,7 @@ package com.homeoldnote.app;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
@@ -11,6 +12,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -25,10 +28,12 @@ public class MainActivity extends Activity {
     private static final String PREFS_NAME = "home_notes_android";
     private static final String SERVER_URL_KEY = "server_url";
     private static final String DEFAULT_PLACEHOLDER_URL = "http://192.168.1.100:3300";
+    private static final int FILE_CHOOSER_REQUEST_CODE = 4300;
 
     private SharedPreferences preferences;
     private WebView webView;
     private ProgressBar progressBar;
+    private ValueCallback<Uri[]> filePathCallback;
     private String currentServerUrl;
 
     @Override
@@ -156,6 +161,34 @@ public class MainActivity extends Activity {
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
 
+        view.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback, FileChooserParams fileChooserParams) {
+                if (filePathCallback != null) {
+                    filePathCallback.onReceiveValue(null);
+                }
+                filePathCallback = callback;
+
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType(resolveFileChooserType(fileChooserParams));
+                String[] mimeTypes = resolveFileChooserMimeTypes(fileChooserParams);
+                if (mimeTypes.length > 0) {
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+                }
+
+                try {
+                    startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
+                    return true;
+                } catch (Exception error) {
+                    filePathCallback = null;
+                    callback.onReceiveValue(null);
+                    Toast.makeText(MainActivity.this, "没有找到可用的文件选择器", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+            }
+        });
+
         view.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView webView, WebResourceRequest request) {
@@ -232,6 +265,62 @@ public class MainActivity extends Activity {
         });
 
         setContentView(root);
+    }
+
+    private String resolveFileChooserType(WebChromeClient.FileChooserParams params) {
+        if (params == null || params.getAcceptTypes() == null) return "*/*";
+        for (String type : params.getAcceptTypes()) {
+            if (type == null || type.trim().isEmpty()) continue;
+            String value = type.trim();
+            if (value.startsWith(".")) return "*/*";
+            return value;
+        }
+        return "*/*";
+    }
+
+    private String[] resolveFileChooserMimeTypes(WebChromeClient.FileChooserParams params) {
+        if (params == null || params.getAcceptTypes() == null) {
+            return new String[] { "application/octet-stream", "application/zip", "image/*" };
+        }
+
+        java.util.ArrayList<String> mimeTypes = new java.util.ArrayList<>();
+        for (String type : params.getAcceptTypes()) {
+            if (type == null || type.trim().isEmpty()) continue;
+            String value = type.trim();
+            if (value.equals(".nsx")) {
+                mimeTypes.add("application/octet-stream");
+                mimeTypes.add("application/zip");
+                continue;
+            }
+            if (!value.startsWith(".")) {
+                mimeTypes.add(value);
+            }
+        }
+
+        if (mimeTypes.isEmpty()) {
+            mimeTypes.add("application/octet-stream");
+            mimeTypes.add("application/zip");
+            mimeTypes.add("image/*");
+        }
+        return mimeTypes.toArray(new String[0]);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
+            if (filePathCallback == null) return;
+            Uri[] result = null;
+            if (resultCode == Activity.RESULT_OK) {
+                result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                if (result == null && data != null && data.getData() != null) {
+                    result = new Uri[] { data.getData() };
+                }
+            }
+            filePathCallback.onReceiveValue(result);
+            filePathCallback = null;
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private String normalizeServerUrl(String raw) {

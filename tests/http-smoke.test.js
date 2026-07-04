@@ -81,6 +81,9 @@ describe('HTTP smoke script', () => {
     assert.equal(payload.ok, true);
     assert.equal(payload.baseUrl, baseUrl);
     assert.ok(payload.checks.some((check) => check.name === 'health' && check.ok));
+    assert.ok(payload.checks.some((check) => check.name === 'create-note' && check.ok));
+    assert.ok(payload.checks.some((check) => check.name === 'created-note-detail' && check.ok));
+    assert.ok(payload.checks.some((check) => check.name === 'notestation-web-import' && check.ok));
     assert.ok(payload.checks.some((check) => check.name === 'manual-backup' && check.ok));
     assert.ok(payload.checks.some((check) => check.name === 'json-export' && check.ok));
   });
@@ -97,6 +100,8 @@ describe('HTTP smoke script', () => {
     assert.equal(payload.ok, true);
     assert.equal(payload.readOnly, true);
     assert.ok(payload.checks.some((check) => check.name === 'notes-list' && check.ok));
+    assert.ok(!payload.checks.some((check) => check.name === 'create-note'));
+    assert.ok(!payload.checks.some((check) => check.name === 'notestation-web-import'));
     assert.ok(!payload.checks.some((check) => check.name === 'manual-backup'));
     assert.ok(!payload.checks.some((check) => check.name === 'json-export'));
   });
