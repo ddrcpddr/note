@@ -1031,3 +1031,12 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3315: passed.
 
 ### Delivery Rule Added
 - API-only smoke is not enough for Docker delivery. Before publishing a Docker image, run the built image locally and test critical flows through a real browser UI.
+
+## 2026-07-04 19:30:53 +08:00 - Published GHCR image verification
+
+- Pulled ghcr.io/ddrcpddr/note:latest after GitHub Actions run 28704706778 completed successfully.
+- Verified health build commit: cb67794f68853b65c6dc63b2fe20d72ce96d2ebc.
+- Real browser UI quick-save test against http://127.0.0.1:3316: passed; note became searchable and browser reported no IndexedDB clone error.
+- Real browser UI NSX import test against http://127.0.0.1:3316: passed; .nsx file could be selected, previewed and committed; imported rich text had 2 inline /api/attachments/ refs.
+- 
+pm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the published GHCR image.

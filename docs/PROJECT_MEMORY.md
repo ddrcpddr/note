@@ -1484,3 +1484,10 @@ pm.cmd run smoke 增加真实写入检查：创建新笔记、读取新笔记详
 - Best practice now: before claiming Docker/APK delivery works, run the actual built image locally and use Playwright/Chromium to click the UI flows, especially new note save and Note Station .nsx web import.
 - Fixed by sanitizing all IndexedDB writes through 	oIndexedDbSafeValue() in src/client/offlineStore.js; it strips functions, symbols, undefined values, and circular references before put().
 - Verified local fixed Docker on http://127.0.0.1:3315: UI quick-save persisted, UI NSX import parsed/committed, imported rich text contained inline attachment refs, and full HTTP smoke passed.
+
+## 2026-07-04 19:30:53 +08:00 - Published GHCR image verified after UI-save fix
+
+- Pushed Fix: serialize offline cache data for UI saves and GitHub Actions built GHCR image from commit cb67794f68853b65c6dc63b2fe20d72ce96d2ebc.
+- Pulled that published image back locally and tested the real browser UI on http://127.0.0.1:3316.
+- Confirmed quick note save works, Note Station .nsx file selection/import works, and imported NSX rich text contains inline attachment refs instead of only separate attachments.
+- Full HTTP smoke also passed against the published GHCR image.
