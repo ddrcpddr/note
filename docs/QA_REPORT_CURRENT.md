@@ -1087,3 +1087,58 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the publish
 
 - 安装本轮新 APK 到 Huawei P30 Pro，先测试“打开详情 -> 编辑 -> 输入/保存”。
 - 如果仍然异常，优先收集 Toast 文案、Android 系统 WebView 版本、HarmonyOS 版本。
+
+## 2026-07-04 22:34:37 +08:00 - Huawei P30 Pro WebView findLast crash
+
+### 复现步骤
+
+- 用户在 Huawei P30 Pro / HarmonyOS APK 内打开编辑页。
+- APK Toast 显示：页面脚本异常： JS console: TypeError: n.findLast is not a function。
+- vivo X300 Pro 和浏览器端可用，说明服务端 API 不是直接原因。
+
+### 问题原因
+
+- Tiptap 打包后的前端 bundle 中使用了 Array.prototype.findLast。
+- Huawei P30 Pro 上的旧 Android WebView 不支持该现代 Array API。
+- Vite uild.target 只负责语法降级，不会自动补齐内置 API polyfill，所以页面进入编辑器时仍会脚本异常。
+
+### 修复内容
+
+- 新增 src/client/webviewCompat.js，补齐 Array.prototype.findLast 和 Array.prototype.findLastIndex。
+- 在 src/client/main.jsx 首行引入兼容文件，确保进入 React / Tiptap 编辑器前已注册 polyfill。
+- 新增前端回归测试，确认 polyfill 入口存在。
+
+### 运行命令
+
+- 
+ode --test tests/frontend-ui.test.js tests/android-wrapper.test.js：通过，18 tests。
+- 
+pm.cmd run check：通过，integrityCheck ok，noteCount 188。
+- 
+pm.cmd run test：通过，69 tests。
+- 
+pm.cmd run build：通过。
+- 构建产物检查：index-BNB4ADOV.js 中 polyfill 位于 .findLast( 使用之前。
+- 
+pm.cmd run android:build：通过，APK 已重新生成。
+- docker build -t note:findlast-polyfill-test .：通过。
+- 临时 Docker http://127.0.0.1:3319 跑 
+pm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
+- 临时 Docker 实际 JS bundle 检查：hasFindLastPolyfill=true，polyfillBeforeUsage=true。
+
+### 测试结果
+
+- 旧 WebView 缺少 indLast/findLastIndex 的根因已在 bundle 层修复。
+- Docker 镜像构建与 smoke 通过。
+- APK 重新打包通过。
+
+### 仍然存在的问题
+
+- 仍需在 Huawei P30 Pro 真机安装新 APK，并连接更新后的 Docker/GHCR 镜像复测。
+- 注意：APK 加载的是服务端前端 bundle，所以只更新 APK 不够；NAS/Docker 镜像也必须更新到包含该 polyfill 的版本。
+
+### 下一步建议
+
+- 推送后等待 GitHub Actions 生成新的 GHCR 镜像。
+- NAS 上重新拉取 ghcr.io/ddrcpddr/note:latest 并重建容器。
+- 华为手机卸载旧 APK 或清数据后安装新 APK，再测试进入编辑页。

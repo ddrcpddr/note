@@ -55,7 +55,16 @@ describe('Frontend mobile interactions', () => {
     assert.ok(styles.includes('transform: skewX(-10deg);'));
   });
 
-  test('guards the editor from older Android WebView runtime failures', () => {
+
+  test('polyfills modern Array helpers for older Android WebView', () => {
+    const main = readText('src/client/main.jsx');
+    const compat = readText('src/client/webviewCompat.js');
+
+    assert.ok(main.startsWith("import './webviewCompat.js';"));
+    assert.ok(compat.includes("defineArrayMethod('findLast'"));
+    assert.ok(compat.includes("defineArrayMethod('findLastIndex'"));
+    assert.ok(compat.includes('Object.defineProperty(Array.prototype'));
+  });  test('guards the editor from older Android WebView runtime failures', () => {
     const source = readText('src/client/main.jsx');
     const vite = readText('vite.config.js');
 

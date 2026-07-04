@@ -1,3 +1,4 @@
+import './webviewCompat.js';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorContent, useEditor } from '@tiptap/react';

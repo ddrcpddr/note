@@ -1505,3 +1505,22 @@ pm.cmd run smoke 增加真实写入检查：创建新笔记、读取新笔记详
 - npm.cmd run check / test / build / android:build 均通过；debug APK 重新生成。
 
 重要经验：APK 交付前至少要覆盖“服务器地址设置、打开首页、打开详情、进入编辑、保存富文本、选择 .nsx、导入预览/提交”。遇到 Huawei/HarmonyOS 这类 WebView 差异时，先加错误上报和降级路径，再让用户真机复验。
+
+## 2026-07-04 - Huawei P30 Pro WebView findLast 兼容修复
+
+用户在 Huawei P30 Pro / HarmonyOS APK 内看到 Toast：TypeError: n.findLast is not a function。根因不是业务 API，也不是 Docker 数据问题，而是 Tiptap 打包产物使用 Array.prototype.findLast，旧 Android WebView 缺这个现代内置 API。Vite target 不会自动 polyfill 内置 API。
+
+本轮修复：
+
+- 新增 src/client/webviewCompat.js，为旧 WebView 补 Array.prototype.findLast 和 Array.prototype.findLastIndex。
+- src/client/main.jsx 首行引入兼容文件，确保 Tiptap 编辑器运行前 polyfill 已注册。
+- 新增前端静态回归测试，避免入口被移除。
+- 
+pm.cmd run check / 
+pm.cmd run test / 
+pm.cmd run build / 
+pm.cmd run android:build 均通过。
+- 本地 Docker 镜像 
+ote:findlast-polyfill-test 构建通过；临时容器 HTTP smoke 通过；实际返回的 JS bundle 确认 polyfill 位于 .findLast( 使用之前。
+
+重要经验：APK WebView 白屏时要看 Toast/console 里的具体 JS API；对旧 Android/HarmonyOS，不能只靠 Vite target，要检查最终 bundle 是否包含必要 polyfill。由于 APK 加载 NAS/Docker 提供的前端 bundle，所以修复前端兼容问题后必须同时更新 Docker/GHCR 镜像，单独换 APK 不够。
