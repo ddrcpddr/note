@@ -1441,3 +1441,16 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - `docs/NAS_QUICK_DEPLOY.md`
 
 NAS compose 使用容器内 `/data` 作为统一数据目录，默认示例挂载到 `/volume1/docker/home-note/data:/data`，真实部署时只需要修改冒号左边的 NAS 本地路径。文档明确不要提交 `.env`、`data/`、数据库、附件、备份、导出、`.nsx`、日志、真实 NAS 地址、账号、密码或 token。
+
+## 2026-07-04 - GHCR 通用 NAS 镜像部署
+
+用户确认需要把项目自动构建成 Docker 镜像推到 GitHub Container Registry，并且该方案同时适合 QNAP 和群晖 NAS。
+
+新增：
+
+- `.github/workflows/docker-ghcr.yml`：main 分支 push 和手动 workflow_dispatch 会构建并推送 `ghcr.io/ddrcpddr/note:latest` 与 `ghcr.io/ddrcpddr/note:${github.sha}`。
+- `docker-compose.image.yml`：NAS 图形界面或 compose 可直接使用 GHCR 镜像，不再需要在 NAS 上 build。
+- `docs/NAS_IMAGE_DEPLOYMENT.md`：群晖 Container Manager 与 QNAP Container Station 通用部署说明。
+- `tests/ghcr-deployment.test.js`：静态测试覆盖 workflow、image compose 和部署文档。
+
+注意：首次 GHCR package 生成后，用户需要在 GitHub Packages 页面把镜像设为 public，或者在 NAS 上配置 GHCR 登录。推荐 public，因为镜像不包含 data/、数据库、附件、备份、导出、.nsx、.env、真实 NAS 地址或密码。

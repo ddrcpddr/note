@@ -259,3 +259,17 @@ POST /api/storage/probe
 - `data/exports/`
 
 如果任何目录不可写，接口会返回 503，并在结果里标出失败目录和错误信息。这个检查只验证应用进程对挂载目录的读写权限，不需要也不会保存真实 NAS 地址、账号、密码或 token。
+
+## GHCR 镜像部署补充
+
+如果 NAS 不方便从源码构建，可以使用 GitHub Container Registry 镜像：
+
+```text
+ghcr.io/ddrcpddr/note:latest
+```
+
+配套文件：
+
+- `.github/workflows/docker-ghcr.yml`：push 到 main 后自动构建并推送镜像。
+- `docker-compose.image.yml`：不使用 `build`，直接拉取镜像。
+- `docs/NAS_IMAGE_DEPLOYMENT.md`：群晖和 QNAP 通用图形界面部署教程。

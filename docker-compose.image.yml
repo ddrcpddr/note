@@ -1,0 +1,23 @@
+services:
+  note:
+    image: ghcr.io/ddrcpddr/note:latest
+    container_name: home-note
+    restart: unless-stopped
+    ports:
+      - "3300:3300"
+    environment:
+      NODE_ENV: "production"
+      PORT: "3300"
+      NOTE_DATA_DIR: "/data"
+      NOTE_ACCESS_PIN: "${NOTE_ACCESS_PIN:-}"
+      NOTE_AUTO_BACKUP_INTERVAL_HOURS: "${NOTE_AUTO_BACKUP_INTERVAL_HOURS:-24}"
+    volumes:
+      # Synology default example. QNAP users can replace the left side with
+      # /share/Container/home-note/data or the path selected in Container Station.
+      - /volume1/docker/home-note/data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3300/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

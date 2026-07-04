@@ -168,3 +168,19 @@ docker compose -f docker-compose.nas.yml up -d
 - 不要提交 `data/`。
 - 不要把真实 NAS 地址、账号、密码、token 写进文档或 Git。
 - 如果 NAS 使用防火墙，需要放行 TCP `3300`。
+
+## 11. 更省事的镜像部署方式
+
+如果不想在 NAS 上从源码 `build`，可以使用 GHCR 镜像部署：
+
+```text
+ghcr.io/ddrcpddr/note:latest
+```
+
+通用教程见：
+
+```text
+docs/NAS_IMAGE_DEPLOYMENT.md
+```
+
+群晖和 QNAP 都适用。NAS 界面里只需要填写镜像地址、端口 `3300`，并把自己的数据目录挂载到容器 `/data`。
