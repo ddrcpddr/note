@@ -1040,3 +1040,50 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3315: passed.
 - Real browser UI NSX import test against http://127.0.0.1:3316: passed; .nsx file could be selected, previewed and committed; imported rich text had 2 inline /api/attachments/ refs.
 - 
 pm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the published GHCR image.
+
+## 2026-07-04 21:36:17 +08:00 - Huawei P30 Pro / HarmonyOS APK edit white-screen guard
+
+### 复现信息
+
+- 用户设备：Huawei P30 Pro，基于安卓的鸿蒙系统。
+- 对照设备：vivo X300 Pro 当前可用。
+- 对照环境：同一 Docker 服务在手机浏览器中可用。
+- 现象：APK 内点击编辑进入富文本编辑时白屏。
+
+### 判断
+
+- 服务端 / Docker 不是直接原因；浏览器可用、另一台 Android 设备可用，问题集中在 APK WebView 运行时与富文本编辑器兼容性。
+- 当前机器无法直接安装到 Huawei P30 Pro 物理复现，所以本轮不声称已在该机实测通过；改为加入 WebView 兼容防护、错误上报和可降级编辑路径。
+
+### 修复内容
+
+- Vite 生产构建目标下调到 chrome80 / safari13，减少旧 WebView 解析现代语法的风险。
+- 富文本编辑器外层新增 ErrorBoundary；如果旧 WebView 渲染 Tiptap 失败，自动切换为纯文本编辑 fallback，避免整页白屏。
+- Android WebView 增加 JS console error / window error / unhandledrejection 捕获，通过 Toast 暴露页面脚本异常。
+- Android WebView 增加 renderer gone 恢复处理，渲染进程崩溃时尝试重新加载服务地址。
+- Android WebView 固定 textZoom=100，并允许 file/content access 与 mixed content compatibility，降低 HarmonyOS / 老 WebView 行为差异。
+
+### 运行命令
+
+- node --test tests/android-wrapper.test.js tests/frontend-ui.test.js：通过。
+- npm.cmd run check：通过，integrityCheck ok，noteCount 188。
+- npm.cmd run test：通过，68 tests。
+- npm.cmd run build：通过。
+- npm.cmd run android:build：通过，APK 已生成并通过 apksigner verify。
+
+### 测试结果
+
+- Android wrapper 新增兼容防护测试通过。
+- 前端富文本 fallback 防白屏测试通过。
+- 完整 check / test / build 通过。
+- Debug APK 输出：android/app/build/outputs/apk/debug/app-debug.apk。
+
+### 仍然存在的问题
+
+- 尚未在用户的 Huawei P30 Pro 真机上验证；如果再次白屏，应观察是否出现“页面脚本异常”Toast，并用该错误继续定位。
+- fallback 是保命路径：旧 WebView 如果无法运行富文本编辑器，会退回纯文本编辑，避免无法保存。
+
+### 下一步建议
+
+- 安装本轮新 APK 到 Huawei P30 Pro，先测试“打开详情 -> 编辑 -> 输入/保存”。
+- 如果仍然异常，优先收集 Toast 文案、Android 系统 WebView 版本、HarmonyOS 版本。

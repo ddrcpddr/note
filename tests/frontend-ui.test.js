@@ -55,6 +55,19 @@ describe('Frontend mobile interactions', () => {
     assert.ok(styles.includes('transform: skewX(-10deg);'));
   });
 
+  test('guards the editor from older Android WebView runtime failures', () => {
+    const source = readText('src/client/main.jsx');
+    const vite = readText('vite.config.js');
+
+    assert.ok(source.includes('class RichTextEditorErrorBoundary extends React.Component'));
+    assert.ok(source.includes('function PlainTextEditorFallback'));
+    assert.ok(source.includes('function SafeRichTextEditor(props)'));
+    assert.ok(source.includes('<SafeRichTextEditor'));
+    assert.ok(source.includes('已切换为纯文本编辑模式，避免白屏'));
+    assert.ok(vite.includes("target: ['chrome80', 'safari13']"));
+    assert.ok(vite.includes("cssTarget: 'chrome80'"));
+  });
+
   test('keeps attachment upload inside the rich text editor only', () => {
     const source = readText('src/client/main.jsx');
 

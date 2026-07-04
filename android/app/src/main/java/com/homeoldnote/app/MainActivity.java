@@ -6,10 +6,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.ConsoleMessage;
+import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.ValueCallback;
@@ -35,10 +39,14 @@ public class MainActivity extends Activity {
     private ProgressBar progressBar;
     private ValueCallback<Uri[]> filePathCallback;
     private String currentServerUrl;
+    private String lastWebRuntimeError = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
         preferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         currentServerUrl = preferences.getString(SERVER_URL_KEY, "");
 
@@ -160,8 +168,23 @@ public class MainActivity extends Activity {
         settings.setUseWideViewPort(true);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        settings.setTextZoom(100);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        }
+        view.addJavascriptInterface(new AndroidBridge(), "HomeNoteAndroid");
 
         view.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                if (consoleMessage != null && consoleMessage.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
+                    reportWebRuntimeError("JS console: " + consoleMessage.message());
+                }
+                return super.onConsoleMessage(consoleMessage);
+            }
+
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback, FileChooserParams fileChooserParams) {
                 if (filePathCallback != null) {
@@ -203,6 +226,7 @@ public class MainActivity extends Activity {
                 if (progressBar != null) {
                     progressBar.setVisibility(View.GONE);
                 }
+                injectRuntimeErrorHook(view);
             }
 
             @Override
@@ -211,7 +235,41 @@ public class MainActivity extends Activity {
                     showLoadError();
                 }
             }
+
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                Toast.makeText(MainActivity.this, "页面渲染进程已恢复，请再试一次编辑", Toast.LENGTH_LONG).show();
+                if (currentServerUrl != null && !currentServerUrl.isEmpty()) {
+                    loadServer(currentServerUrl);
+                } else {
+                    showSettings("页面渲染进程异常，请重新打开服务地址。");
+                }
+                return true;
+            }
         });
+    }
+
+    private void injectRuntimeErrorHook(WebView view) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT || view == null) return;
+        view.evaluateJavascript("(function(){if(window.__homeNoteAndroidErrorHook)return;window.__homeNoteAndroidErrorHook=true;window.addEventListener('error',function(e){if(window.HomeNoteAndroid){window.HomeNoteAndroid.reportError(String(e.message||'script error'));}});window.addEventListener('unhandledrejection',function(e){if(window.HomeNoteAndroid){var r=e.reason;window.HomeNoteAndroid.reportError(String((r&&r.message)||r||'unhandled rejection'));}});})()", null);
+    }
+
+    private void reportWebRuntimeError(final String message) {
+        if (message == null || message.equals(lastWebRuntimeError)) return;
+        lastWebRuntimeError = message;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainActivity.this, "页面脚本异常：" + message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    public class AndroidBridge {
+        @JavascriptInterface
+        public void reportError(String message) {
+            reportWebRuntimeError(message);
+        }
     }
 
     private void showLoadError() {

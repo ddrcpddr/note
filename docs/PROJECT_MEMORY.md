@@ -1491,3 +1491,17 @@ pm.cmd run smoke 增加真实写入检查：创建新笔记、读取新笔记详
 - Pulled that published image back locally and tested the real browser UI on http://127.0.0.1:3316.
 - Confirmed quick note save works, Note Station .nsx file selection/import works, and imported NSX rich text contains inline attachment refs instead of only separate attachments.
 - Full HTTP smoke also passed against the published GHCR image.
+
+## 2026-07-04 - Huawei P30 Pro / HarmonyOS APK 富文本编辑白屏防护
+
+用户反馈同一服务在浏览器可用、vivo X300 Pro APK 可用，但 Huawei P30 Pro（基于安卓的鸿蒙系统）在 APK 内点击编辑会白屏。以后处理 APK 问题不能用 Chrome 浏览器结果替代 WebView 结果，也不能只测一台新 Android 机型。
+
+本轮处理：
+
+- Vite 生产构建目标降到 chrome80 / safari13，减少老 WebView 现代 JS 兼容风险。
+- 富文本编辑器新增 ErrorBoundary 和纯文本 fallback，Tiptap 在旧 WebView 崩溃时避免整页白屏。
+- Android WebView 新增 console/error/unhandledrejection 捕获，通过 Toast 显示页面脚本异常。
+- Android WebView 新增 renderer gone 恢复处理、textZoom=100、file/content access、mixed content compatibility。
+- npm.cmd run check / test / build / android:build 均通过；debug APK 重新生成。
+
+重要经验：APK 交付前至少要覆盖“服务器地址设置、打开首页、打开详情、进入编辑、保存富文本、选择 .nsx、导入预览/提交”。遇到 Huawei/HarmonyOS 这类 WebView 差异时，先加错误上报和降级路径，再让用户真机复验。

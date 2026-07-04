@@ -49,4 +49,19 @@ describe('Android WebView wrapper', () => {
     assert.ok(buildScript.includes('apksigner'));
     assert.ok(buildScript.includes('app-debug.apk'));
   });
+
+  test('guards Huawei and older Android WebView editor failures', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('WebView.setWebContentsDebuggingEnabled(true)'));
+    assert.ok(activity.includes('settings.setTextZoom(100)'));
+    assert.ok(activity.includes('settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE)'));
+    assert.ok(activity.includes('addJavascriptInterface(new AndroidBridge(), "HomeNoteAndroid")'));
+    assert.ok(activity.includes('onConsoleMessage(ConsoleMessage consoleMessage)'));
+    assert.ok(activity.includes('injectRuntimeErrorHook(view)'));
+    assert.ok(activity.includes("window.addEventListener('error'"));
+    assert.ok(activity.includes("window.addEventListener('unhandledrejection'"));
+    assert.ok(activity.includes('onRenderProcessGone'));
+    assert.ok(activity.includes('页面脚本异常'));
+  });
 });

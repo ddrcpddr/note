@@ -1372,6 +1372,59 @@ function escapeClientHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+class RichTextEditorErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, message: '' };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, message: error?.message || 'rich text editor unavailable' };
+  }
+
+  componentDidCatch(error) {
+    console.error('Rich text editor failed; using plain text fallback.', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <PlainTextEditorFallback {...this.props.fallbackProps} errorMessage={this.state.message} />;
+    }
+    return this.props.children;
+  }
+}
+
+function PlainTextEditorFallback({ plainTextFallback = '', onChange, errorMessage = '' }) {
+  const [text, setText] = useState(plainTextFallback || '');
+
+  useEffect(() => {
+    const html = clientPlainTextToRichTextHtml(text);
+    onChange?.({ html, text: text.trim(), json: null });
+  }, [text]);
+
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-relaxed text-amber-700">
+        当前手机 WebView 对富文本编辑器兼容性不足，已切换为纯文本编辑模式，避免白屏。{errorMessage ? ' 错误：' + errorMessage : ''}
+      </div>
+      <textarea
+        className="min-h-[180px] w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-[16px] leading-relaxed outline-none focus:border-teal-500"
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        placeholder="写下家里的小事、账单、维修、临时备忘..."
+      />
+    </div>
+  );
+}
+
+function SafeRichTextEditor(props) {
+  return (
+    <RichTextEditorErrorBoundary fallbackProps={props}>
+      <RichTextEditor {...props} />
+    </RichTextEditorErrorBoundary>
+  );
+}
+
 const RichImageExtension = ImageExtension.extend({
   addAttributes() {
     return {
@@ -1653,7 +1706,7 @@ function NewRecordScreen({ members, categories, currentMemberId, onBack, onSave,
       <section className="soft-card mt-3 min-h-[168px] p-4">
         <div className="flex gap-3 text-[14px] text-muted">
           <FileText className="mt-1 shrink-0" size={18} />
-          <RichTextEditor
+          <SafeRichTextEditor
             initialHtml={initialRichHtml}
             initialJson={initialNote?.contentJson}
             plainTextFallback={initialNote?.content || ''}

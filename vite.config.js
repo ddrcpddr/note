@@ -8,6 +8,8 @@ export default {
     preserveSymlinks: true
   },
   build: {
+    target: ['chrome80', 'safari13'],
+    cssTarget: 'chrome80',
     rollupOptions: {
       input: path.resolve(process.cwd(), 'index.html')
     }
