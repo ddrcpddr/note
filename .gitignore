@@ -34,3 +34,11 @@ data/
 backups/
 exports/
 attachments/
+
+android/**/build/
+*.apk
+*.aab
+*.keystore
+
+android/.gradle/
+android/build/

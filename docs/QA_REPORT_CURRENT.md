@@ -903,3 +903,12 @@ npm.cmd run build
 - 待人工验证：在线打开一次页面后停止 Docker，刷新页面应仍能看到最近一次加载的记录；此时新建记录应进入“待同步到 NAS”，恢复 Docker 后自动同步。
 
 - Docker 复验：docker compose up -d --build 通过；npm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过；/sw.js 检查通过。
+
+
+## 2026-07-04 - Android WebView 第一版打包验证
+
+- 新增 tests/android-wrapper.test.js，覆盖 Android 壳必须有服务器地址设置、SharedPreferences、WebView、网络错误处理、局域网 HTTP 支持和手工打包脚本。
+- node --test tests/android-wrapper.test.js：通过。
+- npm.cmd run android:build：通过，生成 android/app/build/outputs/apk/debug/app-debug.apk。
+- apksigner verify：通过，v1/v2/v3 签名为 true。
+- 待人工验证：安装到安卓手机，输入 Docker/NAS 局域网地址，检查首页、富文本新建/编辑、Note Station 导入、设置页是否可用。

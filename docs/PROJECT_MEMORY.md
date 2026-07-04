@@ -1402,3 +1402,13 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 缓存只作为离线兜底，不缓存 /api/ HTTP 响应，不替代服务端数据库；大规模长期离线和冲突合并后续再考虑 IndexedDB。
 
 - Docker 复验：docker compose up -d --build 通过；3300 HTTP smoke ok=true；/sw.js HTTP 200，确认仍包含 app-shell 缓存和 /api/ 绕过逻辑。
+
+
+## 2026-07-04 - Android WebView 第一版打包
+
+- 已创建 android/ 原生 WebView 壳，包名 com.homeoldnote.app，App 名称 家事记。
+- 首次启动显示服务器地址设置页，用户可自行填写家庭 NAS / Docker 地址；地址只保存在手机本地 SharedPreferences，不写死真实 NAS 地址。
+- WebView 开启 JavaScript、DOM Storage 和数据库能力；连接失败时显示错误页，可重新连接或修改服务器地址。
+- 本机只有 JDK 25，Gradle/Kotlin DSL 不兼容，因此新增 scripts/build-android-debug.js，直接调用 Android SDK 的 aapt2、javac、d8、zipalign、apksigner 生成 debug APK。
+- 为避开 Android SDK 工具对中文路径处理不稳定，脚本会复制源码到 C:/tmp 或系统临时目录的 ASCII 路径构建，再输出 APK 到 android/app/build/outputs/apk/debug/app-debug.apk。
+- APK、keystore 和 Android build 目录已加入 .gitignore，不提交 Git。
