@@ -1432,3 +1432,12 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 旧 localStorage 队列暂时保留为迁移兜底，不再作为长期离线主方案。
 - 大附件 Blob、后台同步、多设备冲突合并和 Android 原生数据库不是本轮完成项。
 - 仍禁止提交 data/、数据库、备份、导出、附件、.nsx、APK、日志和真实 NAS 地址。
+
+## 2026-07-04 - NAS 快速部署文件
+
+新增 NAS 专用部署文件和教程：
+
+- `docker-compose.nas.yml`
+- `docs/NAS_QUICK_DEPLOY.md`
+
+NAS compose 使用容器内 `/data` 作为统一数据目录，默认示例挂载到 `/volume1/docker/home-note/data:/data`，真实部署时只需要修改冒号左边的 NAS 本地路径。文档明确不要提交 `.env`、`data/`、数据库、附件、备份、导出、`.nsx`、日志、真实 NAS 地址、账号、密码或 token。

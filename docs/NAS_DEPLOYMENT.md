@@ -116,7 +116,20 @@ data/exports/
 
 - `Dockerfile`
 - `docker-compose.yml`
+- `docker-compose.nas.yml`
 - `.dockerignore`
+
+如果是在群晖 / NAS 上部署，优先参考：
+
+```text
+docs/NAS_QUICK_DEPLOY.md
+```
+
+并使用：
+
+```bash
+docker compose -f docker-compose.nas.yml up -d --build
+```
 
 本地模拟 NAS 部署：
 
