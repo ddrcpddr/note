@@ -94,3 +94,33 @@
 限制：该快照使用 localStorage，只适合作为短期兜底；大量图片、附件、长富文本和多设备冲突后续应迁移到 IndexedDB 与更完整的同步策略。
 
 验证补充：离线 app-data 快照代码合入后，Docker 3300 smoke 通过，/sw.js 仍不缓存 /api/ 数据。
+
+## 2026-07-04 本地优先长期离线第一版
+
+离线目标从“短期兜底”升级为“长期离线可使用，恢复联网后同步”。本轮新增 IndexedDB 本地优先数据层，数据库名为 `home-notes-offline-first-v1`。
+
+新增本地 stores：
+
+- `notes`：本机可查看和编辑的记录副本，包含纯文本、富文本 HTML/JSON、分类、成员、标签、附件元数据和同步状态。
+- `attachments`：预留给图片/附件 Blob 和元数据，后续用于大附件长期离线。
+- `categories`、`members`、`tags`：本地基础数据快照。
+- `syncQueue`：待同步的新建/编辑操作。
+- `meta`：当前成员、快照时间等轻量状态。
+
+当前第一版行为：
+
+1. 在线成功读取 `/api/app-data` 后，会把服务端记录和基础数据写入 IndexedDB。
+2. NAS/Docker/API 不可用时，优先从 IndexedDB 读取本地记录快照，页面进入 `offline-first` 模式。
+3. 新建记录先写入 IndexedDB，并进入 `syncQueue`，状态为 `local-only`。
+4. 编辑记录先写入 IndexedDB，并进入 `syncQueue`，状态为 `dirty`。
+5. 服务恢复为 `sqlite` 模式后，前端会读取 `syncQueue`，逐条 POST/PATCH 到服务端。
+6. 同步成功后，本地记录标记为 `synced`，本地临时 ID 会被服务端正式 ID 替换。
+
+当前仍保留旧的 `localStorage` 队列作为迁移兜底，但长期离线主路径已经改为 IndexedDB。
+
+当前限制：
+
+- 大图片和大附件 Blob 的完整 IndexedDB 持久化仍需下一轮增强。
+- 多设备同时编辑同一条记录时，第一版不自动合并冲突。
+- Service Worker 仍不缓存 `/api/` 响应，避免旧服务端数据污染。
+- Android 壳首次冷启动仍需要至少加载过一次 Web 前端壳；完全内置前端资源可以后续再做。

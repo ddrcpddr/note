@@ -912,3 +912,37 @@ npm.cmd run build
 - npm.cmd run android:build：通过，生成 android/app/build/outputs/apk/debug/app-debug.apk。
 - apksigner verify：通过，v1/v2/v3 签名为 true。
 - 待人工验证：安装到安卓手机，输入 Docker/NAS 局域网地址，检查首页、富文本新建/编辑、Note Station 导入、设置页是否可用。
+
+## 2026-07-04 - 本地优先长期离线第一版验证
+
+目标：将 Android / WebView 离线能力从短期兜底升级为 IndexedDB 本地优先第一版。
+
+已执行：
+
+- 新增 `tests/offline-store-static.test.js`，首次运行失败，确认缺少 IndexedDB 本地优先模块和前端接入。
+- 新增 `src/client/offlineStore.js` 后，局部测试通过。
+- `node --test tests/frontend-ui.test.js` 通过。
+- `npm.cmd run build` 通过。
+
+待最终收口时继续运行：
+
+- `npm.cmd run check`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- `npm.cmd run android:build`
+
+人工建议测试：
+
+1. 在线打开 App，确认记录列表正常。
+2. 关闭 Docker/NAS 或填入不可访问地址。
+3. 刷新后确认仍能看到 IndexedDB 本地快照。
+4. 离线新建富文本记录。
+5. 离线编辑一条本地记录。
+6. 恢复 Docker/NAS，确认记录同步到服务端。
+
+### 最终验证补充
+
+- `npm.cmd run check` 通过，SQLite integrity_check 为 ok。
+- `npm.cmd run test` 通过，62 个测试全部通过。
+- `npm.cmd run build` 通过，只有 Vite chunk-size warning。
+- `npm.cmd run android:build` 通过，APK 签名校验通过。

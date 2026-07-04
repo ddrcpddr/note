@@ -74,6 +74,16 @@ import {
   X
 } from 'lucide-react';
 import { categoryImageAssets, illustrationAssets, memberAvatarAssets } from './assetMap.js';
+import {
+  deleteLocalNote,
+  markMutationFailed,
+  markMutationSynced,
+  queueLocalMutation,
+  readLocalSnapshot,
+  readPendingMutations,
+  saveLocalSnapshot,
+  upsertLocalNote
+} from './offlineStore.js';
 import './styles.css';
 
 if ('serviceWorker' in navigator) {
@@ -358,6 +368,15 @@ function App() {
         const nextNotes = Array.isArray(data.notes) ? data.notes.map((note) => normalizeNote(note, nextCategories)) : initialNotes;
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
+        await saveLocalSnapshot({
+          members: nextMembers,
+          categories: nextCategories,
+          tags: data.tags || [],
+          currentMemberId: currentMember.id,
+          notes: nextNotes,
+          savedAt: new Date().toISOString()
+        });
+
         setMembers(nextMembers);
         setCategoriesData(nextCategories);
         setCurrentMemberId(currentMember.id);
@@ -368,6 +387,25 @@ function App() {
       } catch {
         if (!isMounted) return;
         const pendingNotes = readOfflineCreateQueue().map((item) => item.note).filter(Boolean);
+        const localSnapshot = await readLocalSnapshot();
+        if (localSnapshot) {
+          const localCategories = normalizeCategories(localSnapshot.categories);
+          const localMembers = keepDefaultMembers(localSnapshot.members.length ? localSnapshot.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers);
+          const localNotes = localSnapshot.notes.map((note) => normalizeNote(note, localCategories));
+          const currentMember = localMembers.find((member) => member.id === localSnapshot.currentMemberId)
+            ?? localMembers.find((member) => member.isCurrent)
+            ?? localMembers[0]
+            ?? fallbackMembers[0];
+          const nextNotes = mergePendingAndCachedNotes(pendingNotes, localNotes);
+          setMembers(localMembers.map((member) => ({ ...member, isCurrent: member.id === currentMember.id })));
+          setCategoriesData(localCategories);
+          setCurrentMemberId(currentMember.id);
+          setNotesData(nextNotes);
+          setSelectedId((pendingNotes[0] || nextNotes[0])?.id ?? null);
+          setDataMode('offline-first');
+          return;
+        }
+
         const cached = readOfflineAppDataCache();
         if (cached) {
           const cachedCategories = normalizeCategories(cached.categories);
@@ -462,6 +500,70 @@ function App() {
     setOfflineCreateQueue(nextQueue);
   }
 
+  function buildLocalNoteFromDraftPayload(payload, { category, currentMember, title, body, bodyHtml }, syncStatus, localId, existingNote = {}) {
+    return {
+      ...existingNote,
+      id: localId,
+      title,
+      summary: body.slice(0, 42),
+      content: body,
+      contentHtml: bodyHtml || null,
+      contentJson: payload.contentJson || null,
+      richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : existingNote.richContent || null,
+      category: category.name,
+      categoryId: category.id,
+      categoryIcon: category.icon,
+      categoryImageSrc: category.imageSrc,
+      categoryColor: 'text-teal-600',
+      icon: category.icon,
+      iconTone: category.tone,
+      tags: payload.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
+      time: existingNote.time || '刚刚',
+      member: currentMember.name,
+      memberId: currentMember.id,
+      memberAvatar: currentMember.avatar,
+      memberAvatarImage: currentMember.avatarImage,
+      attachmentCount: payload.attachments?.length || existingNote.attachmentCount || 0,
+      status: syncStatus === 'synced' ? '已保存到 NAS' : '待同步到 NAS',
+      source: existingNote.source || '手动创建',
+      sourceType: existingNote.sourceType || 'manual',
+      isOffline: syncStatus !== 'synced',
+      syncStatus,
+      createdAt: existingNote.createdAt || '今天 刚刚',
+      updatedAt: '刚刚',
+      attachments: payload.attachments?.length ? payload.attachments : existingNote.attachments || []
+    };
+  }
+
+  async function saveLocalFirstDraft(action, payload, context, existingNote = {}) {
+    const localId = action === 'create'
+      ? 'local-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
+      : existingNote.id;
+    const syncStatus = action === 'create' ? 'local-only' : 'dirty';
+    const localNote = buildLocalNoteFromDraftPayload(payload, context, syncStatus, localId, existingNote);
+
+    await upsertLocalNote(localNote);
+    await queueLocalMutation({
+      action,
+      localId,
+      noteId: localId,
+      serverId: action === 'update' && !String(localId).startsWith('local-') && !String(localId).startsWith('offline-') ? localId : null,
+      payload
+    });
+
+    setNotesData((current) => (
+      current.some((item) => item.id === localId)
+        ? current.map((item) => (item.id === localId ? localNote : item))
+        : [localNote, ...current]
+    ));
+    setSelectedId(localId);
+    setScreen('detail');
+    showToast(dataMode === 'sqlite' ? '记录已先保存到本机，正在同步 NAS' : '记录已保存在本机，恢复连接后会同步');
+
+    if (dataMode === 'sqlite') window.setTimeout(() => syncPendingLocalMutations(), 0);
+    return localNote;
+  }
+
   function enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml }) {
     const localId = 'offline-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
     const note = {
@@ -547,9 +649,56 @@ function App() {
     }
   }
 
+  async function syncPendingLocalMutations() {
+    if (offlineSyncingRef.current || dataMode !== 'sqlite') return;
+    const mutations = await readPendingMutations();
+    if (!mutations.length) return;
+
+    offlineSyncingRef.current = true;
+    setOfflineSyncing(true);
+    let syncedCount = 0;
+
+    try {
+      for (const mutation of mutations) {
+        try {
+          const isUpdate = mutation.action === 'update';
+          const endpoint = isUpdate ? '/api/notes/' + encodeURIComponent(mutation.serverId || mutation.noteId) : '/api/notes';
+          const response = await fetch(endpoint, {
+            method: isUpdate ? 'PATCH' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mutation.payload)
+          });
+          if (!response.ok) throw new Error('local first sync failed');
+
+          const data = await response.json();
+          const syncedNote = normalizeNote(data.note, categoriesData);
+          await upsertLocalNote({ ...syncedNote, syncStatus: 'synced', isOffline: false });
+          if (mutation.localId && mutation.localId !== syncedNote.id) await deleteLocalNote(mutation.localId);
+          await markMutationSynced(mutation.id);
+          setNotesData((current) => {
+            const withoutLocal = current.filter((note) => note.id !== mutation.localId && note.id !== syncedNote.id);
+            return [syncedNote, ...withoutLocal];
+          });
+          setSelectedId((current) => (current === mutation.localId || current === mutation.noteId ? syncedNote.id : current));
+          syncedCount += 1;
+        } catch (error) {
+          await markMutationFailed(mutation, error?.message || 'sync failed');
+          break;
+        }
+      }
+      if (syncedCount) showToast('已同步 ' + syncedCount + ' 条本机记录');
+    } finally {
+      offlineSyncingRef.current = false;
+      setOfflineSyncing(false);
+    }
+  }
+
   useEffect(() => {
     if (dataMode === 'sqlite' && offlineCreateQueue.length) {
       syncOfflineCreateQueue();
+    }
+    if (dataMode === 'sqlite') {
+      syncPendingLocalMutations();
     }
   }, [dataMode, offlineCreateQueue.length]);
 
@@ -640,32 +789,7 @@ function App() {
       attachments: draft.attachments?.length ? draft.attachments : []
     };
 
-    if (dataMode === 'sqlite') {
-      try {
-        const response = await fetch('/api/notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-          throw new Error('save failed');
-        }
-
-        const data = await response.json();
-        const note = normalizeNote(data.note, categoriesData);
-        setNotesData((current) => [note, ...current]);
-        setSelectedId(note.id);
-        setScreen('detail');
-        showToast('记录已保存到本地数据库');
-        return;
-      } catch {
-        enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml });
-        return;
-      }
-    }
-
-    enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml });
+    await saveLocalFirstDraft('create', payload, { category, currentMember, title, body, bodyHtml });
   }
 
   async function updateExistingNote(draft) {
@@ -676,65 +800,20 @@ function App() {
     const selectedMemberId = draft.memberId || currentMemberId;
     const currentMember = members.find((member) => member.id === selectedMemberId) ?? members[0] ?? fallbackMembers[0];
 
-    if (dataMode === 'sqlite') {
-      try {
-        const response = await fetch(`/api/notes/${draft.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            content: body,
-            contentHtml: bodyHtml || undefined,
-            contentJson: draft.bodyJson || undefined,
-            categoryId: category.id,
-            memberId: currentMember.id,
-            noteType: draft.type,
-            tags: draft.tags,
-            attachments: draft.attachments?.length ? draft.attachments : []
-          })
-        });
+    const payload = {
+      title,
+      content: body,
+      contentHtml: bodyHtml || undefined,
+      contentJson: draft.bodyJson || undefined,
+      categoryId: category.id,
+      memberId: currentMember.id,
+      noteType: draft.type,
+      tags: draft.tags,
+      attachments: draft.attachments?.length ? draft.attachments : []
+    };
+    const existingNote = notesData.find((item) => item.id === draft.id) || selectedNote || {};
 
-        if (!response.ok) {
-          throw new Error('update failed');
-        }
-
-        const data = await response.json();
-        const note = normalizeNote(data.note, categoriesData);
-        setNotesData((current) => current.map((item) => (item.id === note.id ? note : item)));
-        setSelectedId(note.id);
-        setScreen('detail');
-        showToast('记录已更新');
-        return;
-      } catch {
-        showToast('暂时没有连上家庭记录服务，修改未保存');
-        return;
-      }
-    }
-
-    setNotesData((current) => current.map((item) => (
-      item.id === draft.id
-        ? {
-            ...item,
-            title,
-            summary: body.slice(0, 42),
-            content: body,
-            contentHtml: bodyHtml || null,
-            contentJson: draft.bodyJson || null,
-            richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : item.richContent,
-            category: category.name,
-            categoryId: category.id,
-            categoryIcon: category.icon,
-            icon: category.icon,
-            iconTone: category.tone,
-            tags: draft.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
-            member: currentMember.name,
-            memberId: currentMember.id,
-            updatedAt: '刚刚'
-          }
-        : item
-    )));
-    setScreen('detail');
-    showToast('记录已在当前页面更新');
+    await saveLocalFirstDraft('update', payload, { category, currentMember, title, body, bodyHtml }, existingNote);
   }
 
   function removeNoteFromCurrentView(noteId, message) {

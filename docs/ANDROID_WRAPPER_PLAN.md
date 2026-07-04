@@ -63,3 +63,14 @@ android/app/build/outputs/apk/debug/app-debug.apk
 - 做 release 签名包。
 - 统一 app 图标。
 - 后续再考虑真正的 Android 本地数据库和离线同步。
+
+## 2026-07-04 长期离线补充
+
+Android APK 仍然是 WebView 壳，但前端已经开始转向 IndexedDB 本地优先：
+
+- 服务器地址仍由用户在 App 内填写，不写死真实 NAS 地址。
+- 在线打开后，记录、分类、成员、标签会写入 WebView 的 IndexedDB。
+- NAS/Docker 不可用时，App 可读取 IndexedDB 本地快照继续查看记录。
+- 新建和编辑会先写入手机本地，恢复连接后再同步到 NAS。
+
+注意：当前不是 Android 原生 SQLite / Room 应用。长期离线能力优先放在 WebView 可复用的 IndexedDB 层，后续如需完全不依赖首次加载服务端前端壳，可以再评估把前端静态资源打进 APK。

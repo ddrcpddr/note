@@ -1412,3 +1412,23 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3300 通过。
 - 本机只有 JDK 25，Gradle/Kotlin DSL 不兼容，因此新增 scripts/build-android-debug.js，直接调用 Android SDK 的 aapt2、javac、d8、zipalign、apksigner 生成 debug APK。
 - 为避开 Android SDK 工具对中文路径处理不稳定，脚本会复制源码到 C:/tmp 或系统临时目录的 ASCII 路径构建，再输出 APK 到 android/app/build/outputs/apk/debug/app-debug.apk。
 - APK、keystore 和 Android build 目录已加入 .gitignore，不提交 Git。
+
+## 2026-07-04 - 本地优先长期离线第一版
+
+用户明确要求 Android 不能只是连接 NAS/Docker 才能使用，需要长期离线可记录、恢复联网后同步。本轮开始从短期 localStorage 队列升级到 IndexedDB 本地优先方案。
+
+已新增：
+
+- `src/client/offlineStore.js`，使用 IndexedDB `home-notes-offline-first-v1`。
+- stores：notes、attachments、categories、members、tags、syncQueue、meta。
+- 前端加载失败时优先读取 IndexedDB 快照，进入 `offline-first` 模式。
+- 新建记录先写 IndexedDB，状态 `local-only`，随后尝试同步 NAS。
+- 编辑记录先写 IndexedDB，状态 `dirty`，随后尝试同步 NAS。
+- 在线读取 `/api/app-data` 成功后会保存本地快照。
+- 新增 `tests/offline-store-static.test.js`，先 RED 后 GREEN，覆盖本地优先模块和前端接入点。
+
+边界：
+
+- 旧 localStorage 队列暂时保留为迁移兜底，不再作为长期离线主方案。
+- 大附件 Blob、后台同步、多设备冲突合并和 Android 原生数据库不是本轮完成项。
+- 仍禁止提交 data/、数据库、备份、导出、附件、.nsx、APK、日志和真实 NAS 地址。
