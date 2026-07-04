@@ -1142,3 +1142,11 @@ pm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
 - 推送后等待 GitHub Actions 生成新的 GHCR 镜像。
 - NAS 上重新拉取 ghcr.io/ddrcpddr/note:latest 并重建容器。
 - 华为手机卸载旧 APK 或清数据后安装新 APK，再测试进入编辑页。
+
+### GHCR 发布镜像补充验证
+
+- GitHub Actions workflow Build Docker image run 28709499108：completed / success。
+- 已拉取 ghcr.io/ddrcpddr/note:latest，digest sha256:04d99ce047e961f73b68a95dff668fe0352966bf6156817680ddd18301df52ac。
+- 发布镜像 health build commit：574e4f5c8f2309d9e88d2e6b0d72dd8f49ee1678。
+- 发布镜像临时容器 http://127.0.0.1:3320 HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
+- 发布镜像实际 JS bundle：/assets/index-BNB4ADOV.js，确认 indLast polyfill 存在且位于 .findLast( 使用之前。

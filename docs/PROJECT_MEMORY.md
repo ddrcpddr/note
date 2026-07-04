@@ -1524,3 +1524,5 @@ pm.cmd run android:build 均通过。
 ote:findlast-polyfill-test 构建通过；临时容器 HTTP smoke 通过；实际返回的 JS bundle 确认 polyfill 位于 .findLast( 使用之前。
 
 重要经验：APK WebView 白屏时要看 Toast/console 里的具体 JS API；对旧 Android/HarmonyOS，不能只靠 Vite target，要检查最终 bundle 是否包含必要 polyfill。由于 APK 加载 NAS/Docker 提供的前端 bundle，所以修复前端兼容问题后必须同时更新 Docker/GHCR 镜像，单独换 APK 不够。
+
+补充验证：提交 574e4f5 推送后，GitHub Actions 28709499108 成功发布 GHCR latest。已拉取 ghcr.io/ddrcpddr/note:latest，health commit 为 574e4f5c8f2309d9e88d2e6b0d72dd8f49ee1678，临时容器 HTTP smoke 通过，并确认发布镜像实际返回的 JS bundle 包含 indLast/findLastIndex polyfill 且位于 Tiptap .findLast( 使用之前。
