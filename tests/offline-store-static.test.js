@@ -33,6 +33,30 @@ describe('Offline first local store', () => {
     assert.ok(source.includes('export async function markMutationSynced'));
   });
 
+
+  test('removes UI-only React values before IndexedDB structured cloning', async () => {
+    const { toIndexedDbSafeValue } = await import('../src/client/offlineStore.js');
+    const icon = () => null;
+    const input = {
+      id: 'category-family',
+      name: '家庭事务',
+      icon,
+      categoryIcon: icon,
+      nested: { keep: 'ok', bad: Symbol('react.forward_ref') },
+      tags: [{ label: '待办', marker: Symbol('x') }]
+    };
+
+    const safe = toIndexedDbSafeValue(input);
+
+    assert.equal(safe.id, 'category-family');
+    assert.equal(safe.name, '家庭事务');
+    assert.equal(safe.nested.keep, 'ok');
+    assert.equal(safe.icon, undefined);
+    assert.equal(safe.categoryIcon, undefined);
+    assert.equal(safe.nested.bad, undefined);
+    assert.deepEqual(safe.tags, [{ label: '待办' }]);
+    assert.doesNotThrow(() => structuredClone(safe));
+  });
   test('wires the React app to local-first storage before falling back to network-only behavior', () => {
     const source = readText('src/client/main.jsx');
 
@@ -48,3 +72,4 @@ describe('Offline first local store', () => {
     assert.ok(source.includes("setDataMode('offline-first')"));
   });
 });
+

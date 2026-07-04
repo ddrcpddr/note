@@ -1477,3 +1477,10 @@ pm.cmd run smoke 增加真实写入检查：创建新笔记、读取新笔记详
 - 新增/更新测试覆盖 Android 文件选择器、GHCR build args、增强 HTTP smoke。
 
 重要经验：以后交付 Docker 镜像或 APK 前，不能只看 build/health/list；必须跑“保存新笔记 + .nsx 导入 + 富文本附件内联 + APK 文件选择器”的端到端检查。
+
+## 2026-07-04 19:20:59 +08:00 - Docker UI regression lesson
+
+- A GHCR Docker image can pass API smoke while the browser UI still fails. The concrete failure was quick-note save aborting because IndexedDB tried to store lucide/React icon component values from normalized category/note data.
+- Best practice now: before claiming Docker/APK delivery works, run the actual built image locally and use Playwright/Chromium to click the UI flows, especially new note save and Note Station .nsx web import.
+- Fixed by sanitizing all IndexedDB writes through 	oIndexedDbSafeValue() in src/client/offlineStore.js; it strips functions, symbols, undefined values, and circular references before put().
+- Verified local fixed Docker on http://127.0.0.1:3315: UI quick-save persisted, UI NSX import parsed/committed, imported rich text contained inline attachment refs, and full HTTP smoke passed.

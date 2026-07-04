@@ -996,3 +996,38 @@ pm.cmd run test -- tests/http-smoke.test.js tests/ghcr-deployment.test.js
 - NAS 上是否已经重新拉取最新 GHCR 镜像并重建容器。
 - 浏览器或 APK 是否仍缓存旧前端；必要时清站点数据或卸载重装 APK。
 - 新 APK 重新打包后，在手机端实际选择 .nsx 文件。
+
+## 2026-07-04 19:20:59 +08:00 - GHCR Docker UI save/import regression
+
+### Reproduction
+- Pulled and ran the GitHub Container Registry image locally as ghcr.io/ddrcpddr/note:latest on port 3314.
+- Real Chromium UI click flow reproduced the user-visible bug: quick note creation failed to persist.
+- Browser error: Failed to execute 'put' on 'IDBObjectStore': Symbol(react.forward_ref) could not be cloned.
+
+### Root Cause
+- The React app normalized categories with lucide React component values in category.icon / 
+ote.icon.
+- saveLocalSnapshot() wrote those UI-only values directly into IndexedDB.
+- IndexedDB structured clone rejected React component symbols, aborting the UI save flow before the note became searchable.
+
+### Fix
+- Added 	oIndexedDbSafeValue() in src/client/offlineStore.js.
+- All IndexedDB writes now strip functions, symbols, undefined values, and circular references while preserving plain data and cloneable binary values.
+- Added regression coverage in 	ests/offline-store-static.test.js.
+
+### Verification
+- 
+pm.cmd run check: passed, SQLite integrity ok.
+- 
+pm.cmd run test: passed, 66 tests.
+- 
+pm.cmd run build: passed.
+- Built local Docker image 
+ote:ui-fixed-test and ran it on http://127.0.0.1:3315.
+- Playwright UI save regression: passed, created note was searchable and no IndexedDB clone error appeared.
+- Playwright UI NSX import regression: passed, selected .nsx, previewed, committed, and imported rich text included 2 inline /api/attachments/ refs.
+- 
+pm.cmd run smoke -- --base-url http://127.0.0.1:3315: passed.
+
+### Delivery Rule Added
+- API-only smoke is not enough for Docker delivery. Before publishing a Docker image, run the built image locally and test critical flows through a real browser UI.

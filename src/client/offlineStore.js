@@ -71,7 +71,7 @@ async function putMany(storeName, items = []) {
   const transaction = db.transaction(storeName, 'readwrite');
   const store = transaction.objectStore(storeName);
   for (const item of items) {
-    if (item?.id) store.put(item);
+    if (item?.id) store.put(toIndexedDbSafeValue(item));
   }
   await transactionDone(transaction);
   db.close();
@@ -81,11 +81,43 @@ async function putMeta(key, value) {
   const db = await openOfflineDb();
   if (!db) return;
   const transaction = db.transaction('meta', 'readwrite');
-  transaction.objectStore('meta').put({ key, value, updatedAt: new Date().toISOString() });
+  transaction.objectStore('meta').put(toIndexedDbSafeValue({ key, value, updatedAt: new Date().toISOString() }));
   await transactionDone(transaction);
   db.close();
 }
 
+function isCloneableBinary(value) {
+  if (typeof Blob !== 'undefined' && value instanceof Blob) return true;
+  if (typeof File !== 'undefined' && value instanceof File) return true;
+  if (value instanceof ArrayBuffer) return true;
+  if (ArrayBuffer.isView(value)) return true;
+  return false;
+}
+
+function toIndexedDbSafeValue(value, seen = new WeakSet()) {
+  if (value === null) return null;
+  const type = typeof value;
+  if (type === 'string' || type === 'number' || type === 'boolean' || type === 'bigint') return value;
+  if (type === 'undefined' || type === 'function' || type === 'symbol') return undefined;
+  if (value instanceof Date) return value.toISOString();
+  if (isCloneableBinary(value)) return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => toIndexedDbSafeValue(item, seen))
+      .filter((item) => item !== undefined);
+  }
+  if (type !== 'object') return undefined;
+  if (seen.has(value)) return undefined;
+  seen.add(value);
+
+  const output = {};
+  for (const [key, item] of Object.entries(value)) {
+    const safeItem = toIndexedDbSafeValue(item, seen);
+    if (safeItem !== undefined) output[key] = safeItem;
+  }
+  seen.delete(value);
+  return output;
+}
 async function getMeta(key) {
   const db = await openOfflineDb();
   if (!db) return null;
@@ -201,4 +233,5 @@ export async function markMutationFailed(mutation, errorMessage) {
   }]);
 }
 
-export { OFFLINE_DB_NAME, OFFLINE_DB_VERSION, STORE_NAMES };
+export { OFFLINE_DB_NAME, OFFLINE_DB_VERSION, STORE_NAMES, toIndexedDbSafeValue };
+
