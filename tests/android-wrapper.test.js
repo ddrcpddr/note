@@ -50,6 +50,13 @@ describe('Android WebView wrapper', () => {
     assert.ok(buildScript.includes('app-debug.apk'));
   });
 
+
+  test('ships a launcher icon for the installed APK', () => {
+    const manifest = readText('android/app/src/main/AndroidManifest.xml');
+
+    assert.ok(manifest.includes('android:icon="@drawable/app_icon"'));
+    assert.equal(existsSync(path.join(repoRoot, 'android/app/src/main/res/drawable/app_icon.png')), true);
+  });
   test('guards Huawei and older Android WebView editor failures', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 

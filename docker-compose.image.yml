@@ -9,6 +9,7 @@ services:
       NODE_ENV: "production"
       PORT: "3300"
       NOTE_DATA_DIR: "/data"
+      TZ: "${TZ:-Asia/Shanghai}"
       NOTE_ACCESS_PIN: "${NOTE_ACCESS_PIN:-}"
       NOTE_AUTO_BACKUP_INTERVAL_HOURS: "${NOTE_AUTO_BACKUP_INTERVAL_HOURS:-24}"
     volumes:

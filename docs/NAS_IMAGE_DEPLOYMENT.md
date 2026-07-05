@@ -53,6 +53,7 @@ Local port: 3300
 NODE_ENV=production
 PORT=3300
 NOTE_DATA_DIR=/data
+TZ=Asia/Shanghai
 NOTE_ACCESS_PIN=你的家庭口令，可留空
 NOTE_AUTO_BACKUP_INTERVAL_HOURS=24
 ```
@@ -97,6 +98,7 @@ Host port: 3300
 NODE_ENV=production
 PORT=3300
 NOTE_DATA_DIR=/data
+TZ=Asia/Shanghai
 NOTE_ACCESS_PIN=你的家庭口令，可留空
 NOTE_AUTO_BACKUP_INTERVAL_HOURS=24
 ```
@@ -128,6 +130,8 @@ QNAP 可改为：
 volumes:
   - /share/Container/home-note/data:/data
 ```
+
+默认时区为 `Asia/Shanghai`，如果你的 NAS 位于其他时区，可以通过环境变量 `TZ` 覆盖。
 
 启动：
 

@@ -41,11 +41,12 @@ cd /volume1/docker/home-note/app
 在 NAS 的项目目录中创建 `.env`，不要提交它：
 
 ```env
+TZ=Asia/Shanghai
 NOTE_ACCESS_PIN=你自己的家庭口令
 NOTE_AUTO_BACKUP_INTERVAL_HOURS=24
 ```
 
-如果暂时不想启用访问口令，可以不填 `NOTE_ACCESS_PIN`。
+如果暂时不想启用访问口令，可以不填 `NOTE_ACCESS_PIN`。`TZ=Asia/Shanghai` 用于让 Docker 内时间与北京时间一致。
 
 ## 4. 修改 compose 挂载路径
 

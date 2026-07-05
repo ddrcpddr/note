@@ -9,6 +9,7 @@ services:
       NODE_ENV: "production"
       PORT: "3300"
       NOTE_DATA_DIR: "/data"
+      TZ: "${TZ:-Asia/Shanghai}"
       # Optional. Put the real value in a local .env file on the NAS.
       NOTE_ACCESS_PIN: "${NOTE_ACCESS_PIN:-}"
       # Optional automatic database backup interval.

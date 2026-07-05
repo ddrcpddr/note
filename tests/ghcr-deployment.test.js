@@ -47,6 +47,18 @@ describe('GHCR image deployment', () => {
     assert.ok(dockerfile.includes('ENV NOTE_BUILD_COMMIT=$GIT_COMMIT'));
   });
 
+
+  test('defaults Docker containers to China local time while allowing override', () => {
+    const dockerfile = readText('Dockerfile');
+    const compose = readText('docker-compose.yml');
+    const imageCompose = readText('docker-compose.image.yml');
+    const nasCompose = readText('docker-compose.nas.yml');
+
+    assert.ok(dockerfile.includes('ENV TZ=Asia/Shanghai'));
+    assert.ok(compose.includes('TZ: "${TZ:-Asia/Shanghai}"'));
+    assert.ok(imageCompose.includes('TZ: "${TZ:-Asia/Shanghai}"'));
+    assert.ok(nasCompose.includes('TZ: "${TZ:-Asia/Shanghai}"'));
+  });
   test('documents QNAP and Synology image deployment without storing secrets or real NAS credentials', () => {
     const doc = readText('docs/NAS_IMAGE_DEPLOYMENT.md');
     assert.ok(doc.includes('ghcr.io/ddrcpddr/note:latest'));

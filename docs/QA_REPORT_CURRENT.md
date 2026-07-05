@@ -1150,3 +1150,57 @@ pm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
 - 发布镜像 health build commit：574e4f5c8f2309d9e88d2e6b0d72dd8f49ee1678。
 - 发布镜像临时容器 http://127.0.0.1:3320 HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
 - 发布镜像实际 JS bundle：/assets/index-BNB4ADOV.js，确认 indLast polyfill 存在且位于 .findLast( 使用之前。
+
+## 2026-07-05 15:06 +08:00 - Android APK icon and Docker timezone
+
+### 复现步骤
+
+1. 安装 Android debug APK 后，系统桌面没有显示项目图标。
+2. 在 Docker 容器中读取本地时间，发现比北京时间少 8 小时，例如 UTC 01:00 对应实际北京时间 09:00。
+
+### 问题原因
+
+- AndroidManifest.xml 未声明 `android:icon`，Android 资源目录也没有 launcher icon 文件。
+- Dockerfile 和 compose 文件未设置 `TZ`，Node 容器默认使用 UTC。
+
+### 修复内容
+
+- 复用已有 runtime PWA 图标，新增 Android `drawable/app_icon.png`。
+- AndroidManifest.xml 增加 `android:icon="@drawable/app_icon"`。
+- Dockerfile 增加 `ENV TZ=Asia/Shanghai`。
+- `docker-compose.yml`、`docker-compose.image.yml`、`docker-compose.nas.yml` 增加 `TZ: "${TZ:-Asia/Shanghai}"`。
+- NAS 部署文档补充 Docker 时区配置。
+- 新增 Android 图标和 Docker 时区配置测试。
+
+### 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js tests/ghcr-deployment.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+docker build -t note:tz-icon-test .
+npm.cmd run smoke -- --base-url http://127.0.0.1:3322
+```
+
+### 测试结果
+
+- 针对性测试通过，7 tests。
+- `npm.cmd run check` 通过，integrityCheck ok，noteCount 188。
+- `npm.cmd run test` 通过，71 tests。
+- `npm.cmd run build` 通过。
+- `npm.cmd run android:build` 通过，APK 包内包含 `res/drawable/app_icon.png`。
+- Docker 镜像时区检查通过，`2026-07-05T01:00:00Z` 在容器内显示为 `09:00 GMT+0800`。
+- 临时 Docker 容器 HTTP smoke 通过，新建、NSX import、备份、JSON 导出均 ok。
+
+### 仍然存在的问题
+
+- 需要用户在真机安装新 APK，确认桌面图标显示正常。
+- NAS 上旧容器不会自动变更时区，需要重新拉取/重建镜像并确认环境变量。
+
+### 下一步建议
+
+1. 推送后等待 GitHub Actions 重新构建 GHCR 镜像。
+2. NAS 重新拉取 `ghcr.io/ddrcpddr/note:latest` 并重建容器。
+3. 手机卸载旧 APK 或覆盖安装新 APK，检查桌面图标与应用功能。
