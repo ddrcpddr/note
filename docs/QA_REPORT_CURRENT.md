@@ -1212,3 +1212,61 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3322
 - 发布镜像 health build commit：`bbf865e7999d1e4a3205651e8c0be074613405b2`。
 - 发布镜像容器内 `TZ=Asia/Shanghai`，`2026-07-05T01:00:00Z` 显示为 `09:00 GMT+0800`。
 - 发布镜像临时容器 `http://127.0.0.1:3323` HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
+
+## 2026-07-05 17:50 +08:00 - New note timestamp offset
+
+### 复现步骤
+
+1. 使用最新 GHCR 镜像启动 Docker 服务。
+2. 新建一条记录。
+3. 对比手机/北京时间和页面显示的新建记录时间。
+4. 用户反馈页面显示比预期多 8 小时。
+
+### 问题原因
+
+- 上一轮只验证了容器 `TZ=Asia/Shanghai` 和 `new Date()`，没有验证新建记录写入链路。
+- `notes` 表新建记录仍由 SQLite `CURRENT_TIMESTAMP` 生成 `created_at/updated_at/occurred_at`。
+- SQLite `CURRENT_TIMESTAMP` 是 UTC 裸字符串，例如 `2026-07-05 09:34:48`，不带时区。
+- 前端 `new Date(value)` 遇到这种无时区字符串时，不同浏览器/WebView 行为可能不一致，导致时间被再次偏移。
+
+### 修复内容
+
+- 服务端新建记录时写入 ISO UTC 时间：`new Date().toISOString()`。
+- 服务端编辑、归档、删除、批量分类时的 `updated_at` 也改为 ISO 时间。
+- 前端新增 `parseAppDate()`，对旧 SQLite `YYYY-MM-DD HH:mm:ss` 时间按 UTC 归一化，再格式化到手机本地时间。
+- `tests/mvp-api.test.js` 增加新建记录时间字段必须为 ISO UTC 的断言。
+- `tests/frontend-ui.test.js` 增加前端旧 SQLite 时间归一化静态检查。
+
+### 运行命令
+
+```bash
+node --test tests/mvp-api.test.js tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+docker build -t note:time-fix-test .
+npm.cmd run smoke -- --base-url http://127.0.0.1:3326
+```
+
+### 测试结果
+
+- 针对性测试通过，39 tests。
+- `npm.cmd run check` 通过，integrityCheck ok，noteCount 188。
+- `npm.cmd run test` 通过，72 tests。
+- `npm.cmd run build` 通过。
+- `npm.cmd run android:build` 通过。
+- 本地 Docker 镜像 `note:time-fix-test` 构建通过。
+- 实际新建记录链路验证：主机/容器北京时间 `17:50`，API `createdAt=2026-07-05T09:50:24.195Z`，前端本地格式化结果 `2026-07-05 17:50`。
+- 临时 Docker HTTP smoke 通过，新建、NSX import、备份、JSON 导出均 ok。
+
+### 仍然存在的问题
+
+- 需要推送后等待 GHCR 重新构建，再拉取发布镜像复测同一条新建记录链路。
+- 需要用户在手机 APK 上连接更新后的 Docker 镜像复测。
+
+### 下一步建议
+
+1. 推送代码并等待 GHCR latest 构建完成。
+2. 拉取 GHCR latest 本机复测新建记录时间。
+3. NAS 重新拉取镜像并重建容器后，手机 APK 新建一条记录核对手机当前时间。

@@ -1162,17 +1162,27 @@ function displayCategoryName(name, categoryId) {
   return name;
 }
 
+function parseAppDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const text = String(value).trim();
+  const sqliteUtcMatch = text.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})(?:\.\d+)?$/);
+  const normalized = sqliteUtcMatch ? `${sqliteUtcMatch[1]}T${sqliteUtcMatch[2]}Z` : text;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function formatShortTime(value) {
   if (!value) return '刚刚';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  const date = parseAppDate(value);
+  if (!date) return String(value);
   return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
 function formatLongTime(value) {
   if (!value) return '刚刚';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  const date = parseAppDate(value);
+  if (!date) return String(value);
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 

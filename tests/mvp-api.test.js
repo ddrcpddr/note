@@ -216,6 +216,9 @@ describe('MVP API', () => {
     });
 
     assert.equal(created.note.title, title);
+    assert.match(created.note.createdAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    assert.match(created.note.updatedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+    assert.match(created.note.occurredAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     assert.equal(created.note.categoryId, 'repair');
     assert.equal(created.note.memberId, 'self');
     assert.equal(created.note.attachments.length, 1);

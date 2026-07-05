@@ -56,6 +56,14 @@ describe('Frontend mobile interactions', () => {
   });
 
 
+  test('normalizes legacy SQLite timestamps before formatting', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.match(source, /function parseAppDate\(value\)/);
+    assert.match(source, /sqliteUtcMatch/);
+    assert.match(source, /\$\{sqliteUtcMatch\[1\]\}T\$\{sqliteUtcMatch\[2\]\}Z/);
+  });
+
   test('polyfills modern Array helpers for older Android WebView', () => {
     const main = readText('src/client/main.jsx');
     const compat = readText('src/client/webviewCompat.js');

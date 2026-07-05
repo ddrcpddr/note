@@ -29,12 +29,13 @@ notesRouter.post('/', (request, response) => {
   const generatedTitle = content.slice(0, 28) || '未命名记录';
   const title = String(payload.title || '').trim() || generatedTitle;
   const summary = String(payload.summary || content.slice(0, 56)).trim() || title;
+  const timestamp = currentTimestamp();
 
   const insertNote = db.prepare(`
     INSERT INTO notes
-      (id, title, content, content_text, content_html, content_json, source_html, content_format, content_version, summary, category_id, member_id, note_type, source_type, save_status, visibility, occurred_at)
+      (id, title, content, content_text, content_html, content_json, source_html, content_format, content_version, summary, category_id, member_id, note_type, source_type, save_status, visibility, occurred_at, created_at, updated_at)
     VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'saved', 'family', CURRENT_TIMESTAMP)
+      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'saved', 'family', ?, ?, ?)
   `);
   const insertTag = db.prepare('INSERT OR IGNORE INTO tags (id, name, slug) VALUES (?, ?, ?)');
   const insertNoteTag = db.prepare('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)');
@@ -56,7 +57,10 @@ notesRouter.post('/', (request, response) => {
       categoryId,
       memberId,
       noteType,
-      sourceType
+      sourceType,
+      timestamp,
+      timestamp,
+      timestamp
     );
 
     for (const tagName of tags) {
@@ -113,8 +117,8 @@ notesRouter.post('/bulk-categorize', (request, response) => {
   if (updatedNoteIds.length > 0) {
     const updatePlaceholders = updatedNoteIds.map(() => '?').join(', ');
     db.prepare(`UPDATE notes
-       SET category_id = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id IN (${updatePlaceholders})`).run(categoryId, ...updatedNoteIds);
+       SET category_id = ?, updated_at = ?
+       WHERE id IN (${updatePlaceholders})`).run(categoryId, currentTimestamp(), ...updatedNoteIds);
   }
 
   response.json({
@@ -134,7 +138,7 @@ notesRouter.post('/:id/archive', (request, response) => {
     return;
   }
 
-  db.prepare('UPDATE notes SET is_archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0').run(noteId);
+  db.prepare('UPDATE notes SET is_archived = 1, updated_at = ? WHERE id = ? AND is_deleted = 0').run(currentTimestamp(), noteId);
   const note = listNotes({ id: noteId, includeArchived: 'true', includeRichText: 'true' })[0];
   response.json({ note });
 });
@@ -149,7 +153,7 @@ notesRouter.delete('/:id', (request, response) => {
     return;
   }
 
-  db.prepare('UPDATE notes SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND is_deleted = 0').run(noteId);
+  db.prepare('UPDATE notes SET is_deleted = 1, updated_at = ? WHERE id = ? AND is_deleted = 0').run(currentTimestamp(), noteId);
   response.json({ deleted: true, id: noteId });
 });
 
@@ -180,6 +184,7 @@ notesRouter.patch('/:id', (request, response) => {
   const nextTags = Array.isArray(payload.tags)
     ? payload.tags.map((tag) => String(tag).trim()).filter(Boolean)
     : existing.tags.map((tag) => tag.label).filter(Boolean);
+  const timestamp = currentTimestamp();
 
   const updateNote = db.prepare(`
     UPDATE notes
@@ -195,7 +200,7 @@ notesRouter.patch('/:id', (request, response) => {
         category_id = ?,
         member_id = ?,
         note_type = ?,
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = ?
     WHERE id = ? AND is_deleted = 0
   `);
   const deleteNoteTags = db.prepare('DELETE FROM note_tags WHERE note_id = ?');
@@ -218,6 +223,7 @@ notesRouter.patch('/:id', (request, response) => {
       nextCategoryId,
       nextMemberId,
       nextNoteType,
+      timestamp,
       noteId
     );
     deleteNoteTags.run(noteId);
@@ -517,4 +523,7 @@ function sanitizeAttachmentName(value, fallback) {
 function getCurrentMemberId() {
   const member = getDb().prepare('SELECT id FROM members WHERE is_current = 1 ORDER BY sort_order LIMIT 1').get();
   return member?.id || 'self';
+}
+function currentTimestamp() {
+  return new Date().toISOString();
 }
