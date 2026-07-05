@@ -1270,3 +1270,11 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3326
 1. 推送代码并等待 GHCR latest 构建完成。
 2. 拉取 GHCR latest 本机复测新建记录时间。
 3. NAS 重新拉取镜像并重建容器后，手机 APK 新建一条记录核对手机当前时间。
+
+### GHCR 发布镜像补充验证
+
+- GitHub Actions workflow Build Docker image run 28736853899：completed / success。
+- 已拉取 `ghcr.io/ddrcpddr/note:latest`，digest `sha256:248d9d1ce43ae3b5ce54e94f677534847d7a2f0373863372c214903efde8db99`。
+- 发布镜像 health build commit：`54e331db08353bfeca0d53630d4bb2e5c3f2c0a6`。
+- 发布镜像实际新建记录链路验证：本机北京时间 `17:55`，API `createdAt=2026-07-05T09:55:15.346Z`，前端本地格式化结果 `2026-07-05 17:55`。
+- 发布镜像临时容器 `http://127.0.0.1:3328` HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
