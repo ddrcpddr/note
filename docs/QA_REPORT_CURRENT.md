@@ -1204,3 +1204,11 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3322
 1. 推送后等待 GitHub Actions 重新构建 GHCR 镜像。
 2. NAS 重新拉取 `ghcr.io/ddrcpddr/note:latest` 并重建容器。
 3. 手机卸载旧 APK 或覆盖安装新 APK，检查桌面图标与应用功能。
+
+### GHCR 发布镜像补充验证
+
+- GitHub Actions workflow Build Docker image run 28733171626：completed / success。
+- 已拉取 `ghcr.io/ddrcpddr/note:latest`，digest `sha256:b3726bd0379748acb7b79ddb4befb4fedf396dd9be018340ad9edd1c6fa2b8a9`。
+- 发布镜像 health build commit：`bbf865e7999d1e4a3205651e8c0be074613405b2`。
+- 发布镜像容器内 `TZ=Asia/Shanghai`，`2026-07-05T01:00:00Z` 显示为 `09:00 GMT+0800`。
+- 发布镜像临时容器 `http://127.0.0.1:3323` HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
