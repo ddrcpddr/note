@@ -31,6 +31,7 @@
 - 恢复：`npm.cmd run restore-db` 支持 dry-run 和确认恢复。
 - 导出：支持 JSON 和 Markdown 导出。
 - PWA：基础 manifest 和图标已接入，可用于添加到桌面试运行。
+- Android：已有 WebView APK 第一版，内置前端静态页面，服务器不可达时可进入本地离线页面。
 - Docker / NAS：已有 Dockerfile、docker-compose.yml 和 NAS 部署说明。
 - 可选访问口令：通过 `NOTE_ACCESS_PIN` 启用简单访问保护。
 
@@ -39,8 +40,8 @@
 - 不支持新增真实家庭成员，当前只保留 `我 / 爱人`。
 - 没有家庭账号、权限、私密记录或复杂登录体系。
 - 富文本复杂增强仍待继续打磨，例如更多颜色选择、复杂表格编辑和图片尺寸调整。
-- 没有复杂离线同步。
-- 没有 Android 原生封装。
+- 离线同步仍是基础能力：支持 IndexedDB 本地优先和待同步队列，但大附件 Blob、复杂冲突合并、后台同步仍待增强。
+- Android 目前是 WebView APK，不是原生 SQLite / Room 应用。
 - 附件管理仍是基础能力；不再保留正文外独立附件上传入口，后续重点是富文本内附件引用、下载、预览、删除和替换。
 - Note Station 其他未知导出变体必须先 dry-run，不能硬猜格式。
 - 视觉如需继续高保真还原 Product Design 7 图，必须按 Figma 实现规格逐页重建，不再凭感觉微调。
@@ -105,6 +106,27 @@ HTTP smoke：
 npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 ```
 
+## Android APK
+
+构建 debug APK：
+
+```bash
+npm.cmd run android:build
+```
+
+输出文件：
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+当前 APK 会内置前端静态页面。首次未配置服务器地址时可以点“离线使用”；Docker / NAS 暂时不可达时也会进入本地离线页面。服务器地址只保存在手机本地。
+
+更多说明见：
+
+- `docs/ANDROID_OFFLINE_APK.md`
+
+
 ## 数据目录
 
 默认数据目录：
@@ -159,7 +181,7 @@ NAS 部署请看：
 
 ## 下一步
 
-当前不走复杂 RC / 发布流程。先围绕家庭自用继续打磨富文本编辑、Note Station 重新导入和日常试用反馈；Android、复杂 NAS 运维增强和最终视觉还原排后。
+当前不走复杂 RC / 发布流程。先围绕家庭自用继续打磨富文本编辑、Note Station 重新导入和日常试用反馈；Android 已有 WebView 离线 APK 基础版，后续如需再增强原生存储、后台同步和最终视觉还原。
 
 ## 当前导入与附件说明
 

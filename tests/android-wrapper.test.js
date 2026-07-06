@@ -33,6 +33,13 @@ describe('Android WebView wrapper', () => {
     assert.ok(activity.includes('showSettings'));
     assert.ok(activity.includes('loadServer'));
     assert.ok(activity.includes('onReceivedError'));
+    assert.ok(activity.includes('LOCAL_APP_URL'));
+    assert.ok(activity.includes('file:///android_asset/www/index.html'));
+    assert.ok(activity.includes('loadLocalApp'));
+    assert.ok(activity.includes('离线使用'));
+    assert.ok(activity.includes('getServerUrl'));
+    assert.ok(activity.includes('settings.setAllowFileAccessFromFileURLs(true)'));
+    assert.ok(activity.includes('settings.setAllowUniversalAccessFromFileURLs(true)'));
     assert.ok(activity.includes('保存并打开'));
     assert.ok(activity.includes('修改服务器地址'));
     assert.ok(activity.includes('http://192.168.1.100:3300'));
@@ -48,6 +55,10 @@ describe('Android WebView wrapper', () => {
     assert.ok(buildScript.includes('zipalign'));
     assert.ok(buildScript.includes('apksigner'));
     assert.ok(buildScript.includes('app-debug.apk'));
+    assert.ok(buildScript.includes("path.join(stagedAppRoot, 'src', 'main', 'assets', 'www')"));
+    assert.ok(buildScript.includes('copyDir(distRoot, stagedWebRoot)'));
+    assert.ok(buildScript.includes('Building frontend for Android asset bundle'));
+    assert.ok(buildScript.includes("'-A', path.join(stagedAppRoot, 'src', 'main', 'assets')"));
   });
 
 

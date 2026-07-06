@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_NAME = "home_notes_android";
     private static final String SERVER_URL_KEY = "server_url";
     private static final String DEFAULT_PLACEHOLDER_URL = "http://192.168.1.100:3300";
+    private static final String LOCAL_APP_URL = "file:///android_asset/www/index.html";
     private static final int FILE_CHOOSER_REQUEST_CODE = 4300;
 
     private SharedPreferences preferences;
@@ -40,6 +41,7 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> filePathCallback;
     private String currentServerUrl;
     private String lastWebRuntimeError = "";
+    private boolean loadingLocalApp = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,6 +113,15 @@ public class MainActivity extends Activity {
         buttonParams.setMargins(0, dp(18), 0, 0);
         root.addView(saveButton, buttonParams);
 
+        Button offlineButton = new Button(this);
+        offlineButton.setText("离线使用");
+        offlineButton.setTextSize(16);
+        offlineButton.setAllCaps(false);
+        offlineButton.setTextColor(Color.rgb(61, 170, 108));
+        LinearLayout.LayoutParams offlineButtonParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        offlineButtonParams.setMargins(0, dp(12), 0, 0);
+        root.addView(offlineButton, offlineButtonParams);
+
         TextView helper = new TextView(this);
         helper.setText("示例：" + DEFAULT_PLACEHOLDER_URL + "\n手机和 NAS 需要在同一个局域网内。");
         helper.setTextColor(Color.rgb(146, 154, 168));
@@ -119,6 +130,13 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams helperParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         helperParams.setMargins(0, dp(18), 0, 0);
         root.addView(helper, helperParams);
+
+        offlineButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                loadLocalApp("已进入离线模式。新建和编辑会先保存在这台手机上，连上服务后再同步。");
+            }
+        });
 
         saveButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -142,6 +160,7 @@ public class MainActivity extends Activity {
     }
 
     private void loadServer(String serverUrl) {
+        loadingLocalApp = false;
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(244, 245, 247));
@@ -158,6 +177,28 @@ public class MainActivity extends Activity {
         webView.loadUrl(serverUrl);
     }
 
+    private void loadLocalApp(String message) {
+        loadingLocalApp = true;
+
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setBackgroundColor(Color.rgb(244, 245, 247));
+
+        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        progressBar.setIndeterminate(true);
+        root.addView(progressBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
+
+        webView = new WebView(this);
+        configureWebView(webView);
+        root.addView(webView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
+
+        setContentView(root);
+        if (message != null && !message.isEmpty()) {
+            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+        }
+        webView.loadUrl(LOCAL_APP_URL);
+    }
+
     private void configureWebView(WebView view) {
         WebSettings settings = view.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -171,6 +212,8 @@ public class MainActivity extends Activity {
         settings.setTextZoom(100);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
+        settings.setAllowFileAccessFromFileURLs(true);
+        settings.setAllowUniversalAccessFromFileURLs(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
         }
@@ -218,7 +261,7 @@ public class MainActivity extends Activity {
                 Uri uri = request.getUrl();
                 if (uri == null) return false;
                 String scheme = uri.getScheme();
-                return !(scheme == null || scheme.equals("http") || scheme.equals("https"));
+                return !(scheme == null || scheme.equals("http") || scheme.equals("https") || scheme.equals("file") || scheme.equals("about") || scheme.equals("data") || scheme.equals("blob"));
             }
 
             @Override
@@ -232,17 +275,23 @@ public class MainActivity extends Activity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request != null && request.isForMainFrame()) {
-                    showLoadError();
+                    if (loadingLocalApp) {
+                        showLoadError();
+                    } else {
+                        loadLocalApp("暂时连不上家庭记录服务，已进入离线模式。");
+                    }
                 }
             }
 
             @Override
             public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 Toast.makeText(MainActivity.this, "页面渲染进程已恢复，请再试一次编辑", Toast.LENGTH_LONG).show();
-                if (currentServerUrl != null && !currentServerUrl.isEmpty()) {
+                if (loadingLocalApp) {
+                    loadLocalApp("页面渲染进程已恢复，请再试一次编辑。");
+                } else if (currentServerUrl != null && !currentServerUrl.isEmpty()) {
                     loadServer(currentServerUrl);
                 } else {
-                    showSettings("页面渲染进程异常，请重新打开服务地址。");
+                    showSettings("页面渲染进程异常，请重新打开服务地址或离线使用。");
                 }
                 return true;
             }
@@ -267,6 +316,16 @@ public class MainActivity extends Activity {
 
     public class AndroidBridge {
         @JavascriptInterface
+        public String getServerUrl() {
+            return currentServerUrl == null ? "" : currentServerUrl;
+        }
+
+        @JavascriptInterface
+        public boolean isLocalApp() {
+            return loadingLocalApp;
+        }
+
+        @JavascriptInterface
         public void reportError(String message) {
             reportWebRuntimeError(message);
         }
@@ -288,7 +347,7 @@ public class MainActivity extends Activity {
         root.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView message = new TextView(this);
-        message.setText("请确认 Docker/NAS 服务已启动，手机和服务器在同一个局域网，或者修改服务器地址。");
+        message.setText("请确认 Docker/NAS 服务已启动，手机和服务器在同一个局域网。也可以先离线使用，恢复连接后再同步。");
         message.setTextColor(Color.rgb(113, 123, 138));
         message.setTextSize(15);
         message.setGravity(Gravity.CENTER);
@@ -306,6 +365,19 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View view) {
                 loadServer(currentServerUrl);
+            }
+        });
+
+        Button offline = new Button(this);
+        offline.setText("离线使用");
+        offline.setAllCaps(false);
+        LinearLayout.LayoutParams offlineParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        offlineParams.setMargins(0, dp(12), 0, 0);
+        root.addView(offline, offlineParams);
+        offline.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                loadLocalApp("已进入离线模式。新建和编辑会先保存在这台手机上。");
             }
         });
 

@@ -87,9 +87,25 @@ import {
 } from './offlineStore.js';
 import './styles.css';
 
-if ('serviceWorker' in navigator) {
+function getAndroidServerUrl() {
+  try {
+    const value = window.HomeNoteAndroid?.getServerUrl?.();
+    return typeof value === 'string' ? value.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
+function apiUrl(path) {
+  const normalizedPath = path.startsWith('/') ? path : '/' + path;
+  const androidServerUrl = window.location.protocol === 'file:' ? getAndroidServerUrl() : '';
+  if (!androidServerUrl) return normalizedPath;
+  return androidServerUrl.replace(/\/+$/, '') + normalizedPath;
+}
+
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register(apiUrl('/sw.js')).catch(() => {});
   });
 }
 
@@ -343,7 +359,7 @@ function App() {
 
     async function loadData() {
       try {
-        const accessResponse = await fetch('/api/access/status');
+        const accessResponse = await fetch(apiUrl('/api/access/status'));
         if (accessResponse.ok) {
           const access = await accessResponse.json();
           if (access.accessRequired && !access.unlocked) {
@@ -354,7 +370,7 @@ function App() {
           }
         }
 
-        const response = await fetch('/api/app-data');
+        const response = await fetch(apiUrl('/api/app-data'));
         if (!response.ok) {
           throw new Error('app data unavailable');
         }
@@ -446,7 +462,7 @@ function App() {
 
     if (dataMode !== 'sqlite') return;
     try {
-      const response = await fetch(`/api/notes?id=${encodeURIComponent(id)}`);
+      const response = await fetch(apiUrl(`/api/notes?id=${encodeURIComponent(id)}`));
       if (!response.ok) return;
       const data = await response.json();
       const detailNote = data.notes?.[0];
@@ -467,7 +483,7 @@ function App() {
 
   async function unlockAccess(pin) {
     try {
-      const response = await fetch('/api/access/unlock', {
+      const response = await fetch(apiUrl('/api/access/unlock'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin })
@@ -621,7 +637,7 @@ function App() {
     try {
       while (remaining.length) {
         const item = remaining[0];
-        const response = await fetch('/api/notes', {
+        const response = await fetch(apiUrl('/api/notes'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item.payload)
@@ -664,7 +680,7 @@ function App() {
         try {
           const isUpdate = mutation.action === 'update';
           const endpoint = isUpdate ? '/api/notes/' + encodeURIComponent(mutation.serverId || mutation.noteId) : '/api/notes';
-          const response = await fetch(endpoint, {
+          const response = await fetch(apiUrl(endpoint), {
             method: isUpdate ? 'PATCH' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(mutation.payload)
@@ -737,7 +753,7 @@ function App() {
 
     if (dataMode === 'sqlite') {
       try {
-        const response = await fetch('/api/notes/bulk-categorize', {
+        const response = await fetch(apiUrl('/api/notes/bulk-categorize'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ noteIds, categoryId })
@@ -828,7 +844,7 @@ function App() {
   async function archiveNote(noteId) {
     if (dataMode === 'sqlite') {
       try {
-        const response = await fetch('/api/notes/' + noteId + '/archive', { method: 'POST' });
+        const response = await fetch(apiUrl('/api/notes/' + noteId + '/archive'), { method: 'POST' });
         if (!response.ok) throw new Error('archive failed');
         removeNoteFromCurrentView(noteId, '记录已归档');
         return;
@@ -844,7 +860,7 @@ function App() {
   async function deleteNote(noteId) {
     if (dataMode === 'sqlite') {
       try {
-        const response = await fetch('/api/notes/' + noteId, { method: 'DELETE' });
+        const response = await fetch(apiUrl('/api/notes/' + noteId), { method: 'DELETE' });
         if (!response.ok) throw new Error('delete failed');
         removeNoteFromCurrentView(noteId, '记录已删除');
         return;
@@ -864,7 +880,7 @@ function App() {
 
     if (dataMode === 'sqlite') {
       try {
-        const response = await fetch('/api/members/' + memberId, {
+        const response = await fetch(apiUrl('/api/members/' + memberId), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: nextName, avatar: nextAvatar, color: nextColor })
@@ -899,7 +915,7 @@ function App() {
 
     if (dataMode === 'sqlite') {
       try {
-        await fetch('/api/members/current', {
+        await fetch(apiUrl('/api/members/current'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ memberId })
@@ -921,7 +937,7 @@ function App() {
 
     if (dataMode === 'sqlite') {
       try {
-        const response = await fetch('/api/categories', {
+        const response = await fetch(apiUrl('/api/categories'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -954,7 +970,7 @@ function App() {
 
     if (dataMode === 'sqlite') {
       try {
-        const response = await fetch('/api/categories/' + categoryId, {
+        const response = await fetch(apiUrl('/api/categories/' + categoryId), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -2091,7 +2107,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
         nsxInputRef.current?.click();
         return;
       }
-      const response = await fetch('/api/imports/notestation/dry-run', {
+      const response = await fetch(apiUrl('/api/imports/notestation/dry-run'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
@@ -2113,7 +2129,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
     if (!preview?.importId) return;
     setError('');
     try {
-      const response = await fetch(`/api/imports/notestation/${preview.importId}/commit`, {
+      const response = await fetch(apiUrl(`/api/imports/notestation/${preview.importId}/commit`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ memberId: currentMemberId })
@@ -2501,7 +2517,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
   useEffect(() => {
     async function loadStorageStatus() {
       try {
-        const response = await fetch('/api/storage/status');
+        const response = await fetch(apiUrl('/api/storage/status'));
         if (!response.ok) throw new Error('storage unavailable');
         const data = await response.json();
         setStorageStatus(data);
@@ -2522,7 +2538,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
     if (!nasOnline) {
       setBackupState('failed');
       try {
-        await fetch('/api/storage/backup', {
+        await fetch(apiUrl('/api/storage/backup'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nasOnline: false })
@@ -2535,7 +2551,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
     setBackupState('running');
     try {
-      const response = await fetch('/api/storage/backup', {
+      const response = await fetch(apiUrl('/api/storage/backup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nasOnline: true })
@@ -2554,7 +2570,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
   async function probeStorage() {
     try {
-      const response = await fetch('/api/storage/probe', { method: 'POST' });
+      const response = await fetch(apiUrl('/api/storage/probe'), { method: 'POST' });
       const data = await response.json();
       setStorageProbe(data);
       setStorageMessage(data.ok ? '存储目录读写正常，NAS 挂载可以使用。' : '存储目录检查失败，请确认 NAS 挂载目录权限。');
@@ -2566,7 +2582,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
   async function exportJson() {
     try {
-      const response = await fetch('/api/storage/export-json', { method: 'POST' });
+      const response = await fetch(apiUrl('/api/storage/export-json'), { method: 'POST' });
       if (!response.ok) throw new Error('export failed');
       const data = await response.json();
       setStorageMessage('导出完成，JSON 文件已保存到 data/exports/。');
@@ -2577,7 +2593,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
 
   async function exportMarkdown() {
     try {
-      const response = await fetch('/api/storage/export-markdown', { method: 'POST' });
+      const response = await fetch(apiUrl('/api/storage/export-markdown'), { method: 'POST' });
       if (!response.ok) throw new Error('markdown export failed');
       await response.json();
       setStorageMessage('导出完成，Markdown 文件已保存到 data/exports/。');

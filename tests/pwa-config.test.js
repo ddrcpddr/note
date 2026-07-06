@@ -35,7 +35,8 @@ describe('PWA and NAS deployment config', () => {
     const source = readText('src/client/main.jsx');
     const sw = readText('public/sw.js');
 
-    assert.ok(source.includes("navigator.serviceWorker.register('/sw.js')"));
+    assert.ok(source.includes("navigator.serviceWorker.register(apiUrl('/sw.js'))"));
+    assert.ok(source.includes("window.location.protocol !== 'file:'"));
     assert.ok(sw.includes("const APP_CACHE = 'home-notes-app-shell-v1'"));
     assert.ok(sw.includes("'/manifest.webmanifest'"));
     assert.ok(sw.includes("url.pathname.startsWith('/api/')"));

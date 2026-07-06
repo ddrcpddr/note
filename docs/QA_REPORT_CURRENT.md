@@ -1278,3 +1278,63 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3326
 - 发布镜像 health build commit：`54e331db08353bfeca0d53630d4bb2e5c3f2c0a6`。
 - 发布镜像实际新建记录链路验证：本机北京时间 `17:55`，API `createdAt=2026-07-05T09:55:15.346Z`，前端本地格式化结果 `2026-07-05 17:55`。
 - 发布镜像临时容器 `http://127.0.0.1:3328` HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
+
+---
+
+测试时间：2026-07-06
+
+当前目标：修复 Android APK 必须连接 Docker/NAS 才能使用的问题，改为正式离线 APK 壳。兼容目标设备包括 Huawei P30 Pro / HarmonyOS 旧 WebView 和 vivo X300 Pro 新 Android。
+
+## 复现问题
+
+- 旧 APK 只加载用户配置的服务器 URL；Docker/NAS 不可达时只能显示连接失败页，无法进入前端，也无法离线记事。
+- APK 打包脚本没有把前端 `dist/` 放进 APK，因此冷启动离线没有本地页面。
+- 前端 API 调用写死 `/api/...`，即使放进 `file:///android_asset`，也无法知道 Docker/NAS 服务地址。
+
+## 问题原因
+
+- Android 壳缺少 `file:///android_asset/www/index.html` 本地入口。
+- Vite 构建资源路径此前不适合 file:// 直接加载。
+- 前端缺少 Android bridge API 基址解析。
+- 打包脚本可能复用旧 `dist/`，存在 APK 内置前端不是当前代码的风险。
+
+## 修复内容
+
+- Android 增加 `LOCAL_APP_URL`、`loadLocalApp()`、离线使用按钮和服务器不可达自动离线 fallback。
+- Android bridge 增加 `getServerUrl()`，前端在 file:// 下通过它拼接 API 地址。
+- WebView 允许 file URL 访问和 file URL 到网络请求，保留旧 WebView 兼容防护。
+- Vite 增加 `base: './'`，前端资源可从 APK assets 相对加载。
+- `scripts/build-android-debug.js` 每次先构建前端，再把 `dist/` 复制到 APK `assets/www/`，并用 aapt `-A` 打入 APK。
+- Service Worker 在 file:// APK 壳下不注册，避免本地协议和旧 WebView 兼容问题。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js tests/frontend-ui.test.js tests/pwa-config.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- Android / 前端 / PWA 目标测试通过：24 tests。
+- `npm.cmd run check`：通过，integrityCheck ok，noteCount=188。
+- `npm.cmd run test`：通过，73 tests。
+- `npm.cmd run build`：通过，仅保留已知 Tiptap bundle size warning。
+- `npm.cmd run android:build`：通过，APK 签名校验通过。
+- APK 包内容检查：包含 `assets/www/index.html`、`assets/www/assets/*.js/css/webp`、`assets/www/icons/*`、`classes.dex` 和 `res/drawable/app_icon.png`。
+
+## 仍然存在的问题
+
+- 需要在 Huawei P30 Pro / HarmonyOS 和 vivo X300 Pro 两台真机安装新 APK 人工验收。
+- 当前离线能力基于 WebView IndexedDB；大附件 Blob 离线持久化、复杂冲突合并、后台同步不是本轮范围。
+- 完全首次离线没有 NAS 历史数据快照，只能新建本机记录；在线成功加载后才有本机快照。
+
+## 下一步建议
+
+1. 安装新 APK，不配置服务器地址，点“离线使用”，新建一条记录，关闭重开确认还在。
+2. 配置一个不可达服务器地址，确认自动进入离线模式。
+3. 启动 Docker/NAS 后配置正确地址，确认本机待同步记录能同步。
+4. 在 Huawei P30 Pro 上进入编辑页，若出现 Toast，记录完整错误文案。

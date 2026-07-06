@@ -3,6 +3,7 @@ import path from 'node:path';
 
 export default {
   root: path.resolve(process.cwd()),
+  base: './',
   plugins: [react()],
   resolve: {
     preserveSymlinks: true

@@ -10,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const androidRoot = path.join(repoRoot, 'android');
+const distRoot = path.join(repoRoot, 'dist');
 const appRoot = path.join(androidRoot, 'app');
 const sdkRoot = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || path.join(process.env.LOCALAPPDATA || '', 'Android', 'Sdk');
 const platformDir = path.join(sdkRoot, 'platforms', 'android-36.1');
@@ -37,6 +38,7 @@ const alignedApk = path.join(outRoot, 'app-debug-aligned.apk');
 const finalDir = path.join(appRoot, 'build', 'outputs', 'apk', 'debug');
 const finalApk = path.join(finalDir, 'app-debug.apk');
 const debugKeystore = path.join(outRoot, 'debug.keystore');
+const stagedWebRoot = path.join(stagedAppRoot, 'src', 'main', 'assets', 'www');
 
 function assertFile(file, label) {
   if (!fs.existsSync(file)) {
@@ -94,13 +96,19 @@ for (const [file, label] of [
 }
 
 console.log('Android SDK tools found');
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+console.log('Building frontend for Android asset bundle');
+run(npmCommand, ['run', 'build']);
+assertFile(path.join(distRoot, 'index.html'), 'frontend dist/index.html');
 console.log('Preparing temp dir', outRoot);
 fs.rmSync(outRoot, { recursive: true, force: true });
 console.log('Temp dir removed');
 fs.mkdirSync(outRoot, { recursive: true });
 console.log('Temp dir created');
 copyDir(path.join(appRoot, 'src'), path.join(stagedAppRoot, 'src'));
+copyDir(distRoot, stagedWebRoot);
 console.log('Android src staged');
+console.log('Frontend dist staged into Android assets');
 fs.mkdirSync(generatedRoot, { recursive: true });
 fs.mkdirSync(classesRoot, { recursive: true });
 fs.mkdirSync(dexRoot, { recursive: true });
@@ -114,6 +122,7 @@ run(aapt2, [
   '-I', androidJar,
   '--manifest', path.join(stagedAppRoot, 'src', 'main', 'AndroidManifest.xml'),
   '--java', generatedRoot,
+  '-A', path.join(stagedAppRoot, 'src', 'main', 'assets'),
   '--auto-add-overlay',
   '-R', resZip
 ]);

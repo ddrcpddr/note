@@ -64,6 +64,19 @@ describe('Frontend mobile interactions', () => {
     assert.match(source, /\$\{sqliteUtcMatch\[1\]\}T\$\{sqliteUtcMatch\[2\]\}Z/);
   });
 
+  test('uses Android server bridge and relative assets for offline APK shell', () => {
+    const source = readText('src/client/main.jsx');
+    const vite = readText('vite.config.js');
+
+    assert.ok(source.includes('function getAndroidServerUrl()'));
+    assert.ok(source.includes('window.HomeNoteAndroid?.getServerUrl?.()'));
+    assert.ok(source.includes('function apiUrl(path)'));
+    assert.ok(source.includes("window.location.protocol === 'file:'"));
+    assert.ok(source.includes("fetch(apiUrl('/api/app-data'))"));
+    assert.ok(source.includes("navigator.serviceWorker.register(apiUrl('/sw.js'))"));
+    assert.ok(vite.includes("base: './'"));
+  });
+
   test('polyfills modern Array helpers for older Android WebView', () => {
     const main = readText('src/client/main.jsx');
     const compat = readText('src/client/webviewCompat.js');
@@ -138,7 +151,7 @@ describe('Frontend mobile interactions', () => {
     const source = readText('src/client/main.jsx');
 
     assert.ok(source.includes('async function openDetail(id)'));
-    assert.ok(source.includes("fetch(`/api/notes?id=${encodeURIComponent(id)}`)"));
+    assert.ok(source.includes("fetch(apiUrl(`/api/notes?id=${encodeURIComponent(id)}`))"));
     assert.ok(source.includes('const normalized = normalizeNote(detailNote, categoriesData)'));
     assert.ok(source.includes('setNotesData((current) => current.some((note) => note.id === id)'));
   });
@@ -150,8 +163,8 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('const nextCategories = normalizeCategories(data.categories)'));
     assert.ok(source.includes('function normalizeNote(note, categoryList = fallbackCategories)'));
     assert.ok(source.includes('function filterNotes(notes, { filter ='));
-    assert.ok(source.includes("fetch('/api/categories'"));
-    assert.ok(source.includes("fetch('/api/categories/' + categoryId"));
+    assert.ok(source.includes("fetch(apiUrl('/api/categories')"));
+    assert.ok(source.includes("fetch(apiUrl('/api/categories/' + categoryId)"));
     assert.ok(source.includes('function NewRecordScreen({ members, categories, currentMemberId'));
     assert.ok(source.includes('categoryId: selectedCategoryId'));
     assert.ok(source.includes('function SearchScreen({ notes, categories, members, onOpenDetail })'));
@@ -175,7 +188,7 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('function enqueueOfflineCreate(payload'));
     assert.ok(source.includes("status: '待同步到 NAS'"));
     assert.ok(source.includes('function syncOfflineCreateQueue()'));
-    assert.ok(source.includes("fetch('/api/notes'"));
+    assert.ok(source.includes("fetch(apiUrl('/api/notes')"));
     assert.ok(source.includes('setSelectedId((current) => (current === item.localId ? syncedNote.id : current))'));
     assert.ok(source.includes('offlineQueueCount > 0'));
     assert.ok(source.includes('本机记录待同步'));
