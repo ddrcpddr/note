@@ -97,4 +97,18 @@ describe('Android native offline app', () => {
     assert.ok(manifest.includes('android:icon="@drawable/app_icon"'));
     assert.equal(existsSync(path.join(repoRoot, 'android/app/src/main/res/drawable/app_icon.png')), true);
   });
+
+  test('supports native offline search and category filters without a server', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('currentSearchQuery'));
+    assert.ok(activity.includes('currentCategoryFilter'));
+    assert.ok(activity.includes('搜索记录、标签或内容'));
+    assert.ok(activity.includes('全部分类'));
+    assert.ok(activity.includes('清除筛选'));
+    assert.ok(activity.includes('listNotes(String searchQuery, String categoryFilter)'));
+    assert.ok(activity.includes('listCategories()'));
+    assert.ok(activity.includes('LIKE ?'));
+    assert.ok(activity.includes('title LIKE ? OR content LIKE ? OR tags LIKE ?'));
+  });
 });

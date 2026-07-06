@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -37,6 +38,8 @@ public class MainActivity extends Activity {
     private static final int CARD = Color.WHITE;
 
     private NotesDb db;
+    private String currentSearchQuery = "";
+    private String currentCategoryFilter = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,8 +84,11 @@ public class MainActivity extends Activity {
         noticeParams.setMargins(0, dp(16), 0, dp(16));
         page.addView(offlineNotice, noticeParams);
 
-        List<Note> notes = db.listNotes();
-        TextView listTitle = text("最新记录（" + notes.size() + "）", 18, DARK, true);
+        addHomeFilters(page);
+
+        List<Note> notes = db.listNotes(currentSearchQuery, currentCategoryFilter);
+        String listLabel = currentSearchQuery.length() == 0 && currentCategoryFilter.length() == 0 ? "最新记录" : "筛选结果";
+        TextView listTitle = text(listLabel + "（" + notes.size() + "）", 18, DARK, true);
         page.addView(listTitle);
 
         if (notes.isEmpty()) {
@@ -120,6 +126,69 @@ public class MainActivity extends Activity {
         setScrollable(page);
     }
 
+    private void addHomeFilters(LinearLayout page) {
+        LinearLayout searchCard = card();
+        searchCard.setPadding(dp(12), dp(10), dp(12), dp(10));
+        LinearLayout searchRow = horizontal();
+        searchRow.setGravity(Gravity.CENTER_VERTICAL);
+        final EditText searchInput = input("搜索记录、标签或内容", false);
+        searchInput.setText(currentSearchQuery);
+        searchRow.addView(searchInput, new LinearLayout.LayoutParams(0, dp(48), 1));
+        Button searchButton = smallButton("搜索");
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                currentSearchQuery = searchInput.getText().toString().trim();
+                hideKeyboard(searchInput);
+                showHome();
+            }
+        });
+        searchRow.addView(searchButton, new LinearLayout.LayoutParams(dp(76), dp(48)));
+        searchCard.addView(searchRow);
+
+        if (currentSearchQuery.length() > 0 || currentCategoryFilter.length() > 0) {
+            Button clear = smallButton("清除筛选");
+            clear.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    currentSearchQuery = "";
+                    currentCategoryFilter = "";
+                    showHome();
+                }
+            });
+            searchCard.addView(clear, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+        }
+        page.addView(searchCard, cardParams());
+
+        HorizontalScrollView categoryScroll = new HorizontalScrollView(this);
+        categoryScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout categoryRow = horizontal();
+        categoryRow.setPadding(0, dp(8), 0, dp(4));
+        categoryRow.addView(filterButton("全部分类", ""));
+        for (String category : db.listCategories()) {
+            categoryRow.addView(filterButton(category, category));
+        }
+        categoryScroll.addView(categoryRow);
+        page.addView(categoryScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    private Button filterButton(String label, final String categoryValue) {
+        Button button = smallButton(label);
+        boolean selected = currentCategoryFilter.equals(categoryValue);
+        button.setTextColor(selected ? Color.WHITE : GREEN);
+        button.setBackgroundColor(selected ? GREEN : CARD);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                currentCategoryFilter = categoryValue;
+                showHome();
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
     private void showDetail(long id) {
         final Note note = db.getNote(id);
         if (note == null) {
@@ -393,15 +462,51 @@ public class MainActivity extends Activity {
             getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(id)});
         }
 
-        List<Note> listNotes() {
+        List<Note> listNotes(String searchQuery, String categoryFilter) {
             List<Note> notes = new ArrayList<Note>();
-            Cursor cursor = getReadableDatabase().query("notes", null, null, null, null, null, "updated_at DESC, id DESC");
+            StringBuilder where = new StringBuilder();
+            List<String> args = new ArrayList<String>();
+            if (searchQuery != null && searchQuery.trim().length() > 0) {
+                where.append("(title LIKE ? OR content LIKE ? OR tags LIKE ?)");
+                String like = "%" + searchQuery.trim() + "%";
+                args.add(like);
+                args.add(like);
+                args.add(like);
+            }
+            if (categoryFilter != null && categoryFilter.trim().length() > 0) {
+                if (where.length() > 0) where.append(" AND ");
+                where.append("category = ?");
+                args.add(categoryFilter.trim());
+            }
+            Cursor cursor = getReadableDatabase().query(
+                "notes",
+                null,
+                where.length() == 0 ? null : where.toString(),
+                args.size() == 0 ? null : args.toArray(new String[args.size()]),
+                null,
+                null,
+                "updated_at DESC, id DESC"
+            );
             try {
                 while (cursor.moveToNext()) notes.add(readNote(cursor));
             } finally {
                 cursor.close();
             }
             return notes;
+        }
+
+        List<String> listCategories() {
+            List<String> categories = new ArrayList<String>();
+            Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT DISTINCT category FROM notes WHERE category IS NOT NULL AND category != '' ORDER BY category COLLATE LOCALIZED",
+                null
+            );
+            try {
+                while (cursor.moveToNext()) categories.add(cursor.getString(0));
+            } finally {
+                cursor.close();
+            }
+            return categories;
         }
 
         Note getNote(long id) {

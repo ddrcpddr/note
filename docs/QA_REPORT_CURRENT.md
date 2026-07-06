@@ -2117,3 +2117,51 @@ npm.cmd run android:device-smoke
 - 还没有原生端同步 Docker/NAS。
 - 还没有原生端富文本、附件、Note Station `.nsx` 导入、分类筛选、成员等完整功能。
 - 当前电脑未连接手机，不能声称 vivo / Huawei 已验收。
+
+---
+测试时间：2026-07-06
+
+当前目标：原生离线 Android 增加本地搜索和分类筛选。
+
+## 复现 / 风险来源
+
+上一轮原生 APK 只完成列表、新建、编辑、详情和本地保存。家庭日常使用至少需要在离线状态下按关键词找记录、按分类缩小范围，否则只是“能记”，还不能算可持续使用。
+
+## 修复内容
+
+- Android 原生首页新增搜索输入和搜索按钮。
+- 搜索范围：标题、正文、标签。
+- Android 原生首页新增横向分类筛选。
+- 分类来源：手机本地 SQLite 记录中的 distinct category。
+- 增加“清除筛选”入口。
+- 新增 Android 测试覆盖搜索、分类筛选、SQLite 查询方法和 `LIKE ?` 条件。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，6 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 86 tests / 86 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`，`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，临时 `http://127.0.0.1:3400` HTTP smoke 也通过。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；不能声称真机通过。
+
+## 仍然存在的问题
+
+- 原生端尚未实现 Docker/NAS 同步。
+- 原生端尚未实现富文本、附件、Note Station `.nsx` 导入。
+- 真机仍需要用户或连接 USB 设备后验收。

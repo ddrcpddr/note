@@ -145,3 +145,15 @@ http://192.168.x.x:3300
 - 这只是原生离线核心版，不是完整最终版。
 - 富文本、附件、`.nsx` 导入、搜索筛选、Docker/NAS 同步还没有迁入原生端。
 - 没有真实手机连接时，不允许声称真机已通过。
+
+## 2026-07-06 原生离线搜索 / 分类筛选补充
+
+当前 debug APK 已在原生离线核心上补充：
+
+- 首页搜索记录、标签或内容。
+- 按本地分类筛选。
+- 清除筛选。
+
+APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=true`、`webAssetCount=0`。
+
+本机自动检查通过：`npm.cmd run android:delivery-check`。当前电脑未连接 USB 手机，`npm.cmd run android:device-smoke` 未完成真机验证。
