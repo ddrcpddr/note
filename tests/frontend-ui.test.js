@@ -222,6 +222,20 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('fetchApi(endpoint,'));
     assert.ok(source.includes('writeOfflineAppDataCache({'));
   });
+
+  test('keeps offline rich text attachments within mobile-safe sync boundaries', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('OFFLINE_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024'));
+    assert.ok(source.includes('OFFLINE_IMAGE_MAX_BYTES = 12 * 1024 * 1024'));
+    assert.ok(source.includes('OFFLINE_IMAGE_MAX_DIMENSION = 1600'));
+    assert.ok(source.includes('compressImageFileForOffline'));
+    assert.ok(source.includes('canvas.toBlob'));
+    assert.ok(source.includes('单个附件不能超过 8MB'));
+    assert.ok(source.includes('图片超过 12MB'));
+    assert.ok(source.includes('editorNotice'));
+  });
+
   test('keeps member management aligned with compact mobile UI', () => {
     const source = readText('src/client/main.jsx');
 

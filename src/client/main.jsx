@@ -1170,22 +1170,90 @@ function makeDraftRef(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function fileToAttachmentPayload(file) {
+const OFFLINE_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
+const OFFLINE_IMAGE_MAX_BYTES = 12 * 1024 * 1024;
+const OFFLINE_IMAGE_INLINE_TARGET_BYTES = 2 * 1024 * 1024;
+const OFFLINE_IMAGE_MAX_DIMENSION = 1600;
+const OFFLINE_IMAGE_QUALITY = 0.82;
+
+function readBlobAsDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || '');
-      resolve({
-        fileName: file.name,
-        originalName: file.name,
-        mimeType: file.type || 'application/octet-stream',
-        fileSize: file.size,
-        contentBase64: result.includes(',') ? result.split(',')[1] : result
-      });
-    };
+    reader.onload = () => resolve(String(reader.result || ''));
     reader.onerror = () => reject(reader.error || new Error('attachment read failed'));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   });
+}
+
+function dataUrlToAttachmentPayload(dataUrl, file, overrides = {}) {
+  const result = String(dataUrl || '');
+  const contentBase64 = result.includes(',') ? result.split(',')[1] : result;
+  const mimeType = overrides.mimeType || file.type || 'application/octet-stream';
+  const fileName = overrides.fileName || file.name;
+  return {
+    fileName,
+    originalName: file.name,
+    mimeType,
+    fileSize: overrides.fileSize ?? file.size,
+    contentBase64
+  };
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('image decode failed'));
+    image.src = src;
+  });
+}
+
+async function compressImageFileForOffline(file) {
+  if (!file.type.startsWith('image/')) return fileToAttachmentPayload(file);
+  if (file.size > OFFLINE_IMAGE_MAX_BYTES) {
+    throw new Error('图片超过 12MB，请先压缩后再插入');
+  }
+
+  const originalDataUrl = await readBlobAsDataUrl(file);
+  if (file.size <= OFFLINE_IMAGE_INLINE_TARGET_BYTES || file.type === 'image/gif' || typeof document === 'undefined') {
+    if (file.size > OFFLINE_ATTACHMENT_MAX_BYTES) {
+      throw new Error('图片超过离线同步大小，请先压缩后再插入');
+    }
+    return dataUrlToAttachmentPayload(originalDataUrl, file);
+  }
+
+  const image = await loadImageElement(originalDataUrl);
+  const scale = Math.min(1, OFFLINE_IMAGE_MAX_DIMENSION / Math.max(image.width || 1, image.height || 1));
+  const width = Math.max(1, Math.round((image.width || 1) * scale));
+  const height = Math.max(1, Math.round((image.height || 1) * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d');
+  if (!context) return dataUrlToAttachmentPayload(originalDataUrl, file);
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', OFFLINE_IMAGE_QUALITY));
+  if (!blob || blob.size <= 0 || blob.size >= file.size) {
+    if (file.size > OFFLINE_ATTACHMENT_MAX_BYTES) {
+      throw new Error('图片压缩失败，请换一张较小的图片');
+    }
+    return dataUrlToAttachmentPayload(originalDataUrl, file);
+  }
+  if (blob.size > OFFLINE_ATTACHMENT_MAX_BYTES) {
+    throw new Error('图片压缩后仍超过离线同步大小，请换一张较小的图片');
+  }
+  const compressedDataUrl = await readBlobAsDataUrl(blob);
+  const fileName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+  return dataUrlToAttachmentPayload(compressedDataUrl, file, { fileName, mimeType: 'image/jpeg', fileSize: blob.size });
+}
+
+async function fileToAttachmentPayload(file) {
+  if (file.size > OFFLINE_ATTACHMENT_MAX_BYTES) {
+    throw new Error('单个附件不能超过 8MB，请压缩后再插入');
+  }
+  const dataUrl = await readBlobAsDataUrl(file);
+  return dataUrlToAttachmentPayload(dataUrl, file);
 }
 
 function formatBytes(size = 0) {
@@ -1438,6 +1506,7 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
   const imageInputRef = useRef(null);
   const attachmentInputRef = useRef(null);
   const [toolbarRevision, setToolbarRevision] = useState(0);
+  const [editorNotice, setEditorNotice] = useState('');
   const initialContent = useMemo(() => {
     if (initialJson) {
       try {
@@ -1506,23 +1575,36 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
     onChange({ html: activeEditor.getHTML(), text: activeEditor.getText().trim(), json: activeEditor.getJSON() });
   }
 
+  function showEditorNotice(message) {
+    setEditorNotice(message);
+    window.setTimeout(() => setEditorNotice(''), 2600);
+  }
+
   async function insertImageFile(file) {
     if (!editor || !file) return;
-    const payload = await fileToAttachmentPayload(file);
-    const draftRef = makeDraftRef('image');
-    const nextPayload = { ...payload, draftRef, contentRefId: draftRef, kind: 'image', isInline: true };
-    onAttachmentDraft?.(nextPayload);
-    const src = `data:${nextPayload.mimeType};base64,${nextPayload.contentBase64}`;
-    editor.chain().focus().setImage({ src, alt: nextPayload.originalName, draftRef }).run();
+    try {
+      const payload = await compressImageFileForOffline(file);
+      const draftRef = makeDraftRef('image');
+      const nextPayload = { ...payload, draftRef, contentRefId: draftRef, kind: 'image', isInline: true };
+      onAttachmentDraft?.(nextPayload);
+      const src = `data:${nextPayload.mimeType};base64,${nextPayload.contentBase64}`;
+      editor.chain().focus().setImage({ src, alt: nextPayload.originalName, draftRef }).run();
+    } catch (error) {
+      showEditorNotice(error?.message || '图片处理失败，请换一张再试');
+    }
   }
 
   async function insertAttachmentFile(file) {
     if (!editor || !file) return;
-    const payload = await fileToAttachmentPayload(file);
-    const draftRef = makeDraftRef('file');
-    const nextPayload = { ...payload, draftRef, contentRefId: draftRef, kind: 'file', isInline: true };
-    onAttachmentDraft?.(nextPayload);
-    editor.chain().focus().insertContent(`<p><a href="#attachment-${draftRef}">附件：${escapeClientHtml(nextPayload.originalName)}</a></p>`).run();
+    try {
+      const payload = await fileToAttachmentPayload(file);
+      const draftRef = makeDraftRef('file');
+      const nextPayload = { ...payload, draftRef, contentRefId: draftRef, kind: 'file', isInline: true };
+      onAttachmentDraft?.(nextPayload);
+      editor.chain().focus().insertContent(`<p><a href="#attachment-${draftRef}">附件：${escapeClientHtml(nextPayload.originalName)}</a></p>`).run();
+    } catch (error) {
+      showEditorNotice(error?.message || '附件处理失败，请换一个文件再试');
+    }
   }
 
   function handlePaste(event) {
@@ -1638,6 +1720,11 @@ function RichTextEditor({ initialHtml = '', initialJson = null, plainTextFallbac
           ))}
         </div>
       </div>
+      {editorNotice && (
+        <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] leading-relaxed text-amber-700">
+          {editorNotice}
+        </div>
+      )}
       <EditorContent editor={editor} onPaste={handlePaste} />
       <input ref={imageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { Array.from(event.target.files || []).forEach((file) => insertImageFile(file)); event.target.value = ''; }} />
       <input ref={attachmentInputRef} className="hidden" type="file" onChange={(event) => { Array.from(event.target.files || []).forEach((file) => insertAttachmentFile(file)); event.target.value = ''; }} />

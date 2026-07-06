@@ -1684,3 +1684,54 @@ npm.cmd run android:build
 2. B 设备在线修改同一条记录。
 3. A 设备恢复联网后尝试同步。
 4. 确认服务端不会被旧版本覆盖，A 设备显示同步失败 / 待处理。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 6 第一刀，补齐离线富文本图片 / 附件的安全边界。本轮不改数据库结构、不修改真实运行数据、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+富文本编辑器已经能插入图片和附件，但如果用户在离线 APK 里插入过大的手机照片或文件，页面可能看起来保存成功，恢复联网时却因为 JSON / 同步体积过大失败。这对家庭用户是最糟的体验：以为保存了，最后同步不了。
+
+## 问题原因
+
+图片和附件此前直接转成 base64 放进富文本正文和同步 payload，没有客户端大小边界，也没有图片压缩。服务端 JSON 限制和移动端存储限制会在更晚的时候才暴露。
+
+## 修复内容
+
+- 图片插入前尝试压缩到移动端离线同步友好的大小。
+- 图片超过 12MB、压缩后仍过大或压缩失败时，编辑器内直接提示。
+- 普通附件单个超过 8MB 时，编辑器内直接提示。
+- 新增测试覆盖图片压缩常量、附件大小限制和编辑器提示入口。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，27 tests pass。
+- npm.cmd run check：通过，integrityCheck=ok，categoryCount=11，noteCount=188。
+- npm.cmd run test：通过，77 tests pass。
+- npm.cmd run build：通过，保留已知 Tiptap bundle size warning。
+- npm.cmd run android:build：通过，APK 已重新生成并签名校验通过。
+
+## 仍然存在的问题
+
+- 还没做超大附件 Blob 独立长期离线存储和分块同步。
+- 仍需真机测试手机照片压缩后的显示、重启持久化和恢复联网同步。
+
+## 下一步建议
+
+1. 安卓 APK 离线新建一条富文本记录。
+2. 插入一张手机照片和一个小附件。
+3. 保存后杀掉 App 再打开，确认记录和图片仍在。
+4. 恢复连接 Docker/NAS，确认记录能同步。
+5. 尝试插入一个超过 8MB 的普通附件，确认会提示而不是假保存。
