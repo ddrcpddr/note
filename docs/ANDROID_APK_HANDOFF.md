@@ -122,3 +122,26 @@ http://192.168.x.x:3300
 6. 编辑页是否出现“纯文本降级”提示。
 
 如果出现数据同步问题，先不要卸载 App。卸载会删除手机本地 IndexedDB，可能丢失未同步记录。
+
+## 2026-07-06 重要更正：旧 Android 壳方案作废
+
+此前文档中提到的 WebView + IndexedDB + Docker/NAS 同步 APK，不再作为最终 Android 路线。用户已经明确拒绝壳 APK，要求真正离线可用的 Android App。
+
+当前 `android/app/build/outputs/apk/debug/app-debug.apk` 已改为原生离线核心 APK：
+
+- 原生 Android Activity。
+- 手机本地 SQLite。
+- 不打包 `assets/www`。
+- 不依赖 Docker/NAS 才能新建和保存基础记录。
+
+已验证：
+
+- `npm.cmd run android:delivery-check` 通过。
+- `npm.cmd run android:verify` 输出 `nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:device-smoke` 未通过，原因是当前电脑没有检测到可用 USB 手机；不能声称 vivo / Huawei 真机已通过。
+
+仍需说明：
+
+- 这只是原生离线核心版，不是完整最终版。
+- 富文本、附件、`.nsx` 导入、搜索筛选、Docker/NAS 同步还没有迁入原生端。
+- 没有真实手机连接时，不允许声称真机已通过。

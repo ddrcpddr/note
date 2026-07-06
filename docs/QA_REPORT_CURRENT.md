@@ -266,13 +266,13 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 
 ## 测试结果
 
-- 
-pm.cmd run check：通过，integrityCheck=ok，categoryCount=11，
+-
+npm.cmd run check：通过，integrityCheck=ok，categoryCount=11，
 oteCount=114。
-- 
-pm.cmd run test：通过，11 个 suite，40 个 test，40 个 pass，0 个 fail。
-- 
-pm.cmd run build：通过。
+-
+npm.cmd run test：通过，11 个 suite，40 个 test，40 个 pass，0 个 fail。
+-
+npm.cmd run build：通过。
 - Docker 3300 smoke：通过，健康接口、app-data、列表、详情、搜索、分类、成员、备份、JSON 导出、前端 shell 均 ok。
 
 ## 移动端 UI 验证
@@ -1038,10 +1038,10 @@ npm.cmd run build
 
 ### 已运行命令
 
-- 
-pm.cmd run test -- tests/android-wrapper.test.js
-- 
-pm.cmd run test -- tests/http-smoke.test.js tests/ghcr-deployment.test.js
+-
+npm.cmd run test -- tests/android-wrapper.test.js
+-
+npm.cmd run test -- tests/http-smoke.test.js tests/ghcr-deployment.test.js
 - 手工 GHCR 临时容器 HTTP 验证脚本：保存新笔记 + .nsx dry-run + commit + 富文本内联附件检查。
 
 ### 结果
@@ -1064,7 +1064,7 @@ pm.cmd run test -- tests/http-smoke.test.js tests/ghcr-deployment.test.js
 - Browser error: Failed to execute 'put' on 'IDBObjectStore': Symbol(react.forward_ref) could not be cloned.
 
 ### Root Cause
-- The React app normalized categories with lucide React component values in category.icon / 
+- The React app normalized categories with lucide React component values in category.icon /
 ote.icon.
 - saveLocalSnapshot() wrote those UI-only values directly into IndexedDB.
 - IndexedDB structured clone rejected React component symbols, aborting the UI save flow before the note became searchable.
@@ -1075,18 +1075,18 @@ ote.icon.
 - Added regression coverage in 	ests/offline-store-static.test.js.
 
 ### Verification
-- 
-pm.cmd run check: passed, SQLite integrity ok.
-- 
-pm.cmd run test: passed, 66 tests.
-- 
-pm.cmd run build: passed.
-- Built local Docker image 
+-
+npm.cmd run check: passed, SQLite integrity ok.
+-
+npm.cmd run test: passed, 66 tests.
+-
+npm.cmd run build: passed.
+- Built local Docker image
 ote:ui-fixed-test and ran it on http://127.0.0.1:3315.
 - Playwright UI save regression: passed, created note was searchable and no IndexedDB clone error appeared.
 - Playwright UI NSX import regression: passed, selected .nsx, previewed, committed, and imported rich text included 2 inline /api/attachments/ refs.
-- 
-pm.cmd run smoke -- --base-url http://127.0.0.1:3315: passed.
+-
+npm.cmd run smoke -- --base-url http://127.0.0.1:3315: passed.
 
 ### Delivery Rule Added
 - API-only smoke is not enough for Docker delivery. Before publishing a Docker image, run the built image locally and test critical flows through a real browser UI.
@@ -1097,8 +1097,8 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3315: passed.
 - Verified health build commit: cb67794f68853b65c6dc63b2fe20d72ce96d2ebc.
 - Real browser UI quick-save test against http://127.0.0.1:3316: passed; note became searchable and browser reported no IndexedDB clone error.
 - Real browser UI NSX import test against http://127.0.0.1:3316: passed; .nsx file could be selected, previewed and committed; imported rich text had 2 inline /api/attachments/ refs.
-- 
-pm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the published GHCR image.
+-
+npm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the published GHCR image.
 
 ## 2026-07-04 21:36:17 +08:00 - Huawei P30 Pro / HarmonyOS APK edit white-screen guard
 
@@ -1169,20 +1169,20 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the publish
 
 ### 运行命令
 
-- 
+-
 ode --test tests/frontend-ui.test.js tests/android-wrapper.test.js：通过，18 tests。
-- 
-pm.cmd run check：通过，integrityCheck ok，noteCount 188。
-- 
-pm.cmd run test：通过，69 tests。
-- 
-pm.cmd run build：通过。
+-
+npm.cmd run check：通过，integrityCheck ok，noteCount 188。
+-
+npm.cmd run test：通过，69 tests。
+-
+npm.cmd run build：通过。
 - 构建产物检查：index-BNB4ADOV.js 中 polyfill 位于 .findLast( 使用之前。
-- 
-pm.cmd run android:build：通过，APK 已重新生成。
+-
+npm.cmd run android:build：通过，APK 已重新生成。
 - docker build -t note:findlast-polyfill-test .：通过。
-- 临时 Docker http://127.0.0.1:3319 跑 
-pm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
+- 临时 Docker http://127.0.0.1:3319 跑
+npm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
 - 临时 Docker 实际 JS bundle 检查：hasFindLastPolyfill=true，polyfillBeforeUsage=true。
 
 ### 测试结果
@@ -2073,3 +2073,47 @@ npm.cmd run android:verify
 
 - 该测试证明恢复联网同步批处理的代码行为，但仍不能替代真实手机上的离线新建、编辑、重启、恢复联网同步人工验收。
 - 当前电脑未连接手机，因此本轮没有执行成功的 `npm.cmd run android:device-smoke`。
+
+---
+测试时间：2026-07-06
+
+---
+测试时间：2026-07-06
+
+当前目标：纠正 Android 交付路线，停止 WebView/file:// 壳 APK，验证原生离线核心 APK。
+
+## 问题结论
+
+用户反馈是正确的：此前所谓离线 APK 实际仍是 WebView / file:// 壳，离线、兼容性、长期本地保存都不可靠。继续在壳 APK 上修补属于错误方向，不能作为家庭自用离线 Android App 交付。
+
+## 本轮修正
+
+- Android `MainActivity.java` 改为原生 Android UI + SQLite 本地存储。
+- 移除 WebView 加载路径，不再打包 `assets/www`。
+- Android 构建脚本改为构建原生离线 APK，不再先构建前端网页并复制到 APK。
+- APK 验证脚本新增 `nativeOffline` 和 `webAssetCount=0` 检查。
+- Android 测试改为确认原生 SQLite 路线，并禁止 WebView 壳标记回归。
+
+## 运行命令
+
+```bash
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，当前 Web 服务测试库记录数为 202。
+- `npm.cmd run test`：通过，16 suites / 85 tests / 85 pass。
+- `npm.cmd run build`：通过，仍有 Vite 大 chunk warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`，`hasClassesDex=true`，`hasLauncherIcon=true`，`webAssetCount=0`。
+- HTTP smoke：通过，覆盖 health、app-data、列表、详情、新建、Note Station 网页导入、备份、JSON 导出和前端 shell。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机。这不是 APK 功能失败，但表示本机无法完成自动真机验收；不能声称 vivo X300 Pro / Huawei P30 Pro 已通过。
+
+## 仍然存在的问题
+
+- 当前原生 Android 只完成离线核心：列表、新建、编辑、详情、本地保存。
+- 还没有原生端同步 Docker/NAS。
+- 还没有原生端富文本、附件、Note Station `.nsx` 导入、分类筛选、成员等完整功能。
+- 当前电脑未连接手机，不能声称 vivo / Huawei 已验收。

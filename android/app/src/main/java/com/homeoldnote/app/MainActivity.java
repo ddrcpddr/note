@@ -1,491 +1,429 @@
 package com.homeoldnote.app;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
-import android.net.Uri;
-import android.os.Build;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.ConsoleMessage;
-import android.webkit.JavascriptInterface;
-import android.webkit.RenderProcessGoneDetail;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
-    private static final String PREFS_NAME = "home_notes_android";
-    private static final String SERVER_URL_KEY = "server_url";
-    private static final String DEFAULT_PLACEHOLDER_URL = "http://192.168.1.100:3300";
-    private static final String LOCAL_APP_URL = "file:///android_asset/www/index.html";
-    private static final int FILE_CHOOSER_REQUEST_CODE = 4300;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
-    private SharedPreferences preferences;
-    private WebView webView;
-    private ProgressBar progressBar;
-    private ValueCallback<Uri[]> filePathCallback;
-    private String currentServerUrl;
-    private String lastWebRuntimeError = "";
-    private boolean loadingLocalApp = false;
+public class MainActivity extends Activity {
+    private static final String DATABASE_NAME = "home_note_native.db";
+    private static final int DATABASE_VERSION = 1;
+    private static final int GREEN = Color.rgb(61, 170, 108);
+    private static final int DARK = Color.rgb(13, 24, 37);
+    private static final int MUTED = Color.rgb(113, 123, 138);
+    private static final int BG = Color.rgb(244, 245, 247);
+    private static final int CARD = Color.WHITE;
+
+    private NotesDb db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            WebView.setWebContentsDebuggingEnabled(true);
-        }
-        preferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        currentServerUrl = preferences.getString(SERVER_URL_KEY, "");
-
-        if (currentServerUrl == null || currentServerUrl.trim().isEmpty()) {
-            showSettings("");
-        } else {
-            loadServer(currentServerUrl);
-        }
-    }
-
-    private void showSettings(String message) {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(24), dp(40), dp(24), dp(24));
-        root.setBackgroundColor(Color.rgb(244, 245, 247));
-
-        TextView title = new TextView(this);
-        title.setText("连接家事记服务");
-        title.setTextColor(Color.rgb(13, 24, 37));
-        title.setTextSize(26);
-        title.setGravity(Gravity.CENTER);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        root.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        TextView description = new TextView(this);
-        description.setText("请输入家庭 NAS / Docker 上的家事记地址。地址只保存在这台手机上。");
-        description.setTextColor(Color.rgb(113, 123, 138));
-        description.setTextSize(15);
-        description.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams descParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        descParams.setMargins(0, dp(12), 0, dp(24));
-        root.addView(description, descParams);
-
-        if (message != null && !message.isEmpty()) {
-            TextView error = new TextView(this);
-            error.setText(message);
-            error.setTextColor(Color.rgb(180, 84, 42));
-            error.setTextSize(14);
-            error.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams errorParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            errorParams.setMargins(0, 0, 0, dp(16));
-            root.addView(error, errorParams);
-        }
-
-        EditText input = new EditText(this);
-        input.setSingleLine(true);
-        input.setText(currentServerUrl == null || currentServerUrl.isEmpty() ? "" : currentServerUrl);
-        input.setHint(DEFAULT_PLACEHOLDER_URL);
-        input.setTextSize(16);
-        input.setSelectAllOnFocus(false);
-        input.setInputType(android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        root.addView(input, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54)));
-
-        Button saveButton = new Button(this);
-        saveButton.setText("保存并打开");
-        saveButton.setTextSize(16);
-        saveButton.setAllCaps(false);
-        saveButton.setTextColor(Color.WHITE);
-        saveButton.setBackgroundColor(Color.rgb(61, 170, 108));
-        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        buttonParams.setMargins(0, dp(18), 0, 0);
-        root.addView(saveButton, buttonParams);
-
-        Button offlineButton = new Button(this);
-        offlineButton.setText("离线使用");
-        offlineButton.setTextSize(16);
-        offlineButton.setAllCaps(false);
-        offlineButton.setTextColor(Color.rgb(61, 170, 108));
-        LinearLayout.LayoutParams offlineButtonParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        offlineButtonParams.setMargins(0, dp(12), 0, 0);
-        root.addView(offlineButton, offlineButtonParams);
-
-        TextView helper = new TextView(this);
-        helper.setText("示例：" + DEFAULT_PLACEHOLDER_URL + "\n手机和 NAS 需要在同一个局域网内。");
-        helper.setTextColor(Color.rgb(146, 154, 168));
-        helper.setTextSize(13);
-        helper.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams helperParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        helperParams.setMargins(0, dp(18), 0, 0);
-        root.addView(helper, helperParams);
-
-        offlineButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                loadLocalApp("已进入离线模式。新建和编辑会先保存在这台手机上，连上服务后再同步。");
-            }
-        });
-
-        saveButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String normalized = normalizeServerUrl(input.getText().toString());
-                if (normalized.isEmpty()) {
-                    Toast.makeText(MainActivity.this, "请先输入服务器地址", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (!isHttpUrl(normalized)) {
-                    Toast.makeText(MainActivity.this, "地址需要以 http:// 或 https:// 开头", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                preferences.edit().putString(SERVER_URL_KEY, normalized).apply();
-                currentServerUrl = normalized;
-                loadServer(normalized);
-            }
-        });
-
-        setContentView(root);
-    }
-
-    private void loadServer(String serverUrl) {
-        loadingLocalApp = false;
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(244, 245, 247));
-
-        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        progressBar.setIndeterminate(true);
-        root.addView(progressBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
-
-        webView = new WebView(this);
-        configureWebView(webView);
-        root.addView(webView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-
-        setContentView(root);
-        webView.loadUrl(serverUrl);
-    }
-
-    private void loadLocalApp(String message) {
-        loadingLocalApp = true;
-
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(Color.rgb(244, 245, 247));
-
-        progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        progressBar.setIndeterminate(true);
-        root.addView(progressBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(3)));
-
-        webView = new WebView(this);
-        configureWebView(webView);
-        root.addView(webView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-
-        setContentView(root);
-        if (message != null && !message.isEmpty()) {
-            Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
-        }
-        webView.loadUrl(LOCAL_APP_URL);
-    }
-
-    private void configureWebView(WebView view) {
-        WebSettings settings = view.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setDatabaseEnabled(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setTextZoom(100);
-        settings.setAllowFileAccess(true);
-        settings.setAllowContentAccess(true);
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
-        }
-        view.addJavascriptInterface(new AndroidBridge(), "HomeNoteAndroid");
-
-        view.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                if (consoleMessage != null && consoleMessage.messageLevel() == ConsoleMessage.MessageLevel.ERROR) {
-                    reportWebRuntimeError("JS console: " + consoleMessage.message());
-                }
-                return super.onConsoleMessage(consoleMessage);
-            }
-
-            @Override
-            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> callback, FileChooserParams fileChooserParams) {
-                if (filePathCallback != null) {
-                    filePathCallback.onReceiveValue(null);
-                }
-                filePathCallback = callback;
-
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType(resolveFileChooserType(fileChooserParams));
-                String[] mimeTypes = resolveFileChooserMimeTypes(fileChooserParams);
-                if (mimeTypes.length > 0) {
-                    intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
-                }
-
-                try {
-                    startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
-                    return true;
-                } catch (Exception error) {
-                    filePathCallback = null;
-                    callback.onReceiveValue(null);
-                    Toast.makeText(MainActivity.this, "没有找到可用的文件选择器", Toast.LENGTH_SHORT).show();
-                    return false;
-                }
-            }
-        });
-
-        view.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView webView, WebResourceRequest request) {
-                Uri uri = request.getUrl();
-                if (uri == null) return false;
-                String scheme = uri.getScheme();
-                return !(scheme == null || scheme.equals("http") || scheme.equals("https") || scheme.equals("file") || scheme.equals("about") || scheme.equals("data") || scheme.equals("blob"));
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                if (progressBar != null) {
-                    progressBar.setVisibility(View.GONE);
-                }
-                injectRuntimeErrorHook(view);
-            }
-
-            @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request != null && request.isForMainFrame()) {
-                    if (loadingLocalApp) {
-                        showLoadError();
-                    } else {
-                        loadLocalApp("暂时连不上家庭记录服务，已进入离线模式。");
-                    }
-                }
-            }
-
-            @Override
-            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-                Toast.makeText(MainActivity.this, "页面渲染进程已恢复，请再试一次编辑", Toast.LENGTH_LONG).show();
-                if (loadingLocalApp) {
-                    loadLocalApp("页面渲染进程已恢复，请再试一次编辑。");
-                } else if (currentServerUrl != null && !currentServerUrl.isEmpty()) {
-                    loadServer(currentServerUrl);
-                } else {
-                    showSettings("页面渲染进程异常，请重新打开服务地址或离线使用。");
-                }
-                return true;
-            }
-        });
-    }
-
-    private void injectRuntimeErrorHook(WebView view) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT || view == null) return;
-        view.evaluateJavascript("(function(){if(window.__homeNoteAndroidErrorHook)return;window.__homeNoteAndroidErrorHook=true;window.addEventListener('error',function(e){if(window.HomeNoteAndroid){window.HomeNoteAndroid.reportError(String(e.message||'script error'));}});window.addEventListener('unhandledrejection',function(e){if(window.HomeNoteAndroid){var r=e.reason;window.HomeNoteAndroid.reportError(String((r&&r.message)||r||'unhandled rejection'));}});})()", null);
-    }
-
-    private void reportWebRuntimeError(final String message) {
-        if (message == null || message.equals(lastWebRuntimeError)) return;
-        lastWebRuntimeError = message;
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(MainActivity.this, "页面脚本异常：" + message, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    public class AndroidBridge {
-        @JavascriptInterface
-        public String getServerUrl() {
-            return currentServerUrl == null ? "" : currentServerUrl;
-        }
-
-        @JavascriptInterface
-        public boolean isLocalApp() {
-            return loadingLocalApp;
-        }
-
-        @JavascriptInterface
-        public void reportError(String message) {
-            reportWebRuntimeError(message);
-        }
-
-        @JavascriptInterface
-        public void openServerSettings() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    showSettings("可以换成当前 Docker/NAS 的局域网地址。");
-                }
-            });
-        }
-    }
-
-    private void showLoadError() {
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER_HORIZONTAL);
-        root.setPadding(dp(24), dp(48), dp(24), dp(24));
-        root.setBackgroundColor(Color.rgb(244, 245, 247));
-
-        TextView title = new TextView(this);
-        title.setText("暂时连不上家事记");
-        title.setTextColor(Color.rgb(13, 24, 37));
-        title.setTextSize(24);
-        title.setGravity(Gravity.CENTER);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        root.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        TextView message = new TextView(this);
-        message.setText("请确认 Docker/NAS 服务已启动，手机和服务器在同一个局域网。也可以先离线使用，恢复连接后再同步。");
-        message.setTextColor(Color.rgb(113, 123, 138));
-        message.setTextSize(15);
-        message.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams msgParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        msgParams.setMargins(0, dp(12), 0, dp(24));
-        root.addView(message, msgParams);
-
-        Button retry = new Button(this);
-        retry.setText("重新连接");
-        retry.setAllCaps(false);
-        retry.setTextColor(Color.WHITE);
-        retry.setBackgroundColor(Color.rgb(61, 170, 108));
-        root.addView(retry, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
-        retry.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                loadServer(currentServerUrl);
-            }
-        });
-
-        Button offline = new Button(this);
-        offline.setText("离线使用");
-        offline.setAllCaps(false);
-        LinearLayout.LayoutParams offlineParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        offlineParams.setMargins(0, dp(12), 0, 0);
-        root.addView(offline, offlineParams);
-        offline.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                loadLocalApp("已进入离线模式。新建和编辑会先保存在这台手机上。");
-            }
-        });
-
-        Button settings = new Button(this);
-        settings.setText("修改服务器地址");
-        settings.setAllCaps(false);
-        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
-        settingsParams.setMargins(0, dp(12), 0, 0);
-        root.addView(settings, settingsParams);
-        settings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showSettings("可以换成当前 Docker/NAS 的局域网地址。");
-            }
-        });
-
-        setContentView(root);
-    }
-
-    private String resolveFileChooserType(WebChromeClient.FileChooserParams params) {
-        if (params == null || params.getAcceptTypes() == null) return "*/*";
-        for (String type : params.getAcceptTypes()) {
-            if (type == null || type.trim().isEmpty()) continue;
-            String value = type.trim();
-            if (value.startsWith(".")) return "*/*";
-            return value;
-        }
-        return "*/*";
-    }
-
-    private String[] resolveFileChooserMimeTypes(WebChromeClient.FileChooserParams params) {
-        if (params == null || params.getAcceptTypes() == null) {
-            return new String[] { "application/octet-stream", "application/zip", "image/*" };
-        }
-
-        java.util.ArrayList<String> mimeTypes = new java.util.ArrayList<>();
-        for (String type : params.getAcceptTypes()) {
-            if (type == null || type.trim().isEmpty()) continue;
-            String value = type.trim();
-            if (value.equals(".nsx")) {
-                mimeTypes.add("application/octet-stream");
-                mimeTypes.add("application/zip");
-                continue;
-            }
-            if (!value.startsWith(".")) {
-                mimeTypes.add(value);
-            }
-        }
-
-        if (mimeTypes.isEmpty()) {
-            mimeTypes.add("application/octet-stream");
-            mimeTypes.add("application/zip");
-            mimeTypes.add("image/*");
-        }
-        return mimeTypes.toArray(new String[0]);
+        db = new NotesDb(this);
+        showHome();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
-            if (filePathCallback == null) return;
-            Uri[] result = null;
-            if (resultCode == Activity.RESULT_OK) {
-                result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
-                if (result == null && data != null && data.getData() != null) {
-                    result = new Uri[] { data.getData() };
-                }
+    protected void onDestroy() {
+        if (db != null) db.close();
+        super.onDestroy();
+    }
+
+    private void showHome() {
+        LinearLayout page = pageRoot();
+        LinearLayout header = horizontal();
+        header.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout titleBox = new LinearLayout(this);
+        titleBox.setOrientation(LinearLayout.VERTICAL);
+        TextView title = text("家事记", 28, GREEN, true);
+        TextView subtitle = text("离线记录家里的大小事", 14, MUTED, false);
+        titleBox.addView(title);
+        titleBox.addView(subtitle);
+        header.addView(titleBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
+        Button newButton = smallButton("新建");
+        newButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showEditor(null);
             }
-            filePathCallback.onReceiveValue(result);
-            filePathCallback = null;
+        });
+        header.addView(newButton, new LinearLayout.LayoutParams(dp(88), dp(44)));
+        page.addView(header);
+
+        TextView offlineNotice = text("当前是原生离线版：不连接 Docker/NAS 也可以新建、编辑和保存。", 13, GREEN, false);
+        offlineNotice.setPadding(dp(12), dp(10), dp(12), dp(10));
+        offlineNotice.setBackgroundColor(Color.rgb(232, 245, 238));
+        LinearLayout.LayoutParams noticeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        noticeParams.setMargins(0, dp(16), 0, dp(16));
+        page.addView(offlineNotice, noticeParams);
+
+        List<Note> notes = db.listNotes();
+        TextView listTitle = text("最新记录（" + notes.size() + "）", 18, DARK, true);
+        page.addView(listTitle);
+
+        if (notes.isEmpty()) {
+            LinearLayout empty = card();
+            empty.setGravity(Gravity.CENTER);
+            empty.setPadding(dp(18), dp(32), dp(18), dp(32));
+            TextView emptyTitle = text("这里暂时没有记录", 20, DARK, true);
+            emptyTitle.setGravity(Gravity.CENTER);
+            TextView emptyText = text("先新建一条，数据会保存在这台手机本地。", 14, MUTED, false);
+            emptyText.setGravity(Gravity.CENTER);
+            empty.addView(emptyTitle);
+            empty.addView(emptyText);
+            page.addView(empty, cardParams());
+        } else {
+            for (final Note note : notes) {
+                LinearLayout item = card();
+                item.setPadding(dp(16), dp(14), dp(16), dp(14));
+                TextView itemTitle = text(note.title.length() == 0 ? "未命名记录" : note.title, 18, DARK, true);
+                TextView summary = text(note.content.length() == 0 ? "没有正文" : note.content, 14, MUTED, false);
+                summary.setMaxLines(3);
+                TextView meta = text(note.category + "  ·  " + note.updatedAt, 12, GREEN, false);
+                item.addView(itemTitle);
+                item.addView(summary);
+                item.addView(meta);
+                item.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        showDetail(note.id);
+                    }
+                });
+                page.addView(item, cardParams());
+            }
+        }
+
+        setScrollable(page);
+    }
+
+    private void showDetail(long id) {
+        final Note note = db.getNote(id);
+        if (note == null) {
+            Toast.makeText(this, "记录不存在", Toast.LENGTH_SHORT).show();
+            showHome();
             return;
         }
-        super.onActivityResult(requestCode, resultCode, data);
+
+        LinearLayout page = pageRoot();
+        LinearLayout top = horizontal();
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        Button back = smallButton("返回");
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showHome();
+            }
+        });
+        top.addView(back, new LinearLayout.LayoutParams(dp(76), dp(44)));
+        TextView title = text("记录详情", 20, DARK, true);
+        title.setGravity(Gravity.CENTER);
+        top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        Button edit = smallButton("编辑");
+        edit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showEditor(note);
+            }
+        });
+        top.addView(edit, new LinearLayout.LayoutParams(dp(76), dp(44)));
+        page.addView(top);
+
+        LinearLayout card = card();
+        card.setPadding(dp(18), dp(18), dp(18), dp(18));
+        card.addView(text(note.title.length() == 0 ? "未命名记录" : note.title, 22, DARK, true));
+        card.addView(text(note.category + "  ·  " + note.tags, 13, GREEN, false));
+        card.addView(text("创建：" + note.createdAt, 12, MUTED, false));
+        card.addView(text("更新：" + note.updatedAt, 12, MUTED, false));
+        page.addView(card, cardParams());
+
+        LinearLayout contentCard = card();
+        contentCard.setPadding(dp(18), dp(18), dp(18), dp(18));
+        contentCard.addView(text("内容", 18, GREEN, true));
+        TextView content = text(note.content.length() == 0 ? "没有正文" : note.content, 17, DARK, false);
+        content.setLineSpacing(dp(4), 1.0f);
+        contentCard.addView(content);
+        page.addView(contentCard, cardParams());
+
+        setScrollable(page);
     }
 
-    private String normalizeServerUrl(String raw) {
-        String value = raw == null ? "" : raw.trim();
-        if (value.isEmpty()) return "";
-        while (value.endsWith("/")) {
-            value = value.substring(0, value.length() - 1);
+    private void showEditor(final Note existing) {
+        LinearLayout page = pageRoot();
+        LinearLayout top = horizontal();
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        Button cancel = smallButton("取消");
+        cancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (existing == null) showHome();
+                else showDetail(existing.id);
+            }
+        });
+        top.addView(cancel, new LinearLayout.LayoutParams(dp(76), dp(44)));
+        TextView title = text(existing == null ? "新建记录" : "编辑记录", 20, DARK, true);
+        title.setGravity(Gravity.CENTER);
+        top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        Button save = smallButton("保存");
+        top.addView(save, new LinearLayout.LayoutParams(dp(76), dp(44)));
+        page.addView(top);
+
+        final EditText titleInput = input("标题（可选）", false);
+        final EditText contentInput = input("写下家里的小事、账单、维修、临时备忘……", true);
+        final EditText categoryInput = input("分类，例如 家庭事务", false);
+        final EditText tagsInput = input("标签，例如 待办 重要", false);
+
+        if (existing != null) {
+            titleInput.setText(existing.title);
+            contentInput.setText(existing.content);
+            categoryInput.setText(existing.category);
+            tagsInput.setText(existing.tags);
+        } else {
+            categoryInput.setText("未分类 / 待整理");
         }
-        return value;
+
+        page.addView(label("标题"));
+        page.addView(titleInput, inputParams(false));
+        page.addView(label("内容"));
+        page.addView(contentInput, inputParams(true));
+        page.addView(label("分类"));
+        page.addView(categoryInput, inputParams(false));
+        page.addView(label("标签"));
+        page.addView(tagsInput, inputParams(false));
+
+        save.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String title = titleInput.getText().toString().trim();
+                String content = contentInput.getText().toString().trim();
+                String category = categoryInput.getText().toString().trim();
+                String tags = tagsInput.getText().toString().trim();
+                if (title.length() == 0 && content.length() == 0) {
+                    Toast.makeText(MainActivity.this, "先写一点内容再保存", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (category.length() == 0) category = "未分类 / 待整理";
+                long savedId;
+                if (existing == null) savedId = db.createNote(title, content, category, tags);
+                else {
+                    db.updateNote(existing.id, title, content, category, tags);
+                    savedId = existing.id;
+                }
+                hideKeyboard(contentInput);
+                Toast.makeText(MainActivity.this, "已保存到手机本地", Toast.LENGTH_SHORT).show();
+                showDetail(savedId);
+            }
+        });
+
+        setScrollable(page);
     }
 
-    private boolean isHttpUrl(String value) {
-        return value.startsWith("http://") || value.startsWith("https://");
+    @Override
+    public void onBackPressed() {
+        showHome();
+    }
+
+    private LinearLayout pageRoot() {
+        LinearLayout page = new LinearLayout(this);
+        page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(dp(18), dp(24), dp(18), dp(28));
+        page.setBackgroundColor(BG);
+        return page;
+    }
+
+    private void setScrollable(LinearLayout page) {
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(BG);
+        scrollView.addView(page, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        setContentView(scrollView);
+    }
+
+    private LinearLayout horizontal() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        return layout;
+    }
+
+    private LinearLayout card() {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundColor(CARD);
+        return card;
+    }
+
+    private LinearLayout.LayoutParams cardParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, dp(12), 0, 0);
+        return params;
+    }
+
+    private TextView label(String value) {
+        TextView label = text(value, 15, DARK, true);
+        label.setPadding(0, dp(18), 0, dp(8));
+        return label;
+    }
+
+    private TextView text(String value, int size, int color, boolean bold) {
+        TextView textView = new TextView(this);
+        textView.setText(value == null ? "" : value);
+        textView.setTextSize(size);
+        textView.setTextColor(color);
+        textView.setLineSpacing(dp(2), 1.0f);
+        if (bold) textView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        return textView;
+    }
+
+    private EditText input(String hint, boolean multiline) {
+        EditText input = new EditText(this);
+        input.setHint(hint);
+        input.setTextSize(16);
+        input.setTextColor(DARK);
+        input.setHintTextColor(MUTED);
+        input.setSingleLine(!multiline);
+        input.setGravity(multiline ? Gravity.TOP | Gravity.START : Gravity.CENTER_VERTICAL | Gravity.START);
+        input.setInputType(multiline ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES : InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setPadding(dp(12), dp(10), dp(12), dp(10));
+        input.setBackgroundColor(CARD);
+        return input;
+    }
+
+    private LinearLayout.LayoutParams inputParams(boolean multiline) {
+        return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, multiline ? dp(220) : dp(54));
+    }
+
+    private Button smallButton(String label) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setAllCaps(false);
+        button.setTextSize(14);
+        button.setTextColor(GREEN);
+        return button;
+    }
+
+    private void hideKeyboard(View view) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    @Override
-    public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
-            return;
+    private static String nowText() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(new Date());
+    }
+
+    private static class Note {
+        long id;
+        String title;
+        String content;
+        String category;
+        String tags;
+        String createdAt;
+        String updatedAt;
+    }
+
+    private static class NotesDb extends SQLiteOpenHelper {
+        NotesDb(Context context) {
+            super(context, DATABASE_NAME, null, DATABASE_VERSION);
         }
-        super.onBackPressed();
+
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE notes (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "title TEXT NOT NULL DEFAULT ''," +
+                "content TEXT NOT NULL DEFAULT ''," +
+                "category TEXT NOT NULL DEFAULT '未分类 / 待整理'," +
+                "tags TEXT NOT NULL DEFAULT ''," +
+                "created_at TEXT NOT NULL," +
+                "updated_at TEXT NOT NULL" +
+                ")");
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            db.execSQL("DROP TABLE IF EXISTS notes");
+            onCreate(db);
+        }
+
+        long createNote(String title, String content, String category, String tags) {
+            String now = nowText();
+            ContentValues values = new ContentValues();
+            values.put("title", title);
+            values.put("content", content);
+            values.put("category", category);
+            values.put("tags", tags);
+            values.put("created_at", now);
+            values.put("updated_at", now);
+            return getWritableDatabase().insert("notes", null, values);
+        }
+
+        void updateNote(long id, String title, String content, String category, String tags) {
+            ContentValues values = new ContentValues();
+            values.put("title", title);
+            values.put("content", content);
+            values.put("category", category);
+            values.put("tags", tags);
+            values.put("updated_at", nowText());
+            getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(id)});
+        }
+
+        List<Note> listNotes() {
+            List<Note> notes = new ArrayList<Note>();
+            Cursor cursor = getReadableDatabase().query("notes", null, null, null, null, null, "updated_at DESC, id DESC");
+            try {
+                while (cursor.moveToNext()) notes.add(readNote(cursor));
+            } finally {
+                cursor.close();
+            }
+            return notes;
+        }
+
+        Note getNote(long id) {
+            Cursor cursor = getReadableDatabase().query("notes", null, "id=?", new String[]{String.valueOf(id)}, null, null, null);
+            try {
+                if (!cursor.moveToFirst()) return null;
+                return readNote(cursor);
+            } finally {
+                cursor.close();
+            }
+        }
+
+        private Note readNote(Cursor cursor) {
+            Note note = new Note();
+            note.id = cursor.getLong(cursor.getColumnIndexOrThrow("id"));
+            note.title = cursor.getString(cursor.getColumnIndexOrThrow("title"));
+            note.content = cursor.getString(cursor.getColumnIndexOrThrow("content"));
+            note.category = cursor.getString(cursor.getColumnIndexOrThrow("category"));
+            note.tags = cursor.getString(cursor.getColumnIndexOrThrow("tags"));
+            note.createdAt = cursor.getString(cursor.getColumnIndexOrThrow("created_at"));
+            note.updatedAt = cursor.getString(cursor.getColumnIndexOrThrow("updated_at"));
+            return note;
+        }
     }
 }

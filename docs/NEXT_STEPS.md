@@ -195,13 +195,13 @@ Android / WebView / TWA 继续排最后。进入前需要确认：
 后续继续开发前，交付 Docker 镜像或 APK 必须先跑：
 
 1. 
-pm.cmd run check
+npm.cmd run check
 2. 
-pm.cmd run test
+npm.cmd run test
 3. 
-pm.cmd run build
+npm.cmd run build
 4. 本机 Docker 或 GHCR 镜像启动后执行写入版 smoke：
-pm.cmd run smoke -- --base-url http://127.0.0.1:3300
+npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 5. 确认 smoke 中包含 create-note、created-note-detail、
 otestation-web-import 三项。
 6. Android APK 如涉及导入，必须验证 WebView 文件选择器能打开 .nsx。
@@ -321,3 +321,32 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 - 复杂后台同步。
 - 多设备自动合并界面。
 - 大附件长期离线 Blob 完整同步。
+
+## 2026-07-06 Android 路线重置
+
+停止继续推进 WebView / file:// / IndexedDB 壳 APK。用户需要的是能长期离线使用的 Android App，不是网页壳。此前 Android Gate 1-14 只保留为历史教训，不再作为当前主线。
+
+当前主线改为原生离线 Android：
+
+1. 原生 Android + SQLite 本地保存核心。
+2. 真机验证：vivo X300 Pro、Huawei P30 Pro / HarmonyOS。
+3. 原生端补搜索、分类、标签、成员等日常记事功能。
+4. 原生端补富文本、图片、附件。
+5. 原生端补 Note Station .nsx 导入，导入后直接进入富文本正文，而不是正文和附件分离。
+6. 原生端补 Docker/NAS 同步，服务器只是同步目标，不再是启动前提。
+
+当前已完成第一步的代码基础：
+
+- 不含 WebView。
+- 不含 assets/www。
+- 使用 home_note_native.db。
+- 支持本地列表、新建、编辑、详情、保存。
+
+下一步不要交付“最终版”说法。必须先让用户在真实手机上确认：
+
+- 不连接 Docker/NAS 可以打开。
+- 可以新建记录。
+- 可以编辑记录。
+- 退出重开记录仍在。
+
+通过后再继续补功能。
