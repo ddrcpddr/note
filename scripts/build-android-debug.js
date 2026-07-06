@@ -62,6 +62,35 @@ function run(command, args, options = {}) {
   }
 }
 
+function capture(command, args, options = {}) {
+  const isBatch = command.toLowerCase().endsWith('.bat') || command.toLowerCase().endsWith('.cmd');
+  const executable = isBatch ? 'cmd.exe' : command;
+  const executableArgs = isBatch ? ['/c', command, ...args] : args;
+  const result = spawnSync(executable, executableArgs, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    shell: false,
+    ...options
+  });
+  if (result.status !== 0) {
+    throw new Error(`Command failed: ${command}\n${result.stderr || result.stdout || ''}`);
+  }
+  return result.stdout || '';
+}
+
+function assertAndroidAssets(apkFile) {
+  const entries = capture(jar, ['tf', apkFile]).split(/\r?\n/).filter(Boolean);
+  const hasIndex = entries.includes('assets/www/index.html');
+  const badAssetEntries = entries.filter((entry) => entry.startsWith('assets/') && entry.includes('\\'));
+
+  if (!hasIndex) {
+    throw new Error('APK is missing assets/www/index.html; offline Android mode will not load.');
+  }
+  if (badAssetEntries.length > 0) {
+    throw new Error(`APK assets contain Windows path separators: ${badAssetEntries.slice(0, 5).join(', ')}`);
+  }
+}
+
 function copyDir(source, target) {
   fs.mkdirSync(target, { recursive: true });
   for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
@@ -122,10 +151,11 @@ run(aapt2, [
   '-I', androidJar,
   '--manifest', path.join(stagedAppRoot, 'src', 'main', 'AndroidManifest.xml'),
   '--java', generatedRoot,
-  '-A', path.join(stagedAppRoot, 'src', 'main', 'assets'),
   '--auto-add-overlay',
   '-R', resZip
 ]);
+run(jar, ['uf', unsignedApk, '-C', path.join(stagedAppRoot, 'src', 'main'), 'assets']);
+assertAndroidAssets(unsignedApk);
 
 const javaFiles = [
   ...collectJavaFiles(generatedRoot),
@@ -167,5 +197,6 @@ run(apksigner, [
   alignedApk
 ]);
 run(apksigner, ['verify', '--verbose', finalApk]);
+assertAndroidAssets(finalApk);
 
 console.log(`\nAPK created: ${finalApk}`);

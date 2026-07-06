@@ -58,7 +58,11 @@ describe('Android WebView wrapper', () => {
     assert.ok(buildScript.includes("path.join(stagedAppRoot, 'src', 'main', 'assets', 'www')"));
     assert.ok(buildScript.includes('copyDir(distRoot, stagedWebRoot)'));
     assert.ok(buildScript.includes('Building frontend for Android asset bundle'));
-    assert.ok(buildScript.includes("'-A', path.join(stagedAppRoot, 'src', 'main', 'assets')"));
+    assert.equal(buildScript.includes("'-A', path.join(stagedAppRoot, 'src', 'main', 'assets')"), false);
+    assert.ok(buildScript.includes("run(jar, ['uf', unsignedApk, '-C', path.join(stagedAppRoot, 'src', 'main'), 'assets'])"));
+    assert.ok(buildScript.includes('function assertAndroidAssets(apkFile)'));
+    assert.ok(buildScript.includes("entries.includes('assets/www/index.html')"));
+    assert.ok(buildScript.includes("entry.includes('\\\\')"));
   });
 
 

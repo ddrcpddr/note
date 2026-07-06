@@ -197,7 +197,7 @@ docker compose up -d --build
 
 ## 运行命令
 
-`ash
+`ash
 npm.cmd run check
 npm.cmd run test
 npm.cmd run build
@@ -1100,7 +1100,7 @@ pm.cmd run smoke -- --base-url http://127.0.0.1:3316: passed against the publish
 
 - Tiptap 打包后的前端 bundle 中使用了 Array.prototype.findLast。
 - Huawei P30 Pro 上的旧 Android WebView 不支持该现代 Array API。
-- Vite uild.target 只负责语法降级，不会自动补齐内置 API polyfill，所以页面进入编辑器时仍会脚本异常。
+- Vite uild.target 只负责语法降级，不会自动补齐内置 API polyfill，所以页面进入编辑器时仍会脚本异常。
 
 ### 修复内容
 
@@ -1128,7 +1128,7 @@ pm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
 
 ### 测试结果
 
-- 旧 WebView 缺少 indLast/findLastIndex 的根因已在 bundle 层修复。
+- 旧 WebView 缺少 indLast/findLastIndex 的根因已在 bundle 层修复。
 - Docker 镜像构建与 smoke 通过。
 - APK 重新打包通过。
 
@@ -1149,7 +1149,7 @@ pm.cmd run smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
 - 已拉取 ghcr.io/ddrcpddr/note:latest，digest sha256:04d99ce047e961f73b68a95dff668fe0352966bf6156817680ddd18301df52ac。
 - 发布镜像 health build commit：574e4f5c8f2309d9e88d2e6b0d72dd8f49ee1678。
 - 发布镜像临时容器 http://127.0.0.1:3320 HTTP smoke：通过，新建、NSX import、备份、JSON 导出均 ok。
-- 发布镜像实际 JS bundle：/assets/index-BNB4ADOV.js，确认 indLast polyfill 存在且位于 .findLast( 使用之前。
+- 发布镜像实际 JS bundle：/assets/index-BNB4ADOV.js，确认 indLast polyfill 存在且位于 .findLast( 使用之前。
 
 ## 2026-07-05 15:06 +08:00 - Android APK icon and Docker timezone
 
@@ -1338,3 +1338,61 @@ npm.cmd run android:build
 2. 配置一个不可达服务器地址，确认自动进入离线模式。
 3. 启动 Docker/NAS 后配置正确地址，确认本机待同步记录能同步。
 4. 在 Huawei P30 Pro 上进入编辑页，若出现 Toast，记录完整错误文案。
+
+---
+
+测试时间：2026-07-06 11:11:44 +08:00
+
+当前目标：修复 Android 离线 APK 在 vivo X300 Pro 上点击“离线使用”无法进入的问题。
+
+## 复现步骤
+
+1. 检查上一版 `android/app/build/outputs/apk/debug/app-debug.apk` 包内容。
+2. 使用 `jar tf` 查看 APK 内 `assets/www` 条目。
+3. 发现条目为 `assets/www\index.html`、`assets/www\assets\index-*.js`，不是 Android `file:///android_asset/www/index.html` 能稳定读取的正斜杠路径。
+
+## 问题原因
+
+- Android 打包脚本使用 `aapt2 link -A <assets>` 添加前端静态资源。
+- 在 Windows 环境中该方式写入了反斜杠 zip entry。
+- 上一轮验收只确认 APK 包内有 assets 文件，没有验证 zip entry 是否为 Android asset URL 需要的 `assets/www/index.html`。
+
+## 修复内容
+
+- `scripts/build-android-debug.js` 不再用 `aapt2 -A` 打入前端 assets。
+- 改为 `aapt2 link` 生成 unsigned APK 后，用 JDK `jar uf -C <staged main> assets` 追加前端静态资源。
+- 新增 `assertAndroidAssets()`：构建中检查 `assets/www/index.html` 必须存在，且 `assets/` 条目不得包含 Windows 反斜杠。
+- `tests/android-wrapper.test.js` 增加对新打包策略和路径校验的断言。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run android:build
+jar tf android/app/build/outputs/apk/debug/app-debug.apk
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+## 测试结果
+
+- Android wrapper 定向测试：通过，3 tests。
+- `npm.cmd run android:build`：通过，APK 签名校验通过。
+- APK 包内容：确认包含 `assets/www/index.html`、`assets/www/assets/index-*.js`、`assets/www/assets/index-*.css`，均为正斜杠路径。
+- 反斜杠检查：通过，`assets/` 条目无 `\`。
+- `npm.cmd run check`：通过，integrityCheck ok，noteCount=188。
+- `npm.cmd run test`：通过，73 tests。
+- `npm.cmd run build`：通过，仅保留已知 bundle size warning。
+
+## 仍然存在的问题
+
+- 仍需用户在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 真机安装新 APK，确认点击“离线使用”可以进入本地页面并新建记录。
+- 本次修复是 APK 打包路径问题，不改变离线同步策略本身。
+
+## 下一步建议
+
+1. 安装本次重新生成的 `android/app/build/outputs/apk/debug/app-debug.apk`。
+2. 不配置服务器地址，直接点“离线使用”。
+3. 新建一条离线记录，关闭 App 后重新打开确认记录仍在。
+4. 再配置 Docker/NAS 地址，检查恢复联网后的同步。

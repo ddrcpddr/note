@@ -50,3 +50,21 @@ Android APK 需要在 Docker / NAS 服务暂时不可达时继续可用，不能
 - `npm.cmd run build`：通过。
 - `npm.cmd run android:build`：通过，APK 签名校验通过。
 - APK 包内容确认包含 `assets/www/index.html` 和前端静态资源。
+
+## Windows 打包路径注意事项
+
+2026-07-06 修复：Windows 上不能再用 `aapt2 link -A <assets>` 打包前端 `dist/`，否则 APK 里可能出现 `assets/www\index.html` 这类反斜杠 zip entry，导致 `file:///android_asset/www/index.html` 在 Android WebView 里打不开。
+
+当前脚本做法：
+
+1. `aapt2 link` 只处理 manifest / res。
+2. 使用 JDK `jar uf -C <staged main> assets` 追加 `assets/www/`。
+3. 构建过程中强制校验：APK 必须包含 `assets/www/index.html`，且 `assets/` 条目不能包含 `\`。
+
+手动复查命令：
+
+```bash
+jar tf android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+合格结果应看到 `assets/www/index.html`、`assets/www/assets/...`，不能看到 `assets/www\index.html`。
