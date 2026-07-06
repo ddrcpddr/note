@@ -1583,3 +1583,54 @@ npm.cmd run android:build
 3. 重启 App，确认记录仍在并显示待同步。
 4. 配置正确 Docker/NAS 地址，点击“尝试同步”。
 5. 在 Docker/NAS 浏览器端确认只出现一条最终记录，内容是最后编辑后的版本。
+---
+测试时间：2026-07-06
+
+当前目标：Gate 4 第一刀，修复离线同步失败后的可见状态和重试触发。本轮不改数据库结构、不修改真实运行数据、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+上一轮虽然在首页增加了“尝试同步”按钮，但复查代码发现：如果 App 已经处于在线 sqlite 模式且队列里有失败项，按钮主要触发重新拉取服务端数据，不一定立刻重跑 syncPendingLocalMutations。家庭用户看到按钮但失败项不动，会误以为同步坏了。
+
+## 问题原因
+
+- `retryRemoteConnection()` 只递增 accessNonce，没有在在线模式下直接触发本机待同步队列。
+- 首页待同步提示没有区分 pending 和 failed，用户无法知道是还没同步，还是同步失败需要重试。
+- 同步失败时只把 mutation 标记为 failed，没有明确 toast 提示。
+
+## 修复内容
+
+- `retryRemoteConnection()` 在 `dataMode === 'sqlite'` 且存在待同步记录时，直接调用 `syncPendingLocalMutations()`。
+- 首页根据 `offlineFailedCount` 显示“有 X 条同步失败，可重试”，按钮文案切换为“重试同步”。
+- 同步失败时 toast 提示“同步暂时失败，可稍后重试”；部分成功时提示“已同步部分记录，还有记录待重试”。
+- 新增静态回归测试，防止按钮退回成只刷新。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，26 tests pass。
+- npm.cmd run check：通过，integrityCheck=ok，categoryCount=11，noteCount=188。
+- npm.cmd run test：通过，75 tests pass。
+- npm.cmd run build：通过，保留已知 Tiptap bundle size warning。
+- npm.cmd run android:build：通过，APK 已重新生成并签名校验通过。
+
+## 仍然存在的问题
+
+- 仍需两台真机人工验收：vivo X300 Pro 与 Huawei P30 Pro / HarmonyOS。
+- 当前是基础失败重试：复杂冲突合并、后台同步、大附件 Blob 长期离线同步仍未完成。
+
+## 下一步建议
+
+1. 离线新建并编辑一条记录。
+2. 临时配置错误服务器地址，观察待同步 / 失败提示。
+3. 改回正确 Docker/NAS 地址，点击“重试同步”。
+4. 在服务端确认只出现最终版本记录。

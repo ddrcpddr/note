@@ -199,10 +199,15 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('function pickPendingLocalNotes(snapshot, categoryList)'));
     assert.ok(source.includes('const [offlineCreateQueue, setOfflineCreateQueue] = useState([])'));
     assert.ok(source.includes('function retryRemoteConnection()'));
+    assert.ok(source.includes("if (dataMode === 'sqlite' && offlineCreateQueue.length > 0)"));
+    assert.ok(source.includes('window.setTimeout(() => syncPendingLocalMutations(), 0)'));
     assert.ok(source.includes("window.addEventListener('online', handleOnline)"));
     assert.ok(source.includes('onSyncNow={retryRemoteConnection}'));
+    assert.ok(source.includes("offlineFailedCount={offlineCreateQueue.filter((item) => item.status === 'failed').length}"));
     assert.ok(source.includes('offlineQueueCount > 0'));
     assert.ok(source.includes('本机记录待同步'));
+    assert.ok(source.includes('同步失败，可重试'));
+    assert.ok(source.includes('重试同步'));
     assert.ok(source.includes('尝试同步'));
     assert.ok(source.includes("setDataMode('offline-first')"));
     assert.ok(!source.includes('OFFLINE_CREATE_QUEUE_KEY'));

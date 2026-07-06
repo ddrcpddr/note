@@ -517,7 +517,11 @@ function App() {
   }
 
   function retryRemoteConnection() {
-    showToast('正在尝试连接家庭记录服务');
+    showToast(dataMode === 'sqlite' ? '正在尝试同步本机记录' : '正在尝试连接家庭记录服务');
+    if (dataMode === 'sqlite' && offlineCreateQueue.length > 0) {
+      window.setTimeout(() => syncPendingLocalMutations(), 0);
+      return;
+    }
     setAccessNonce((value) => value + 1);
   }
 
@@ -598,6 +602,7 @@ function App() {
     offlineSyncingRef.current = true;
     setOfflineSyncing(true);
     let syncedCount = 0;
+    let failedMessage = '';
 
     try {
       for (const mutation of mutations) {
@@ -623,12 +628,17 @@ function App() {
           setSelectedId((current) => (current === mutation.localId || current === mutation.noteId ? syncedNote.id : current));
           syncedCount += 1;
         } catch (error) {
-          await markMutationFailed(mutation, error?.message || 'sync failed');
+          failedMessage = error?.message || 'sync failed';
+          await markMutationFailed(mutation, failedMessage);
           break;
         }
       }
       await refreshPendingMutationState();
-      if (syncedCount) showToast('已同步 ' + syncedCount + ' 条本机记录');
+      if (failedMessage) {
+        showToast(syncedCount ? '已同步部分记录，还有记录待重试' : '同步暂时失败，可稍后重试');
+      } else if (syncedCount) {
+        showToast('已同步 ' + syncedCount + ' 条本机记录');
+      }
     } finally {
       offlineSyncingRef.current = false;
       setOfflineSyncing(false);
@@ -943,6 +953,7 @@ function App() {
           notes={notesData}
           categories={categoriesData}
           offlineQueueCount={offlineCreateQueue.length}
+          offlineFailedCount={offlineCreateQueue.filter((item) => item.status === 'failed').length}
           offlineSyncing={offlineSyncing}
           filter={homeFilter}
           member={homeMember}
@@ -1274,7 +1285,7 @@ function AccessLockScreen({ message, onUnlock }) {
   );
 }
 
-function HomeScreen({ notes, categories, offlineQueueCount, offlineSyncing, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote, onSyncNow }) {
+function HomeScreen({ notes, categories, offlineQueueCount, offlineFailedCount, offlineSyncing, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote, onSyncNow }) {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const hasAdvancedFilter = member !== 'all' || category !== 'all';
   const visibleNotes = filterNotes(notes, { filter, member, category }, categories);
@@ -1298,14 +1309,14 @@ function HomeScreen({ notes, categories, offlineQueueCount, offlineSyncing, filt
       <QuickFilters active={filter} onChange={onFilterChange} showMore={showMoreFilters} onToggleMore={() => setShowMoreFilters((value) => !value)} />
       {offlineQueueCount > 0 && (
         <section className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700">
-          <span>{offlineSyncing ? '正在同步本机记录...' : '有 ' + offlineQueueCount + ' 条本机记录待同步'}</span>
+          <span>{offlineSyncing ? '正在同步本机记录...' : offlineFailedCount > 0 ? '有 ' + offlineFailedCount + ' 条同步失败，可重试' : '有 ' + offlineQueueCount + ' 条本机记录待同步'}</span>
           <button
             type="button"
             className="shrink-0 rounded-full border border-amber-200 bg-white px-3 py-1 text-[12px] font-semibold text-amber-700 disabled:opacity-60"
             onClick={onSyncNow}
             disabled={offlineSyncing}
           >
-            尝试同步
+            {offlineFailedCount > 0 ? '重试同步' : '尝试同步'}
           </button>
         </section>
       )}
