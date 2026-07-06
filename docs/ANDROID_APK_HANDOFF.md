@@ -18,6 +18,7 @@ android/app/build/outputs/apk/debug/app-debug.apk
 
 ```bash
 node --test tests/mvp-api.test.js tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+node --test tests/offline-store-behavior.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js tests/frontend-ui.test.js
 npm.cmd run check
 npm.cmd run test
 npm.cmd run build
@@ -29,10 +30,11 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 最近一次完整结果：
 
 - `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
-- `npm.cmd run test`：通过，77 tests。
+- `npm.cmd run test`：通过，82 tests。
 - `npm.cmd run build`：通过。
 - `npm.cmd run android:build`：通过，APK 签名校验通过。
 - `npm.cmd run android:verify`：通过，确认 APK 内包含 `assets/www/index.html`、相对路径 JS/CSS、PWA manifest/icons，并且构建后的 JS 不含 `file:///api` 离线错误路径。
+- `tests/offline-store-behavior.test.js`：通过，函数级验证 IndexedDB 离线快照、待同步队列压缩、失败重试和写入安全。
 - HTTP smoke：通过，覆盖健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、Note Station 网页上传导入、手动备份、JSON 导出和前端 shell。
 
 ## 当前 APK 已具备
@@ -43,6 +45,7 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 - App 恢复联网后可尝试同步待同步记录。
 - 离线新建后再离线编辑，会压缩为一条最终创建记录，避免服务端出现重复或 PATCH `local-*`。
 - 同步失败会显示失败状态，并可点击重试。
+- 离线存储函数已有行为级测试覆盖本地快照恢复、失败队列保留和同步成功后清理。
 - 已有服务端记录离线编辑时会携带 `baseUpdatedAt`，服务端记录已被别人更新时返回冲突，避免静默覆盖。
 - 富文本图片插入会尝试压缩；超大图片 / 附件会提示，不做假保存。
 - Huawei / 老 Android WebView 上如果富文本编辑器报错，会降级到纯文本编辑，避免白屏。

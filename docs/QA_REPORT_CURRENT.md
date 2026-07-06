@@ -1846,3 +1846,42 @@ npm.cmd run android:verify
 
 - 该验证能证明 APK 包结构和离线运行时标记正确，但不能替代 vivo / Huawei 真机手动测试。
 - 仍需用户在两台手机上测试离线新建、编辑、插图、重启、联网同步。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 10，补齐离线 IndexedDB 本地数据链路的行为级回归测试。本轮不改业务逻辑、不改数据库结构、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+离线 Android 目前依赖 WebView IndexedDB 保存本地记录和待同步队列。上一轮 `android:verify` 能确认 APK 包结构和构建后 JS 标记，但不能证明离线存储函数本身真的能完成“保存、恢复、失败重试、队列压缩”。
+
+## 修复内容
+
+- 新增 `tests/offline-store-behavior.test.js`。
+- 在测试中实现轻量内存版 IndexedDB fake，不引入新依赖。
+- 行为级覆盖：
+  - 离线快照保存和恢复。
+  - 离线新建后继续编辑时合并为一条 pending create。
+  - 同步失败保留为 failed，成功后删除。
+  - IndexedDB 写入前清理循环引用和函数值。
+
+## 运行命令
+
+```bash
+node --test tests/offline-store-behavior.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js tests/frontend-ui.test.js
+```
+
+## 测试结果
+
+- 定向测试：通过，32 tests pass。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，`categoryCount=11`，`noteCount=190`。
+- `npm.cmd run test`：通过，15 suites / 82 tests / 82 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap chunk size warning。
+- `npm.cmd run android:build`：通过，APK 已重新生成并签名校验通过。
+- `npm.cmd run android:verify`：通过，确认 APK 内 `assets/www/index.html`、相对路径 JS/CSS、manifest/icons 和离线运行时标记存在。
+
+## 仍然存在的问题
+
+- 这是函数级自动化测试，不等同于真实手机 WebView 的完整离线 / 联网同步验收。
+- 仍需要在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上验证：离线新建、离线编辑、插图、重启后保留、恢复 Docker/NAS 后同步。

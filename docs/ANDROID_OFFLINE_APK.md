@@ -234,3 +234,20 @@ npm.cmd run android:verify
 - 构建后的 JS 必须包含 Android bridge、IndexedDB 离线库、待同步文案、冲突基线等运行时标记。
 
 以后交付 APK 前，除 `android:build` 外必须跑 `android:verify`。
+
+## 2026-07-06 Gate 10：离线 IndexedDB 行为测试
+
+新增命令覆盖：
+
+```bash
+node --test tests/offline-store-behavior.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js tests/frontend-ui.test.js
+```
+
+新增的 `tests/offline-store-behavior.test.js` 会用内存版 IndexedDB 验证离线核心链路：
+
+- 离线快照可以保存和恢复。
+- 本机 `local-*` 记录先新建再编辑时，只保留一条最终 `create` 待同步项。
+- 同步失败项会保留为 `failed`，同步成功后会从队列移除。
+- 循环引用、函数等不可写入 IndexedDB 的值会在保存前被剔除。
+
+这个测试不能替代真机，但以后能防止离线 APK 的本地存储逻辑在代码层面退化。

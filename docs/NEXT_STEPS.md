@@ -300,6 +300,7 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 - Gate 7：本机构建产物启动后，HTTP smoke 通过，覆盖新建、搜索、筛选、NSX 上传导入、备份、JSON 导出和前端 shell。
 - Gate 8：新增 `docs/ANDROID_APK_HANDOFF.md`，集中记录当前 APK 的测试方式、已验证能力和限制。
 - Gate 9：新增 `npm.cmd run android:verify`，直接检查 APK 内部离线 web bundle、相对路径、图标/manifest 和离线运行时标记。
+- Gate 10：新增 `tests/offline-store-behavior.test.js`，用行为级测试覆盖 IndexedDB 离线快照、待同步队列压缩、失败重试和写入安全。
 
 下一步按家庭自用优先级继续：
 
