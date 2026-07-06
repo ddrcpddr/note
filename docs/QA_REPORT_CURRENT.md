@@ -2258,3 +2258,54 @@ npm.cmd run android:device-smoke
 - 原生端尚未真正同步 Docker/NAS。
 - 原生端尚未实现同步成功后的队列清理。
 - 原生端尚未处理同步失败提示细节、编辑同步冲突、富文本、图片、附件和 Note Station `.nsx` 导入。
+
+---
+测试时间：2026-07-06
+
+当前目标：原生离线 Android 最小新建记录同步到 Docker/NAS。
+
+## 复现 / 风险来源
+
+上一阶段只有同步队列表和服务器地址配置，手动同步还没有真实网络请求。用户需要的是长期离线可用、恢复联网后可同步的 Android App，因此本轮先补最小闭环：本地新建记录上传到服务端。
+
+## TDD 过程
+
+- 新增 `syncs native offline created notes to Docker NAS when server is reachable` 测试。
+- 红灯结果：测试因 `HttpURLConnection` 缺失失败，证明原生端确实还没有网络同步。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- 新增原生后台线程同步入口 `runManualSync()`。
+- 新增 `syncPendingCreates()`，只处理 `create` 类型队列项。
+- 新增 `postCreateMutation()`，POST 到真实 `/api/notes` 接口。
+- 新增 `markSyncDone()` 和 `markSyncFailed()`。
+- 修复全新安装时 `sync_queue` 未创建的问题。
+- 同步失败项保留为 failed，并继续纳入待同步数量。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，9 tests。
+- `npm.cmd run android:delivery-check`：通过。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 89 tests / 89 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- 临时 HTTP smoke：通过。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；不能声称真机通过。
+
+## 仍然存在的问题
+
+- 原生端编辑记录同步未完成。
+- 原生端冲突处理未完成。
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+- 需要真实手机验证手动同步按钮是否能在局域网内把记录上传到 Docker/NAS。

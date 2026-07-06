@@ -23,6 +23,15 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -315,13 +324,146 @@ public class MainActivity extends Activity {
         manualSync.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "同步功能下一阶段接入 Docker/NAS", Toast.LENGTH_LONG).show();
+                runManualSync();
             }
         });
         card.addView(manualSync, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
         page.addView(card, cardParams());
 
         setScrollable(page);
+    }
+    private void runManualSync() {
+        final String serverUrl = prefs.getString(PREF_SERVER_URL, "").trim();
+        if (serverUrl.length() == 0) {
+            Toast.makeText(this, "先填写服务器地址", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(this, "开始同步本机新建记录", Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final SyncResult result = syncPendingCreates(serverUrl);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this, result.message, result.ok ? Toast.LENGTH_SHORT : Toast.LENGTH_LONG).show();
+                        showSyncSettings();
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private SyncResult syncPendingCreates(String serverUrl) {
+        List<SyncMutation> mutations = db.listPendingSyncMutations();
+        int synced = 0;
+        int skipped = 0;
+        for (SyncMutation mutation : mutations) {
+            if (!"create".equals(mutation.mutationType)) {
+                skipped++;
+                continue;
+            }
+            try {
+                postCreateMutation(serverUrl, mutation);
+                db.markSyncDone(mutation.queueId);
+                synced++;
+            } catch (Exception error) {
+                db.markSyncFailed(mutation.queueId);
+                return new SyncResult(false, "同步失败：" + error.getMessage());
+            }
+        }
+        if (synced == 0 && skipped == 0) return new SyncResult(true, "没有待同步记录");
+        if (skipped > 0) return new SyncResult(true, "同步完成：" + synced + " 条；编辑同步下一阶段处理");
+        return new SyncResult(true, "同步完成：" + synced + " 条");
+    }
+
+    private void postCreateMutation(String serverUrl, SyncMutation mutation) throws Exception {
+        URL url = new URL(normalizeServerUrl(serverUrl) + "/api/notes");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setConnectTimeout(8000);
+        connection.setReadTimeout(8000);
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+        connection.setRequestProperty("Accept", "application/json");
+
+        byte[] body = buildCreatePayload(mutation).toString().getBytes("UTF-8");
+        connection.setFixedLengthStreamingMode(body.length);
+        OutputStream output = connection.getOutputStream();
+        try {
+            output.write(body);
+        } finally {
+            output.close();
+        }
+
+        int code = connection.getResponseCode();
+        if (code < 200 || code >= 300) {
+            throw new Exception("HTTP " + code + " " + readResponse(connection));
+        }
+        connection.disconnect();
+    }
+
+    private JSONObject buildCreatePayload(SyncMutation mutation) throws Exception {
+        JSONObject payload = new JSONObject();
+        payload.put("title", mutation.title == null ? "" : mutation.title);
+        payload.put("content", mutation.content == null ? "" : mutation.content);
+        payload.put("contentText", mutation.content == null ? "" : mutation.content);
+        payload.put("categoryId", categoryIdFor(mutation.category));
+        payload.put("memberId", "self");
+        payload.put("noteType", "normal");
+        payload.put("sourceType", "manual");
+        JSONArray tags = new JSONArray();
+        for (String tag : splitTags(mutation.tags)) tags.put(tag);
+        payload.put("tags", tags);
+        return payload;
+    }
+
+    private String readResponse(HttpURLConnection connection) {
+        try {
+            InputStream stream = connection.getErrorStream();
+            if (stream == null) stream = connection.getInputStream();
+            if (stream == null) return "";
+            BufferedReader reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) builder.append(line);
+            reader.close();
+            return builder.toString();
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String normalizeServerUrl(String serverUrl) {
+        String value = serverUrl == null ? "" : serverUrl.trim();
+        while (value.endsWith("/")) value = value.substring(0, value.length() - 1);
+        return value;
+    }
+
+    private String categoryIdFor(String category) {
+        String value = category == null ? "" : category.trim();
+        if ("家庭事务".equals(value)) return "family";
+        if ("房屋 / 设备".equals(value)) return "house";
+        if ("维修 / 售后".equals(value)) return "repair";
+        if ("购物 / 消费".equals(value)) return "shopping";
+        if ("证件 / 账号".equals(value)) return "account";
+        if ("孩子 / 教育".equals(value)) return "kids";
+        if ("老人 / 健康".equals(value)) return "health";
+        if ("宠物".equals(value)) return "pet";
+        if ("工作 / 杂事".equals(value)) return "work";
+        if ("临时记录".equals(value)) return "temporary";
+        return "uncategorized";
+    }
+
+    private List<String> splitTags(String tags) {
+        List<String> result = new ArrayList<String>();
+        if (tags == null) return result;
+        String[] parts = tags.split("[\\s,，、]+");
+        for (String part : parts) {
+            String value = part.trim();
+            if (value.length() > 0) result.add(value);
+        }
+        return result;
     }
     private Button selectCategoryButton(String label, final EditText categoryInput) {
         Button button = smallButton(label);
@@ -562,6 +704,26 @@ public class MainActivity extends Activity {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(new Date());
     }
 
+
+    private static class SyncResult {
+        boolean ok;
+        String message;
+
+        SyncResult(boolean ok, String message) {
+            this.ok = ok;
+            this.message = message;
+        }
+    }
+
+    private static class SyncMutation {
+        long queueId;
+        long noteId;
+        String mutationType;
+        String title;
+        String content;
+        String category;
+        String tags;
+    }
     private static class Note {
         long id;
         String title;
@@ -581,6 +743,7 @@ public class MainActivity extends Activity {
         public void onCreate(SQLiteDatabase db) {
             createNotesTable(db);
             createCategoriesTable(db);
+            createSyncQueueTable(db);
             seedDefaultCategories(db);
         }
 
@@ -588,7 +751,8 @@ public class MainActivity extends Activity {
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
             if (oldVersion < 2) {
                 createCategoriesTable(db);
-                seedDefaultCategories(db);
+            createSyncQueueTable(db);
+            seedDefaultCategories(db);
                 db.execSQL("INSERT OR IGNORE INTO categories(name, created_at) SELECT DISTINCT category, datetime('now') FROM notes WHERE category IS NOT NULL AND category != ''");
             }
         }
@@ -670,13 +834,51 @@ public class MainActivity extends Activity {
         }
 
         int pendingSyncCount() {
-            Cursor cursor = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM sync_queue WHERE status='pending'", null);
+            Cursor cursor = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM sync_queue WHERE status IN ('pending', 'failed')", null);
             try {
                 if (!cursor.moveToFirst()) return 0;
                 return cursor.getInt(0);
             } finally {
                 cursor.close();
             }
+        }
+
+        List<SyncMutation> listPendingSyncMutations() {
+            List<SyncMutation> mutations = new ArrayList<SyncMutation>();
+            Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT q.id, q.note_id, q.mutation_type, n.title, n.content, n.category, n.tags " +
+                "FROM sync_queue q JOIN notes n ON n.id = q.note_id " +
+                "WHERE q.status IN ('pending', 'failed') ORDER BY q.id ASC",
+                null
+            );
+            try {
+                while (cursor.moveToNext()) {
+                    SyncMutation mutation = new SyncMutation();
+                    mutation.queueId = cursor.getLong(0);
+                    mutation.noteId = cursor.getLong(1);
+                    mutation.mutationType = cursor.getString(2);
+                    mutation.title = cursor.getString(3);
+                    mutation.content = cursor.getString(4);
+                    mutation.category = cursor.getString(5);
+                    mutation.tags = cursor.getString(6);
+                    mutations.add(mutation);
+                }
+            } finally {
+                cursor.close();
+            }
+            return mutations;
+        }
+
+        void markSyncDone(long queueId) {
+            ContentValues values = new ContentValues();
+            values.put("status", "done");
+            getWritableDatabase().update("sync_queue", values, "id=?", new String[]{String.valueOf(queueId)});
+        }
+
+        void markSyncFailed(long queueId) {
+            ContentValues values = new ContentValues();
+            values.put("status", "failed");
+            getWritableDatabase().update("sync_queue", values, "id=?", new String[]{String.valueOf(queueId)});
         }
         List<Note> listNotes(String searchQuery, String categoryFilter) {
             List<Note> notes = new ArrayList<Note>();

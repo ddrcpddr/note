@@ -131,6 +131,7 @@ describe('Android native offline app', () => {
 
     assert.ok(activity.includes('DATABASE_VERSION = 3'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
+    assert.ok(activity.includes('createSyncQueueTable(db);'));
     assert.ok(activity.includes('queueSyncMutation'));
     assert.ok(activity.includes('pendingSyncCount()'));
     assert.ok(activity.includes('SharedPreferences'));
@@ -140,6 +141,23 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('服务器地址'));
     assert.ok(activity.includes('待同步'));
     assert.ok(activity.includes('手动同步'));
-    assert.ok(activity.includes('同步功能下一阶段接入 Docker/NAS'));
+    assert.ok(activity.includes('开始同步本机新建记录'));
+  });
+  test('syncs native offline created notes to Docker NAS when server is reachable', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+    const manifest = readText('android/app/src/main/AndroidManifest.xml');
+
+    assert.ok(manifest.includes('android.permission.INTERNET'));
+    assert.ok(activity.includes('HttpURLConnection'));
+    assert.ok(activity.includes('runManualSync()'));
+    assert.ok(activity.includes('syncPendingCreates'));
+    assert.ok(activity.includes('/api/notes'));
+    assert.ok(activity.includes('setRequestMethod("POST")'));
+    assert.ok(activity.includes('application/json; charset=utf-8'));
+    assert.ok(activity.includes('listPendingSyncMutations()'));
+    assert.ok(activity.includes('markSyncDone'));
+    assert.ok(activity.includes('markSyncFailed'));
+    assert.ok(activity.includes('同步完成'));
+    assert.ok(activity.includes('同步失败'));
   });
 });

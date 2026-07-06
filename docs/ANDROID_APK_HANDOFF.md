@@ -200,3 +200,25 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 
 - 当前还没有真正把手机本地记录上传到 Docker/NAS。
 - 不应把这个 APK 说成“联网同步已完成”。
+
+## 2026-07-06 原生新建记录同步补充
+
+当前 debug APK 已加入最小联网同步能力：
+
+- 在原生同步页保存 Docker/NAS 服务器地址。
+- 点击“手动同步”会后台上传本机新建记录。
+- 目标接口：`POST /api/notes`。
+- 成功后队列项标记为 done。
+- 失败后队列项标记为 failed，并继续计入待同步数量。
+
+验证结果：
+
+- `npm.cmd run android:delivery-check`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+边界：
+
+- 只同步新建记录。
+- 编辑同步、冲突处理、富文本、附件、NSX 导入仍未迁入原生端。
+- 真实手机局域网同步还需要连接设备或用户人工验收。
