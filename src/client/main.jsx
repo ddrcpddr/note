@@ -637,13 +637,23 @@ function App() {
   }, [dataMode, offlineCreateQueue.length]);
 
   useEffect(() => {
+    if (dataMode === 'locked') return;
+    const savedAt = new Date().toISOString();
+    saveLocalSnapshot({
+      members,
+      categories: categoriesData,
+      currentMemberId,
+      notes: notesData.slice(0, OFFLINE_APP_DATA_CACHE_LIMIT),
+      savedAt
+    });
+
     if (dataMode !== 'sqlite') return;
     writeOfflineAppDataCache({
       members,
       categories: categoriesData,
       currentMemberId,
       notes: notesData.filter((note) => !note.isOffline).slice(0, OFFLINE_APP_DATA_CACHE_LIMIT),
-      savedAt: new Date().toISOString()
+      savedAt
     });
   }, [dataMode, notesData, categoriesData, members, currentMemberId]);
 

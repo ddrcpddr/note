@@ -1497,3 +1497,41 @@ npm.cmd run android:build
 
 - 在新 APK 上不填服务器地址，离线新建 / 编辑一条带富文本和小图片的记录，重启 App 后确认记录仍在。
 - 下一步继续补 Gate 2 的附件 / 图片离线持久化和同步验收。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 2 第二刀，让离线模式下的记录、分类、成员快照也写入 IndexedDB，避免离线修改后重启 App 丢状态。
+
+## 问题原因
+
+此前 `saveLocalSnapshot()` 主要在 `dataMode === 'sqlite'` 在线模式下写入。离线模式虽然能在当前页面保存记录，但分类、成员和本地记录列表的快照保存不够明确，存在重启后依赖旧快照或空快照的风险。
+
+## 修复内容
+
+- 快照保存改为：只要不是访问口令锁定状态，就把当前 `notesData`、`categoriesData`、`members`、`currentMemberId` 写入 IndexedDB snapshot。
+- 在线模式仍额外保留 localStorage 的轻量 app-data cache 作为旧兼容 fallback。
+- 新增测试断言，确保离线快照不再被 `dataMode !== 'sqlite'` 提前挡掉。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，25 tests pass。
+- `npm.cmd run check`：通过，SQLite integrityCheck ok。
+- `npm.cmd run test`：通过，74 tests pass。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过，APK 已重新生成并签名校验通过。
+
+## 仍然存在的问题
+
+- 还需要真机实际安装验证：离线新建 / 编辑 / 重启 App 后记录、分类、成员状态是否仍在。
+- 恢复联网后的同步冲突和重复提交保护还没进入 Gate 3。

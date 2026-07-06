@@ -71,6 +71,9 @@ describe('Offline first local store', () => {
     assert.ok(source.includes('queueLocalMutation({'));
     assert.ok(source.includes('readPendingMutations()'));
     assert.ok(source.includes('syncPendingLocalMutations()'));
+    assert.ok(source.includes("if (dataMode === 'locked') return;"));
+    assert.ok(source.includes('notes: notesData.slice(0, OFFLINE_APP_DATA_CACHE_LIMIT)'));
+    assert.ok(source.includes("if (dataMode !== 'sqlite') return;"));
     assert.ok(source.includes("setDataMode('offline-first')"));
   });
 });
