@@ -97,6 +97,28 @@ describe('Android WebView wrapper', () => {
     assert.ok(deliveryScript.includes('assertApkExists'));
   });
 
+  test('provides an optional adb device smoke check for real phones', () => {
+    const packageJson = readText('package.json');
+    const deviceSmokeScript = readText('scripts/android-device-smoke.js');
+
+    assert.ok(packageJson.includes('"android:device-smoke": "node scripts/android-device-smoke.js"'));
+    assert.ok(deviceSmokeScript.includes('adb'));
+    assert.ok(deviceSmokeScript.includes('LOCALAPPDATA'));
+    assert.ok(deviceSmokeScript.includes("['devices']"));
+    assert.ok(deviceSmokeScript.includes('install'));
+    assert.ok(deviceSmokeScript.includes('logcat'));
+    assert.ok(deviceSmokeScript.includes('logcat\', \'-c'));
+    assert.ok(deviceSmokeScript.includes('logcat\', \'-d'));
+    assert.ok(deviceSmokeScript.includes('am\', \'start'));
+    assert.ok(deviceSmokeScript.includes("const packageName = 'com.homeoldnote.app'"));
+    assert.ok(deviceSmokeScript.includes('`${packageName}/.MainActivity`'));
+    assert.ok(deviceSmokeScript.includes('output\', \'android-device-smoke'));
+    assert.ok(deviceSmokeScript.includes('页面脚本异常'));
+    assert.ok(deviceSmokeScript.includes('TypeError'));
+    assert.ok(deviceSmokeScript.includes('ReferenceError'));
+    assert.ok(deviceSmokeScript.includes('FATAL EXCEPTION'));
+  });
+
 
   test('ships a launcher icon for the installed APK', () => {
     const manifest = readText('android/app/src/main/AndroidManifest.xml');

@@ -39,6 +39,25 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 - `tests/offline-store-behavior.test.js`：通过，函数级验证 IndexedDB 离线快照、待同步队列压缩、失败重试和写入安全。
 - HTTP smoke：通过，覆盖健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、Note Station 网页上传导入、手动备份、JSON 导出和前端 shell。
 
+## 可选真机烟测
+
+如果电脑已经安装 Android platform-tools，并用 USB 连接了一台已开启 USB 调试的手机，可以运行：
+
+```bash
+npm.cmd run android:device-smoke
+```
+
+这个命令会：
+
+- 检查当前 `app-debug.apk` 是否存在。
+- 通过 `adb install -r` 安装到手机。
+- 启动 `com.homeoldnote.app/.MainActivity`。
+- 抓取一段 `logcat`。
+- 如果发现 `FATAL EXCEPTION`、`页面脚本异常`、`TypeError`、`ReferenceError`、`Uncaught` 等错误，会返回失败。
+- 日志写入 `output/android-device-smoke/`，该目录已加入 `.gitignore`，不要提交。
+
+如果没有连接手机、手机未授权 USB 调试，或同时连接多台手机，该命令会失败并说明原因。它用于交付前补一道真实设备检查，但仍不能替代下面的手动流程。
+
 ## 当前 APK 已具备
 
 - 不配置服务器地址时可进入离线使用，不再请求 `file:///api/...`。

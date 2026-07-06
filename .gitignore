@@ -26,6 +26,7 @@ npm-debug.log*
 *.sqlite3
 logs/
 *.log
+output/
 data/imports/**
 data/backups/**
 data/exports/**

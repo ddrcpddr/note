@@ -120,6 +120,12 @@ npm.cmd run android:build
 npm.cmd run android:delivery-check
 ```
 
+如果电脑已连接一台开启 USB 调试的 Android 手机，可以再跑真机启动日志烟测：
+
+```bash
+npm.cmd run android:device-smoke
+```
+
 输出文件：
 
 ```text

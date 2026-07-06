@@ -302,14 +302,16 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 - Gate 9：新增 `npm.cmd run android:verify`，直接检查 APK 内部离线 web bundle、相对路径、图标/manifest 和离线运行时标记。
 - Gate 10：新增 `tests/offline-store-behavior.test.js`，用行为级测试覆盖 IndexedDB 离线快照、待同步队列压缩、失败重试和写入安全。
 - Gate 11：新增 `npm.cmd run android:delivery-check`，一键覆盖 check/test/build/APK build/APK verify/临时 HTTP smoke，减少交付前漏测。
+- Gate 12：新增 `npm.cmd run android:device-smoke`，连接一台真实手机后安装 APK、启动 App、抓取 logcat，并对崩溃 / WebView 脚本错误失败退出。
 
 下一步按家庭自用优先级继续：
 
-1. 跑 `npm.cmd run android:delivery-check` 后，把最新 `app-debug.apk` 装到 vivo X300 Pro。
-2. 真机验证：离线新建、编辑、富文本、图片、小附件、重启和恢复联网同步。
-3. 真机验证：Huawei P30 Pro / HarmonyOS 进入编辑页不白屏，必要时降级纯文本仍可保存。
-4. 用 Docker/NAS 浏览器端确认 APK 同步后的记录内容正确。
-5. 后续再根据真机反馈补冲突处理界面、大附件 Blob 或后台同步。
+1. 跑 `npm.cmd run android:delivery-check`。
+2. USB 连接一台手机，跑 `npm.cmd run android:device-smoke`。
+3. 把最新 `app-debug.apk` 分别装到 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS。
+4. 真机验证：离线新建、编辑、富文本、图片、小附件、重启和恢复联网同步。
+5. 用 Docker/NAS 浏览器端确认 APK 同步后的记录内容正确。
+6. 后续再根据真机反馈补冲突处理界面、大附件 Blob 或后台同步。
 
 暂不做：
 

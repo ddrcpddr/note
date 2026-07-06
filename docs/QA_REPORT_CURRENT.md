@@ -1927,3 +1927,47 @@ npm.cmd run android:delivery-check
 
 - 一键自检仍是本机自动化，不等同于 vivo X300 Pro / Huawei P30 Pro 真机完整验收。
 - HTTP smoke 会在本地 ignored `data/` 下生成测试记录、备份和导出文件，提交前必须继续确认不跟踪运行数据。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 12，新增 Android 真机 ADB 启动日志烟测命令。本轮不改业务逻辑、不改数据库结构、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+APK 在浏览器和本机自动化通过后，仍可能在真实手机 WebView 上出现白屏、脚本异常或系统兼容问题。此前 Huawei P30 Pro / HarmonyOS 曾出现编辑页脚本异常，所以交付前需要一个能安装 APK、启动 App、抓取 logcat 的命令。
+
+## 修复内容
+
+- 新增 `scripts/android-device-smoke.js`。
+- 新增 npm 命令 `android:device-smoke`。
+- Android wrapper 测试新增对该命令的覆盖。
+- `.gitignore` 新增 `output/`，避免真机日志被提交。
+- Android 交付文档补充可选真机烟测说明。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- `node --test tests/android-wrapper.test.js`：通过，6 tests pass。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，`categoryCount=11`。
+- `npm.cmd run test`：通过，15 suites / 84 tests / 84 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap chunk size warning。
+- `npm.cmd run android:verify`：通过，确认 APK 内 `assets/www/index.html`、相对路径 JS/CSS、manifest/icons 和离线运行时标记存在。
+- `npm.cmd run android:delivery-check`：通过，内部覆盖 `check/test/build/android:build/android:verify`，并启动临时 `http://127.0.0.1:3400` 执行 HTTP smoke。
+- `npm.cmd run android:device-smoke`：脚本可找到本机 Android SDK 默认目录下的 adb，但当前未连接可用手机，因此按预期失败并提示“没有检测到可用手机”。这不是 APK 功能通过，只表示命令在无真机环境下能给出明确原因。
+
+## 仍然存在的问题
+
+- 本轮尚未连接真实手机成功执行 `npm.cmd run android:device-smoke`，所以不能声明 vivo / Huawei 真机已通过。
+- 后续交付 APK 前，如果电脑连接了手机，应先运行 `npm.cmd run android:device-smoke`，再做人工离线和同步流程。

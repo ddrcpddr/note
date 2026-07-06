@@ -278,3 +278,33 @@ android/app/build/outputs/apk/debug/app-debug.apk
 安装到手机上测试。
 
 注意：这仍然不能替代真机验证；它只是把本机自动化和 APK 包检查集中到一个命令里。
+
+## 2026-07-06 Gate 12：ADB 真机启动日志烟测
+
+新增命令：
+
+```bash
+npm.cmd run android:device-smoke
+```
+
+该命令用于连接一台真实 Android 手机后做交付前补充检查：
+
+- 使用当前 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- 通过 `adb install -r` 安装。
+- 启动 `com.homeoldnote.app/.MainActivity`。
+- 抓取 `logcat` 并筛选 WebView / AndroidRuntime / HomeNoteAndroid 相关日志。
+- 遇到 `FATAL EXCEPTION`、`页面脚本异常`、`TypeError`、`ReferenceError`、`Uncaught` 等错误会失败。
+
+运行要求：
+
+- 电脑安装 Android platform-tools。
+- 手机通过 USB 连接，并开启 USB 调试。
+- 同一时间只连接一台手机。
+
+日志输出到：
+
+```text
+output/android-device-smoke/
+```
+
+该目录已被 `.gitignore` 忽略，不能提交。这个 Gate 仍然只是自动抓明显崩溃和脚本错误；家庭真实验收仍需要在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上手动测试离线新建、编辑、恢复联网同步。
