@@ -231,3 +231,16 @@ otestation-web-import 三项。
 5. Gate 5：交付验收。在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上完成安装、离线、联网、同步和回归测试后再交付 APK。
 
 不要再提供未自测的半成品 APK。每个 Gate 至少执行：定向测试、`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`、需要 APK 时执行 `npm.cmd run android:build`。
+
+## 2026-07-06 Gate 2 进度
+
+已完成 Gate 2 第一刀：离线记录队列从旧 localStorage 收敛到 IndexedDB，适合继续承载富文本、图片和附件的长期离线使用。
+
+继续 Gate 2 时优先做：
+
+1. 真机离线新建 / 编辑 / 重启后持久化验证。
+2. 图片和附件离线保存能力验证，确认不依赖 Docker/NAS 即可保留本机记录内容。
+3. 离线分类、标签、成员字段编辑后仍能保留。
+4. 形成一份 Android 离线真机验收清单，覆盖 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS。
+
+Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。

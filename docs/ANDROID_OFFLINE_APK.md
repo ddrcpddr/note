@@ -91,3 +91,20 @@ jar tf android/app/build/outputs/apk/debug/app-debug.apk
 4. 再填入正确 Docker/NAS 地址，进入联网模式后观察待同步记录是否能继续处理。
 
 注意：Gate 1 只解决启动阶段的 file API 错误。长期离线图片、附件和同步冲突属于下一阶段。
+
+## 2026-07-06 Gate 2 第一刀：离线队列收敛到 IndexedDB
+
+本轮已把离线新建 / 编辑记录的待同步队列从旧 localStorage 路径收敛到 IndexedDB：
+
+- 本地记录写入 IndexedDB `notes`。
+- 待同步操作写入 IndexedDB `syncQueue`。
+- 页面顶部仍用“本机记录待同步”提示待同步数量。
+- 旧 localStorage create queue 已移除，避免富文本图片 / 附件长期离线时被 localStorage 容量限制卡住。
+
+真机继续验证：
+
+1. 不填服务器地址，离线新建一条普通富文本记录。
+2. 离线编辑这条记录，修改标题、分类、标签和正文。
+3. 完全退出 App 后重新打开，确认记录仍在且仍显示待同步。
+4. 再测试插入一张小图片和一个小附件，确认重启后仍能看到记录内容。
+5. 联网同步属于下一 Gate，未完成前不要把“已同步 NAS”作为验收标准。

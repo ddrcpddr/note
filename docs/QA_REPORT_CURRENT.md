@@ -1447,3 +1447,53 @@ npm.cmd run android:build
 
 - 安装本轮新 APK，先不填服务器地址，点击“离线使用”，确认不再出现 `Fetch API cannot load file:///api/access/status`。
 - 若 Gate 1 真机通过，继续 Gate 2：离线新建、编辑、富文本、分类、标签、图片/附件在本机长期保存。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 2 第一刀，收敛离线记录队列到 IndexedDB，避免长期离线和富文本附件继续依赖 localStorage。本轮不改服务端数据库结构、不提交运行数据。
+
+## 复现 / 风险来源
+
+旧实现中仍保留 `OFFLINE_CREATE_QUEUE_KEY` 的 localStorage 创建队列。短文本可能能用，但富文本图片 / 附件会携带 base64 或较大元数据，长期离线时 localStorage 容量风险高，也会和 IndexedDB syncQueue 形成两套离线队列。
+
+## 问题原因
+
+- 项目已经有 IndexedDB `notes` 和 `syncQueue`，但前端加载和同步路径仍混用旧 localStorage create queue。
+- 旧队列只覆盖 create，不能自然表达编辑、附件和后续同步状态。
+
+## 修复内容
+
+- 移除旧 localStorage 创建队列引用：`OFFLINE_CREATE_QUEUE_KEY`、`readOfflineCreateQueue()`、`writeOfflineCreateQueue()`、`syncOfflineCreateQueue()`、`enqueueOfflineCreate()`。
+- 新建 / 编辑统一通过 `saveLocalFirstDraft()` 写入 IndexedDB notes，并写入 IndexedDB syncQueue。
+- 离线启动时从 IndexedDB snapshot 读取本地待同步记录。
+- 恢复在线后通过 `readPendingMutations()` 同步到 Docker/NAS。
+- 更新测试，明确禁止旧 localStorage 队列回归。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，25 tests pass。
+- `npm.cmd run check`：通过，SQLite integrityCheck ok。
+- `npm.cmd run test`：通过，74 tests pass。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过，APK 已重新生成并签名校验通过。
+
+## 仍然存在的问题
+
+- Gate 2 还没完成全部真机流程：仍需在 Android 离线状态下人工测试富文本、图片、附件、编辑后重启 App 是否仍保存。
+- 大附件 Blob 的长期离线和恢复联网同步仍需要继续专项验证。
+
+## 下一步建议
+
+- 在新 APK 上不填服务器地址，离线新建 / 编辑一条带富文本和小图片的记录，重启 App 后确认记录仍在。
+- 下一步继续补 Gate 2 的附件 / 图片离线持久化和同步验收。

@@ -63,7 +63,9 @@ describe('Offline first local store', () => {
     assert.ok(source.includes("from './offlineStore.js'"));
     assert.ok(source.includes('readLocalSnapshot()'));
     assert.ok(source.includes('saveLocalSnapshot({'));
-    assert.ok(source.includes('upsertLocalNote(localNote'));
+    assert.ok(source.includes('upsertLocalNote(localNote)'));
+    assert.ok(source.includes('await refreshPendingMutationState()'));
+    assert.ok(!source.includes('OFFLINE_CREATE_QUEUE_KEY'));
     assert.ok(source.includes("'local-only'"));
     assert.ok(source.includes("'dirty'"));
     assert.ok(source.includes('queueLocalMutation({'));

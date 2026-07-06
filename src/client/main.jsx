@@ -281,28 +281,8 @@ const fallbackMembers = [
 ];
 
 const initialNotes = [];
-const OFFLINE_CREATE_QUEUE_KEY = 'home-notes-offline-create-queue-v1';
 const OFFLINE_APP_DATA_CACHE_KEY = 'home-notes-offline-app-data-cache-v1';
 const OFFLINE_APP_DATA_CACHE_LIMIT = 100;
-
-function readOfflineCreateQueue() {
-  if (typeof window === 'undefined') return [];
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(OFFLINE_CREATE_QUEUE_KEY) || '[]');
-    return Array.isArray(parsed) ? parsed.filter((item) => item?.localId && item?.payload && item?.note) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeOfflineCreateQueue(queue) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(OFFLINE_CREATE_QUEUE_KEY, JSON.stringify(queue));
-  } catch {
-    // Keep the page usable even if browser storage quota is full.
-  }
-}
 
 function readOfflineAppDataCache() {
   if (typeof window === 'undefined') return null;
@@ -330,9 +310,13 @@ function writeOfflineAppDataCache(snapshot) {
   }
 }
 
-function mergePendingAndCachedNotes(pendingNotes, cachedNotes) {
-  const pendingIds = new Set(pendingNotes.map((note) => note.id));
-  return [...pendingNotes, ...cachedNotes.filter((note) => !pendingIds.has(note.id))];
+function isPendingLocalNote(note) {
+  return Boolean(note?.isOffline) || ['local-only', 'dirty', 'pending', 'failed'].includes(note?.syncStatus);
+}
+
+function pickPendingLocalNotes(snapshot, categoryList) {
+  if (!snapshot?.notes?.length) return [];
+  return snapshot.notes.filter(isPendingLocalNote).map((note) => normalizeNote(note, categoryList));
 }
 
 
@@ -348,7 +332,7 @@ const recordTypes = [
 
 function App() {
   const [notesData, setNotesData] = useState(initialNotes);
-  const [offlineCreateQueue, setOfflineCreateQueue] = useState(() => readOfflineCreateQueue());
+  const [offlineCreateQueue, setOfflineCreateQueue] = useState([]);
   const offlineSyncingRef = useRef(false);
   const [offlineSyncing, setOfflineSyncing] = useState(false);
   const [categoriesData, setCategoriesData] = useState(fallbackCategories);
@@ -393,8 +377,10 @@ function App() {
         const loadedMembers = data.members?.length ? data.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers;
         const nextMembers = keepDefaultMembers(loadedMembers);
         const nextCategories = normalizeCategories(data.categories);
-        const pendingNotes = readOfflineCreateQueue().map((item) => item.note).filter(Boolean);
         const nextNotes = Array.isArray(data.notes) ? data.notes.map((note) => normalizeNote(note, nextCategories)) : initialNotes;
+        const localSnapshot = await readLocalSnapshot();
+        const pendingNotes = pickPendingLocalNotes(localSnapshot, nextCategories);
+        const pendingMutations = await readPendingMutations();
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
         await saveLocalSnapshot({
@@ -411,11 +397,11 @@ function App() {
         setCurrentMemberId(currentMember.id);
         setNotesData([...pendingNotes, ...nextNotes]);
         setSelectedId((pendingNotes[0] || nextNotes[0])?.id ?? null);
+        setOfflineCreateQueue(pendingMutations);
         setAccessLocked(false);
         setDataMode('sqlite');
       } catch {
         if (!isMounted) return;
-        const pendingNotes = readOfflineCreateQueue().map((item) => item.note).filter(Boolean);
         const localSnapshot = await readLocalSnapshot();
         if (localSnapshot) {
           const localCategories = normalizeCategories(localSnapshot.categories);
@@ -425,12 +411,13 @@ function App() {
             ?? localMembers.find((member) => member.isCurrent)
             ?? localMembers[0]
             ?? fallbackMembers[0];
-          const nextNotes = mergePendingAndCachedNotes(pendingNotes, localNotes);
+          const nextNotes = localNotes;
           setMembers(localMembers.map((member) => ({ ...member, isCurrent: member.id === currentMember.id })));
           setCategoriesData(localCategories);
           setCurrentMemberId(currentMember.id);
           setNotesData(nextNotes);
-          setSelectedId((pendingNotes[0] || nextNotes[0])?.id ?? null);
+          setSelectedId(nextNotes[0]?.id ?? null);
+          setOfflineCreateQueue(await readPendingMutations());
           setDataMode('offline-first');
           return;
         }
@@ -444,19 +431,24 @@ function App() {
             ?? cachedMembers.find((member) => member.isCurrent)
             ?? cachedMembers[0]
             ?? fallbackMembers[0];
-          const nextNotes = mergePendingAndCachedNotes(pendingNotes, cachedNotes);
+          const nextNotes = cachedNotes;
           setMembers(cachedMembers.map((member) => ({ ...member, isCurrent: member.id === currentMember.id })));
           setCategoriesData(cachedCategories);
           setCurrentMemberId(currentMember.id);
           setNotesData(nextNotes);
-          setSelectedId((pendingNotes[0] || nextNotes[0])?.id ?? null);
+          setSelectedId(nextNotes[0]?.id ?? null);
+          setOfflineCreateQueue(await readPendingMutations());
           setDataMode('offline-cache');
           return;
         }
 
-        setNotesData(pendingNotes);
-        setSelectedId(pendingNotes[0]?.id ?? null);
-        setDataMode('mock');
+        setMembers(fallbackMembers);
+        setCategoriesData(fallbackCategories);
+        setCurrentMemberId('self');
+        setNotesData([]);
+        setSelectedId(null);
+        setOfflineCreateQueue(await readPendingMutations());
+        setDataMode('offline-first');
       }
     }
 
@@ -524,11 +516,6 @@ function App() {
     window.setTimeout(() => setToast(''), 1800);
   }
 
-  function persistOfflineCreateQueue(nextQueue) {
-    writeOfflineCreateQueue(nextQueue);
-    setOfflineCreateQueue(nextQueue);
-  }
-
   function buildLocalNoteFromDraftPayload(payload, { category, currentMember, title, body, bodyHtml }, syncStatus, localId, existingNote = {}) {
     return {
       ...existingNote,
@@ -576,9 +563,10 @@ function App() {
       action,
       localId,
       noteId: localId,
-      serverId: action === 'update' && !String(localId).startsWith('local-') && !String(localId).startsWith('offline-') ? localId : null,
+      serverId: action === 'update' && !String(localId).startsWith('local-') ? localId : null,
       payload
     });
+    await refreshPendingMutationState();
 
     setNotesData((current) => (
       current.some((item) => item.id === localId)
@@ -593,89 +581,8 @@ function App() {
     return localNote;
   }
 
-  function enqueueOfflineCreate(payload, { category, currentMember, title, body, bodyHtml }) {
-    const localId = 'offline-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
-    const note = {
-      id: localId,
-      title,
-      summary: body.slice(0, 42),
-      content: body,
-      contentHtml: bodyHtml || null,
-      contentJson: payload.contentJson || null,
-      richContent: bodyHtml ? { format: 'html', html: bodyHtml, source: 'content_html' } : null,
-      category: category.name,
-      categoryId: category.id,
-      categoryIcon: category.icon,
-      categoryImageSrc: category.imageSrc,
-      categoryColor: 'text-teal-600',
-      icon: category.icon,
-      iconTone: category.tone,
-      tags: payload.tags.map((label) => ({ label, tone: tagTones[findTagTone(label)] ?? tagTones.done })),
-      time: '刚刚',
-      member: currentMember.name,
-      memberId: currentMember.id,
-      memberAvatar: currentMember.avatar,
-      memberAvatarImage: currentMember.avatarImage,
-      attachmentCount: payload.attachments?.length || 0,
-      status: '待同步到 NAS',
-      source: '手动创建',
-      sourceType: 'manual',
-      isOffline: true,
-      syncStatus: 'pending',
-      createdAt: '今天 刚刚',
-      updatedAt: '刚刚',
-      attachments: payload.attachments?.length ? payload.attachments : []
-    };
-    const queueItem = { localId, payload, note, createdAt: new Date().toISOString() };
-    const nextQueue = [queueItem, ...readOfflineCreateQueue()];
-    persistOfflineCreateQueue(nextQueue);
-    setNotesData((current) => [note, ...current.filter((item) => item.id !== localId)]);
-    setSelectedId(localId);
-    setScreen('detail');
-    showToast('服务暂时不可用，记录已保存在本机，恢复后会同步');
-    return note;
-  }
-
-  async function syncOfflineCreateQueue() {
-    if (offlineSyncingRef.current) return;
-    const queue = readOfflineCreateQueue();
-    if (!queue.length || dataMode !== 'sqlite') return;
-
-    offlineSyncingRef.current = true;
-    setOfflineSyncing(true);
-    let remaining = [...queue];
-    let syncedCount = 0;
-
-    try {
-      while (remaining.length) {
-        const item = remaining[0];
-        const response = await fetchApi('/api/notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(item.payload)
-        });
-        if (!response.ok) throw new Error('offline sync failed');
-        const data = await response.json();
-        const syncedNote = normalizeNote(data.note, categoriesData);
-        setNotesData((current) => (
-          current.some((note) => note.id === item.localId)
-            ? current.map((note) => (note.id === item.localId ? syncedNote : note))
-            : [syncedNote, ...current]
-        ));
-        setSelectedId((current) => (current === item.localId ? syncedNote.id : current));
-        remaining = remaining.slice(1);
-        persistOfflineCreateQueue(remaining);
-        syncedCount += 1;
-      }
-      if (syncedCount) showToast('已同步 ' + syncedCount + ' 条本机记录');
-    } catch {
-      persistOfflineCreateQueue(remaining);
-      if (syncedCount) showToast('已同步 ' + syncedCount + ' 条，还有记录待同步');
-      else showToast('服务还没恢复，记录继续保存在本机');
-    } finally {
-      offlineSyncingRef.current = false;
-      setOfflineSyncing(false);
-    }
+  async function refreshPendingMutationState() {
+    setOfflineCreateQueue(await readPendingMutations());
   }
 
   async function syncPendingLocalMutations() {
@@ -715,6 +622,7 @@ function App() {
           break;
         }
       }
+      await refreshPendingMutationState();
       if (syncedCount) showToast('已同步 ' + syncedCount + ' 条本机记录');
     } finally {
       offlineSyncingRef.current = false;
@@ -723,9 +631,6 @@ function App() {
   }
 
   useEffect(() => {
-    if (dataMode === 'sqlite' && offlineCreateQueue.length) {
-      syncOfflineCreateQueue();
-    }
     if (dataMode === 'sqlite') {
       syncPendingLocalMutations();
     }
