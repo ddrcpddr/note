@@ -2,6 +2,29 @@
 
 更新时间：2026-07-03
 
+## 2026-07-06 Android 离线恢复联网入口
+
+当前继续按家庭自用小 Gate 推进离线 Android App，不走复杂发布流程。
+
+本轮完成：
+
+- Android bridge 新增 `HomeNoteAndroid.openServerSettings()`。
+- APK 内置离线 App 的设置页新增“修改手机端服务器地址”，可重新打开原生 Docker/NAS 地址设置页。
+- 新 APK 已重新生成：`android/app/build/outputs/apk/debug/app-debug.apk`。
+
+已验证：
+
+- `node --test tests/android-wrapper.test.js tests/frontend-ui.test.js`：通过。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，86 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过。
+- `npm.cmd run android:delivery-check`：通过，临时 `http://127.0.0.1:3400` HTTP smoke 通过。
+- `npm.cmd run android:device-smoke`：当前电脑没有检测到 USB 手机，真机日志烟测未完成。
+
+下一步只做真实设备验收：vivo X300 Pro 与 Huawei P30 Pro / HarmonyOS 上测试离线新建、编辑、重启保留、设置页修改服务器地址和恢复联网同步。
+
 ## 1. 当前分支
 
 `main`

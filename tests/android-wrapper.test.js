@@ -38,6 +38,7 @@ describe('Android WebView wrapper', () => {
     assert.ok(activity.includes('loadLocalApp'));
     assert.ok(activity.includes('离线使用'));
     assert.ok(activity.includes('getServerUrl'));
+    assert.ok(activity.includes('openServerSettings'));
     assert.ok(activity.includes('settings.setAllowFileAccessFromFileURLs(true)'));
     assert.ok(activity.includes('settings.setAllowUniversalAccessFromFileURLs(true)'));
     assert.ok(activity.includes('保存并打开'));

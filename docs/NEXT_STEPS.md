@@ -289,7 +289,7 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 3. 整理最终真机验收表，只交付实际测过的 APK。
 ## 当前离线 Android 小 Gate
 
-已完成到 Gate 5：
+已完成到 Gate 14：
 
 - Gate 1：纯离线 Android 不再请求 `file:///api/...`。
 - Gate 2：离线记录和同步队列改为 IndexedDB，离线快照可持久化。
@@ -304,13 +304,14 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 - Gate 11：新增 `npm.cmd run android:delivery-check`，一键覆盖 check/test/build/APK build/APK verify/临时 HTTP smoke，减少交付前漏测。
 - Gate 12：新增 `npm.cmd run android:device-smoke`，连接一台真实手机后安装 APK、启动 App、抓取 logcat，并对崩溃 / WebView 脚本错误失败退出。
 - Gate 13：新增 `tests/offline-sync-behavior.test.js`，把恢复联网同步批处理从静态检查推进到行为测试，确认成功项清理、失败项保留、失败后停止后续批处理。
+- Gate 14：APK 离线 App 内设置页新增“修改手机端服务器地址”，可重新打开 Android 原生地址设置页，方便离线后恢复 Docker/NAS 连接。
 
 下一步按家庭自用优先级继续：
 
 1. 跑 `npm.cmd run android:delivery-check`。
 2. USB 连接一台手机，跑 `npm.cmd run android:device-smoke`。
 3. 把最新 `app-debug.apk` 分别装到 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS。
-4. 真机验证：离线新建、编辑、富文本、图片、小附件、重启和恢复联网同步；同步失败后恢复服务器地址再重试。
+4. 真机验证：离线新建、编辑、富文本、图片、小附件、重启、设置页修改服务器地址和恢复联网同步；同步失败后恢复服务器地址再重试。
 5. 用 Docker/NAS 浏览器端确认 APK 同步后的记录内容正确。
 6. 后续再根据真机反馈补冲突处理界面、大附件 Blob 或后台同步。
 

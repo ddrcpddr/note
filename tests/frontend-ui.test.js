@@ -70,6 +70,10 @@ describe('Frontend mobile interactions', () => {
 
     assert.ok(source.includes('function getAndroidServerUrl()'));
     assert.ok(source.includes('window.HomeNoteAndroid?.getServerUrl?.()'));
+    assert.ok(source.includes('function openAndroidServerSettings()'));
+    assert.ok(source.includes('window.HomeNoteAndroid.openServerSettings()'));
+    assert.ok(source.includes('onOpenAndroidServerSettings={openAndroidServerSettings}'));
+    assert.ok(source.includes('修改手机端服务器地址'));
     assert.ok(source.includes('function apiUrl(path)'));
     assert.ok(source.includes("window.location.protocol === 'file:'"));
     assert.ok(source.includes("fetchApi('/api/app-data')"));

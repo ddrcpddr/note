@@ -1,3 +1,62 @@
+测试时间：2026-07-06
+
+当前目标：继续按家庭自用小 Gate 推进离线 Android APK。本轮只补“离线进入 App 后还能重新修改 Docker/NAS 服务器地址”的缺口，不改业务逻辑、不改数据库、不碰真实运行数据。
+
+## 复现步骤
+
+1. 安装 Android APK，首次不填写服务器地址，点击“离线使用”。
+2. 进入 App 后打开设置页。
+3. 检查是否有入口重新打开 Android 原生服务器地址设置。
+
+## 问题原因
+
+- 原生 Android 壳的启动设置页和连接失败页已有“修改服务器地址”。
+- 但进入 `file:///android_asset/www/index.html` 离线 App 后，前端设置页没有调用原生设置页的桥接方法。
+- 这会导致家庭用户离线记录后，想恢复连接 Docker/NAS 时路径不够直观。
+
+## 修复内容
+
+- Android `HomeNoteAndroid` bridge 增加 `openServerSettings()`。
+- 前端新增 `openAndroidServerSettings()`，通过 bridge 打开原生服务器地址设置页。
+- 设置页在 APK 环境显示“修改手机端服务器地址”，普通浏览器不显示。
+- 更新 Android wrapper 和前端静态测试。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- `node --test tests/android-wrapper.test.js tests/frontend-ui.test.js`：通过，26 项测试通过。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，当前测试库 `noteCount=198`。
+- `npm.cmd run test`：通过，16 suites / 86 tests / 86 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap bundle size warning。
+- `npm.cmd run android:build`：通过，重新生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，APK 内含 `assets/www/index.html`、最新 JS/CSS 和离线 bundle 标记。
+- `npm.cmd run android:delivery-check`：通过，覆盖 `check/test/build/android:build/android:verify`，并在临时 `http://127.0.0.1:3400` 服务上跑 HTTP smoke；新建记录、Note Station web import、备份、JSON 导出和前端 shell 均通过。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到 USB 连接且授权的真实手机；这不是代码构建失败，但真机验收仍未完成。
+
+## 仍然存在的问题
+
+- 本轮还没有完成两台真机验收；`android:device-smoke` 需要连接手机后运行。
+- 离线记录恢复联网同步仍需要在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上实测。
+
+## 下一步建议
+
+- 继续运行完整 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`、`npm.cmd run android:build`、`npm.cmd run android:verify`、`npm.cmd run android:delivery-check`。
+- 真机测试重点：离线新建、离线编辑、重启保留、设置页修改服务器地址、恢复 Docker/NAS 后同步。
+
+---
+
 测试时间：2026-07-03
 
 当前目标：收口富文本之后遗留的旧附件上传入口，并修复导入 Note Station 页无法点击选择 `.nsx` 文件的问题。本轮不改数据库结构、不修改真实 Note Station 导入数据、不提交任何运行数据。

@@ -97,6 +97,18 @@ function getAndroidServerUrl() {
   }
 }
 
+function openAndroidServerSettings() {
+  try {
+    if (typeof window.HomeNoteAndroid?.openServerSettings === 'function') {
+      window.HomeNoteAndroid.openServerSettings();
+      return true;
+    }
+  } catch {
+    // The Android shell will show its own settings screen when available.
+  }
+  return false;
+}
+
 function canUseRemoteApi() {
   return window.location.protocol !== 'file:' || Boolean(getAndroidServerUrl());
 }
@@ -1010,6 +1022,7 @@ function App() {
           onSwitchMember={switchCurrentMember}
           onOpenImport={() => navigate('import')}
           onOpenMembers={() => navigate('members')}
+          onOpenAndroidServerSettings={openAndroidServerSettings}
         />
       )}
       {screen === 'members' && (
@@ -2553,13 +2566,14 @@ function MemberManagementScreen({ members, currentMemberId, onBack, onSwitchMemb
   );
 }
 
-function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport, onOpenMembers }) {
+function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport, onOpenMembers, onOpenAndroidServerSettings }) {
   const [nasOnline, setNasOnline] = useState(true);
   const [lastBackup, setLastBackup] = useState('今天 09:30');
   const [backupState, setBackupState] = useState('idle');
   const [storageStatus, setStorageStatus] = useState(null);
   const [storageMessage, setStorageMessage] = useState('');
   const [storageProbe, setStorageProbe] = useState(null);
+  const canOpenAndroidServerSettings = typeof window.HomeNoteAndroid?.openServerSettings === 'function';
 
   useEffect(() => {
     async function loadStorageStatus() {
@@ -2744,6 +2758,21 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         <SettingsRow title="导出目录" desc={formatStoragePath(storageStatus?.dataPaths?.exportsDir, 'data/exports/')} icon={Folder} action=">" />
         <SettingsRow title="导入 Note Station" desc="导入旧记录并保留来源信息" icon={FileText} action=">" onClick={onOpenImport} />
       </section>
+
+      {canOpenAndroidServerSettings && (
+        <>
+          <SectionTitle>手机端连接</SectionTitle>
+          <section className="soft-card">
+            <SettingsRow
+              title="修改手机端服务器地址"
+              desc="离线使用后，可重新填写 Docker/NAS 的局域网地址"
+              icon={Cloud}
+              action=">"
+              onClick={onOpenAndroidServerSettings}
+            />
+          </section>
+        </>
+      )}
 
       <SectionTitle>家庭成员</SectionTitle>
       <section className="soft-card p-4">

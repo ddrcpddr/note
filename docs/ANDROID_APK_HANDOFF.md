@@ -31,11 +31,12 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 最近一次完整结果：
 
 - `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
-- `npm.cmd run test`：通过，82 tests。
+- `npm.cmd run test`：通过，86 tests。
 - `npm.cmd run build`：通过。
 - `npm.cmd run android:build`：通过，APK 签名校验通过。
 - `npm.cmd run android:verify`：通过，确认 APK 内包含 `assets/www/index.html`、相对路径 JS/CSS、PWA manifest/icons，并且构建后的 JS 不含 `file:///api` 离线错误路径。
 - `npm.cmd run android:delivery-check`：通过，一次性覆盖 `check/test/build/android:build/android:verify`，并启动临时 3400 服务跑 HTTP smoke。
+- `npm.cmd run android:device-smoke`：当前电脑未检测到 USB 连接且授权的手机，无法完成真机日志烟测。
 - `tests/offline-store-behavior.test.js`：通过，函数级验证 IndexedDB 离线快照、待同步队列压缩、失败重试和写入安全。
 - HTTP smoke：通过，覆盖健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、Note Station 网页上传导入、手动备份、JSON 导出和前端 shell。
 
@@ -56,7 +57,7 @@ npm.cmd run android:device-smoke
 - 如果发现 `FATAL EXCEPTION`、`页面脚本异常`、`TypeError`、`ReferenceError`、`Uncaught` 等错误，会返回失败。
 - 日志写入 `output/android-device-smoke/`，该目录已加入 `.gitignore`，不要提交。
 
-如果没有连接手机、手机未授权 USB 调试，或同时连接多台手机，该命令会失败并说明原因。它用于交付前补一道真实设备检查，但仍不能替代下面的手动流程。
+如果没有连接手机、手机未授权 USB 调试，或同时连接多台手机，该命令会失败并说明原因。它用于交付前补一道真实设备检查，但仍不能替代下面的手动流程。最近一次执行结果是“没有检测到可用手机”，所以当前 APK 还不能声明已经完成 vivo / Huawei 真机烟测。
 
 ## 当前 APK 已具备
 
@@ -66,6 +67,7 @@ npm.cmd run android:device-smoke
 - App 恢复联网后可尝试同步待同步记录。
 - 离线新建后再离线编辑，会压缩为一条最终创建记录，避免服务端出现重复或 PATCH `local-*`。
 - 同步失败会显示失败状态，并可点击重试。
+- 在 APK 离线页面里，设置页会显示“修改手机端服务器地址”，可重新打开原生服务器地址设置页，改成当前 Docker/NAS 局域网地址。
 - 离线存储函数已有行为级测试覆盖本地快照恢复、失败队列保留和同步成功后清理。
 - 已有服务端记录离线编辑时会携带 `baseUpdatedAt`，服务端记录已被别人更新时返回冲突，避免静默覆盖。
 - 富文本图片插入会尝试压缩；超大图片 / 附件会提示，不做假保存。
@@ -86,10 +88,11 @@ npm.cmd run android:device-smoke
 4. 插入一张手机照片，确认能保存和再次打开。
 5. 插入一个小附件，确认能保存。
 6. 配置 Docker/NAS 地址，点击同步或等待同步。
-7. 用浏览器打开 Docker/NAS 端，确认记录出现且内容是最后编辑版本。
-8. 临时配置错误地址，确认出现待同步 / 同步失败提示。
-9. 改回正确地址，点击重试同步。
-10. 在 Huawei P30 Pro 上进入编辑页，确认没有白屏。
+7. 如果一开始选择了离线使用，进入设置页，点击“修改手机端服务器地址”，重新填写 Docker/NAS 地址。
+8. 用浏览器打开 Docker/NAS 端，确认记录出现且内容是最后编辑版本。
+9. 临时配置错误地址，确认出现待同步 / 同步失败提示。
+10. 改回正确地址，点击重试同步。
+11. 在 Huawei P30 Pro 上进入编辑页，确认没有白屏。
 
 ## 当前不承诺
 
@@ -114,7 +117,8 @@ http://192.168.x.x:3300
 1. 手机和 NAS / Docker 是否在同一个局域网。
 2. 浏览器能否打开 `http://NAS-IP:3300/api/health`。
 3. APK 设置的服务器地址是否带 `http://` 和端口。
-4. 首页是否显示待同步 / 同步失败。
-5. 编辑页是否出现“纯文本降级”提示。
+4. 离线进入 App 后，设置页能否看到“修改手机端服务器地址”。
+5. 首页是否显示待同步 / 同步失败。
+6. 编辑页是否出现“纯文本降级”提示。
 
 如果出现数据同步问题，先不要卸载 App。卸载会删除手机本地 IndexedDB，可能丢失未同步记录。

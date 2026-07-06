@@ -329,6 +329,16 @@ public class MainActivity extends Activity {
         public void reportError(String message) {
             reportWebRuntimeError(message);
         }
+
+        @JavascriptInterface
+        public void openServerSettings() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    showSettings("可以换成当前 Docker/NAS 的局域网地址。");
+                }
+            });
+        }
     }
 
     private void showLoadError() {
