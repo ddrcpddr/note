@@ -1735,3 +1735,45 @@ npm.cmd run android:build
 3. 保存后杀掉 App 再打开，确认记录和图片仍在。
 4. 恢复连接 Docker/NAS，确认记录能同步。
 5. 尝试插入一个超过 8MB 的普通附件，确认会提示而不是假保存。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 7 第一刀，本机构建产物启动后的真实 HTTP 烟测。本轮不改业务代码、不改数据库结构、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+此前用户遇到过“本地浏览器好用，但推到 Docker / APK 后不能保存或不能导入”的问题。因此本轮不能只看单元测试，必须启动真实服务并跑 API 烟测。
+
+## 测试内容
+
+- 启动 Express 服务到 `http://localhost:3400`。
+- 对 `http://127.0.0.1:3400` 执行完整 smoke。
+- 覆盖健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、分类 API、新建记录、Note Station 网页上传导入、存储探测、手动备份、JSON 导出和前端 shell。
+
+## 运行命令
+
+```bash
+$env:PORT='3400'; npm.cmd run server
+npm.cmd run smoke -- --base-url http://127.0.0.1:3400
+```
+
+## 测试结果
+
+- smoke：通过，`ok=true`。
+- `notestation-web-import`：通过，`inlineAttachmentRefs=2`。
+- `manual-backup`：通过。
+- `json-export`：通过。
+- `frontend-shell`：通过，HTTP 200。
+
+## 仍然存在的问题
+
+- 这次是本机 HTTP 烟测，不等同于两台手机的真机离线 / 联网同步验收。
+- 烟测会新增本地测试记录和运行文件，但这些都在 ignored 的 `data/` 目录，不提交。
+
+## 下一步建议
+
+1. 用最新 APK 在 vivo X300 Pro 离线新建 / 编辑 / 插图。
+2. 用 Huawei P30 Pro / HarmonyOS 打开编辑页，确认不白屏。
+3. 配置 Docker/NAS 地址后点击同步。
+4. 在浏览器端确认新记录存在，NSX 导入仍可用。

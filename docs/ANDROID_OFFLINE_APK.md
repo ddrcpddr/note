@@ -192,3 +192,26 @@ npm.cmd run android:build
 3. 保存后重启 App，确认内容仍在。
 4. 恢复连接 Docker/NAS，确认能同步。
 5. 插入超大附件，确认出现提示。
+
+## 2026-07-06 Gate 7：HTTP 服务烟测
+
+本轮用本机构建产物启动 Express 服务，并执行真实 HTTP smoke：
+
+```bash
+$env:PORT='3400'; npm.cmd run server
+npm.cmd run smoke -- --base-url http://127.0.0.1:3400
+```
+
+结果：通过。
+
+覆盖内容包括：
+
+- 健康接口。
+- 首页数据和详情读取。
+- 搜索、分类筛选、成员筛选。
+- 新建记录。
+- 网页端 Note Station `.nsx` 上传导入。
+- 备份和 JSON 导出。
+- 前端 shell。
+
+这个结果说明服务端 / Docker 方向的主流程正常，但 APK 真机离线和恢复联网仍需要在实际手机上确认。
