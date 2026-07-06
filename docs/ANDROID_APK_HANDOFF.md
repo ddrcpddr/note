@@ -157,3 +157,25 @@ http://192.168.x.x:3300
 APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=true`、`webAssetCount=0`。
 
 本机自动检查通过：`npm.cmd run android:delivery-check`。当前电脑未连接 USB 手机，`npm.cmd run android:device-smoke` 未完成真机验证。
+
+## 2026-07-06 原生离线分类管理补充
+
+当前 debug APK 已在原生离线核心上补充：
+
+- 手机本地 SQLite `categories` 表。
+- 11 个默认分类初始化。
+- 原生分类管理页。
+- 离线新增自定义分类。
+- 新建 / 编辑记录时选择本地分类。
+- 保存记录时自动维护本地分类。
+
+验证结果：
+
+- `npm.cmd run android:delivery-check`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+边界：
+
+- 这是原生离线功能推进的一小步，不是最终离线 Android App。
+- Docker/NAS 同步、富文本、图片、附件、Note Station `.nsx` 导入还未迁入原生端。

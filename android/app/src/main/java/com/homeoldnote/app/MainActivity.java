@@ -30,7 +30,7 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -67,6 +67,15 @@ public class MainActivity extends Activity {
         titleBox.addView(subtitle);
         header.addView(titleBox, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
+        Button categoriesButton = smallButton("分类");
+        categoriesButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showCategories();
+            }
+        });
+        header.addView(categoriesButton, new LinearLayout.LayoutParams(dp(72), dp(44)));
+
         Button newButton = smallButton("新建");
         newButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -74,7 +83,7 @@ public class MainActivity extends Activity {
                 showEditor(null);
             }
         });
-        header.addView(newButton, new LinearLayout.LayoutParams(dp(88), dp(44)));
+        header.addView(newButton, new LinearLayout.LayoutParams(dp(72), dp(44)));
         page.addView(header);
 
         TextView offlineNotice = text("当前是原生离线版：不连接 Docker/NAS 也可以新建、编辑和保存。", 13, GREEN, false);
@@ -189,6 +198,86 @@ public class MainActivity extends Activity {
         button.setLayoutParams(params);
         return button;
     }
+    private void showCategories() {
+        LinearLayout page = pageRoot();
+        LinearLayout top = horizontal();
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        Button back = smallButton("返回");
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showHome();
+            }
+        });
+        top.addView(back, new LinearLayout.LayoutParams(dp(76), dp(44)));
+        TextView title = text("分类管理", 20, DARK, true);
+        title.setGravity(Gravity.CENTER);
+        top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        page.addView(top);
+
+        LinearLayout addCard = card();
+        addCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+        addCard.addView(text("添加分类", 18, GREEN, true));
+        final EditText nameInput = input("新分类名称", false);
+        addCard.addView(nameInput, inputParams(false));
+        Button addButton = smallButton("保存分类");
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String name = nameInput.getText().toString().trim();
+                if (name.length() == 0) {
+                    Toast.makeText(MainActivity.this, "先写分类名称", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                db.createCategory(name);
+                hideKeyboard(nameInput);
+                Toast.makeText(MainActivity.this, "分类已保存到手机本地", Toast.LENGTH_SHORT).show();
+                showCategories();
+            }
+        });
+        addCard.addView(addButton, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+        page.addView(addCard, cardParams());
+
+        TextView listTitle = text("本机分类", 18, DARK, true);
+        listTitle.setPadding(0, dp(18), 0, 0);
+        page.addView(listTitle);
+        for (final String category : db.listCategories()) {
+            LinearLayout item = card();
+            item.setPadding(dp(16), dp(12), dp(16), dp(12));
+            LinearLayout row = horizontal();
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            TextView name = text(category, 17, DARK, true);
+            row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            Button use = smallButton("筛选");
+            use.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    currentCategoryFilter = category;
+                    showHome();
+                }
+            });
+            row.addView(use, new LinearLayout.LayoutParams(dp(76), dp(42)));
+            item.addView(row);
+            item.addView(text("用于本机离线记录", 12, MUTED, false));
+            page.addView(item, cardParams());
+        }
+
+        setScrollable(page);
+    }
+
+    private Button selectCategoryButton(String label, final EditText categoryInput) {
+        Button button = smallButton(label);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                categoryInput.setText(((Button) view).getText().toString());
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
     private void showDetail(long id) {
         final Note note = db.getNote(id);
         if (note == null) {
@@ -280,6 +369,15 @@ public class MainActivity extends Activity {
         page.addView(contentInput, inputParams(true));
         page.addView(label("分类"));
         page.addView(categoryInput, inputParams(false));
+        HorizontalScrollView editorCategoryScroll = new HorizontalScrollView(this);
+        editorCategoryScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout editorCategoryRow = horizontal();
+        editorCategoryRow.setPadding(0, dp(8), 0, 0);
+        for (String category : db.listCategories()) {
+            editorCategoryRow.addView(selectCategoryButton(category, categoryInput));
+        }
+        editorCategoryScroll.addView(editorCategoryRow);
+        page.addView(editorCategoryScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         page.addView(label("标签"));
         page.addView(tagsInput, inputParams(false));
 
@@ -423,7 +521,22 @@ public class MainActivity extends Activity {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL("CREATE TABLE notes (" +
+            createNotesTable(db);
+            createCategoriesTable(db);
+            seedDefaultCategories(db);
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+            if (oldVersion < 2) {
+                createCategoriesTable(db);
+                seedDefaultCategories(db);
+                db.execSQL("INSERT OR IGNORE INTO categories(name, created_at) SELECT DISTINCT category, datetime('now') FROM notes WHERE category IS NOT NULL AND category != ''");
+            }
+        }
+
+        private void createNotesTable(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS notes (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 "title TEXT NOT NULL DEFAULT ''," +
                 "content TEXT NOT NULL DEFAULT ''," +
@@ -434,13 +547,29 @@ public class MainActivity extends Activity {
                 ")");
         }
 
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            db.execSQL("DROP TABLE IF EXISTS notes");
-            onCreate(db);
+        private void createCategoriesTable(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS categories (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "name TEXT NOT NULL UNIQUE," +
+                "created_at TEXT NOT NULL" +
+                ")");
+        }
+
+        private void seedDefaultCategories(SQLiteDatabase db) {
+            String[] defaults = new String[]{"家庭事务", "房屋 / 设备", "维修 / 售后", "购物 / 消费", "证件 / 账号", "孩子 / 教育", "老人 / 健康", "宠物", "工作 / 杂事", "临时记录", "未分类 / 待整理"};
+            for (String name : defaults) insertCategory(db, name);
+        }
+
+        private void insertCategory(SQLiteDatabase db, String name) {
+            if (name == null || name.trim().length() == 0) return;
+            ContentValues values = new ContentValues();
+            values.put("name", name.trim());
+            values.put("created_at", nowText());
+            db.insertWithOnConflict("categories", null, values, SQLiteDatabase.CONFLICT_IGNORE);
         }
 
         long createNote(String title, String content, String category, String tags) {
+            ensureCategory(category);
             String now = nowText();
             ContentValues values = new ContentValues();
             values.put("title", title);
@@ -453,6 +582,7 @@ public class MainActivity extends Activity {
         }
 
         void updateNote(long id, String title, String content, String category, String tags) {
+            ensureCategory(category);
             ContentValues values = new ContentValues();
             values.put("title", title);
             values.put("content", content);
@@ -495,16 +625,36 @@ public class MainActivity extends Activity {
             return notes;
         }
 
+        void createCategory(String name) {
+            insertCategory(getWritableDatabase(), name);
+        }
+
+        void ensureCategory(String category) {
+            createCategory(category);
+        }
+
         List<String> listCategories() {
             List<String> categories = new ArrayList<String>();
             Cursor cursor = getReadableDatabase().rawQuery(
-                "SELECT DISTINCT category FROM notes WHERE category IS NOT NULL AND category != '' ORDER BY category COLLATE LOCALIZED",
+                "SELECT name FROM categories ORDER BY id ASC",
                 null
             );
             try {
                 while (cursor.moveToNext()) categories.add(cursor.getString(0));
             } finally {
                 cursor.close();
+            }
+            Cursor noteCursor = getReadableDatabase().rawQuery(
+                "SELECT DISTINCT category FROM notes WHERE category IS NOT NULL AND category != '' ORDER BY category COLLATE LOCALIZED",
+                null
+            );
+            try {
+                while (noteCursor.moveToNext()) {
+                    String category = noteCursor.getString(0);
+                    if (!categories.contains(category)) categories.add(category);
+                }
+            } finally {
+                noteCursor.close();
             }
             return categories;
         }

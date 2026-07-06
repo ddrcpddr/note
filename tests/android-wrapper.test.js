@@ -27,7 +27,7 @@ describe('Android native offline app', () => {
 
     assert.ok(activity.includes('SQLiteOpenHelper'));
     assert.ok(activity.includes('DATABASE_NAME = "home_note_native.db"'));
-    assert.ok(activity.includes('CREATE TABLE notes'));
+    assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS notes'));
     assert.ok(activity.includes('showHome()'));
     assert.ok(activity.includes('showEditor'));
     assert.ok(activity.includes('showDetail'));
@@ -110,5 +110,21 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('listCategories()'));
     assert.ok(activity.includes('LIKE ?'));
     assert.ok(activity.includes('title LIKE ? OR content LIKE ? OR tags LIKE ?'));
+  });
+
+  test('supports native custom categories stored on the phone', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('DATABASE_VERSION = 2'));
+    assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS categories'));
+    assert.ok(activity.includes('seedDefaultCategories'));
+    assert.ok(activity.includes('showCategories()'));
+    assert.ok(activity.includes('添加分类'));
+    assert.ok(activity.includes('新分类名称'));
+    assert.ok(activity.includes('createCategory(String name)'));
+    assert.ok(activity.includes('ensureCategory(category)'));
+    assert.ok(activity.includes('selectCategoryButton'));
+    assert.ok(activity.includes('家庭事务'));
+    assert.ok(activity.includes('未分类 / 待整理'));
   });
 });

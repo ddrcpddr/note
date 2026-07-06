@@ -2165,3 +2165,47 @@ npm.cmd run android:device-smoke
 - 原生端尚未实现 Docker/NAS 同步。
 - 原生端尚未实现富文本、附件、Note Station `.nsx` 导入。
 - 真机仍需要用户或连接 USB 设备后验收。
+
+---
+测试时间：2026-07-06
+
+当前目标：原生离线 Android 增加本机自定义分类管理。
+
+## 复现 / 风险来源
+
+上一阶段原生 APK 已经支持本地搜索和分类筛选，但分类来源主要依赖已有记录。家庭日常使用需要能在手机离线状态下先创建自己的分类，再用于新建和编辑记录。
+
+## 修复内容
+
+- Android 原生 SQLite 数据库版本升级到 2。
+- 新增 `categories` 表和默认分类初始化。
+- 新增原生分类管理页，可新增分类并按分类筛选。
+- 新建 / 编辑记录页增加分类快捷选择。
+- 新建 / 编辑保存时自动确保分类落入本地分类表。
+- 新增 Android 静态测试覆盖分类表、默认分类、分类管理页和编辑页分类选择入口。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，7 tests。
+- `npm.cmd run android:delivery-check`：通过。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 87 tests / 87 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- 临时 HTTP smoke：通过，覆盖 health、app-data、列表、详情、搜索、分类筛选、成员筛选、新建、Note Station 网页导入、备份、JSON 导出和前端 shell。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；不能声称真机通过。
+
+## 仍然存在的问题
+
+- 原生端尚未实现 Docker/NAS 同步。
+- 原生端尚未实现富文本、图片、附件、Note Station `.nsx` 导入。
+- 真机仍需要 USB 连接设备或用户手动验收。
