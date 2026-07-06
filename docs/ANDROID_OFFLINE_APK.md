@@ -155,3 +155,24 @@ jar tf android/app/build/outputs/apk/debug/app-debug.apk
 3. 确认首页出现同步失败提示和“重试同步”。
 4. 恢复正确服务器地址，点击“重试同步”。
 5. 在 Docker/NAS 浏览器端确认记录同步成功。
+## 2026-07-06 Gate 5：离线编辑冲突保护
+
+离线 APK 现在会对“编辑已有服务端记录”的同步做基础冲突保护：
+
+- 手机离线编辑已有记录时，会记录编辑前的服务端更新时间。
+- 恢复联网同步时，如果 Docker/NAS 上这条记录已经被其他设备更新，服务端会返回冲突，不会直接覆盖。
+- 这类记录会保留在本机待同步 / 失败队列里，后续需要用户刷新后重新编辑，或继续做冲突处理界面。
+
+这不是完整自动合并，只是先保证家庭数据不会被旧离线版本静默覆盖。
+
+本轮验证：
+
+```bash
+node --test tests/mvp-api.test.js tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+结果：全部通过，APK 输出 `android/app/build/outputs/apk/debug/app-debug.apk`。

@@ -201,6 +201,8 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('function retryRemoteConnection()'));
     assert.ok(source.includes("if (dataMode === 'sqlite' && offlineCreateQueue.length > 0)"));
     assert.ok(source.includes('window.setTimeout(() => syncPendingLocalMutations(), 0)'));
+    assert.ok(source.includes('baseUpdatedAt'));
+    assert.ok(source.includes('updatedAtRaw'));
     assert.ok(source.includes("window.addEventListener('online', handleOnline)"));
     assert.ok(source.includes('onSyncNow={retryRemoteConnection}'));
     assert.ok(source.includes("offlineFailedCount={offlineCreateQueue.filter((item) => item.status === 'failed').length}"));

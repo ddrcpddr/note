@@ -332,6 +332,46 @@ describe('MVP API', () => {
     const clearedTag = await requestJson(`/api/notes?tag=${encodeURIComponent('维修')}`);
     assert.ok(!clearedTag.notes.some((note) => note.id === created.note.id));
   });
+  test('rejects stale offline updates when the server note changed first', async () => {
+    const created = await requestJson('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: '冲突保护记录',
+        content: '离线编辑前的内容',
+        categoryId: 'family',
+        memberId: 'self'
+      })
+    });
+
+    const baseUpdatedAt = created.note.updatedAt;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    const firstUpdate = await requestJson('/api/notes/' + created.note.id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: '服务端先更新',
+        content: '服务端已经有新内容',
+        baseUpdatedAt
+      })
+    });
+    assert.notEqual(firstUpdate.note.updatedAt, baseUpdatedAt);
+
+    const staleUpdate = await requestRaw('/api/notes/' + created.note.id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: '离线旧版本覆盖',
+        content: '这次不应该覆盖服务端',
+        baseUpdatedAt
+      })
+    });
+
+    assert.equal(staleUpdate.response.status, 409);
+    assert.equal(staleUpdate.data.code, 'note_conflict');
+    assert.match(staleUpdate.data.error, /已经在其他设备更新/);
+
+    const detail = await requestJson('/api/notes?id=' + encodeURIComponent(created.note.id));
+    assert.equal(detail.notes[0].title, '服务端先更新');
+  });
   test('creates, edits and exports rich text notes safely', async () => {
     const created = await requestJson('/api/notes', {
       method: 'POST',

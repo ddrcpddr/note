@@ -1634,3 +1634,53 @@ npm.cmd run android:build
 2. 临时配置错误服务器地址，观察待同步 / 失败提示。
 3. 改回正确 Docker/NAS 地址，点击“重试同步”。
 4. 在服务端确认只出现最终版本记录。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 5 第一刀，防止离线编辑旧版本在恢复联网后静默覆盖服务端新版本。本轮不改数据库结构、不修改真实运行数据、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+家庭里可能出现两台手机或手机 + 浏览器同时使用：A 手机离线打开并编辑旧记录，B 设备已经在线修改了同一条记录。A 手机恢复联网后如果直接 PATCH，会把 B 的更新覆盖掉。
+
+## 问题原因
+
+离线队列此前只保存最新编辑 payload，没有保存编辑时看到的服务端 `updatedAt` 基线。服务端收到 PATCH 时无法判断这是基于旧版本的离线编辑，还是用户刚刚基于最新记录做的编辑。
+
+## 修复内容
+
+- 前端把已有服务端记录进入离线编辑时的 `updatedAt` 保存为 `baseUpdatedAt`。
+- 服务端 PATCH 检查 `baseUpdatedAt`，发现服务端记录已更新时返回 `409 note_conflict`。
+- 同步失败信息保留在 IndexedDB 队列中，避免静默丢失本机编辑。
+- 增加 API 和前端静态回归测试。
+
+## 运行命令
+
+```bash
+node --test tests/mvp-api.test.js tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，49 tests pass。
+- npm.cmd run check：通过，integrityCheck=ok，categoryCount=11，noteCount=188。
+- npm.cmd run test：通过，76 tests pass。
+- npm.cmd run build：通过，保留已知 Tiptap bundle size warning。
+- npm.cmd run android:build：通过，APK 已重新生成并签名校验通过。
+
+## 仍然存在的问题
+
+- 当前只是防覆盖保护，不做复杂冲突合并界面。
+- 仍需要两台真机实际验证离线编辑、恢复联网、失败重试和冲突提示。
+
+## 下一步建议
+
+1. A 设备离线打开一条已有记录并编辑。
+2. B 设备在线修改同一条记录。
+3. A 设备恢复联网后尝试同步。
+4. 确认服务端不会被旧版本覆盖，A 设备显示同步失败 / 待处理。

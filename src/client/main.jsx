@@ -568,12 +568,15 @@ function App() {
     const localNote = buildLocalNoteFromDraftPayload(payload, context, syncStatus, localId, existingNote);
 
     await upsertLocalNote(localNote);
+    const syncPayload = action === 'update' && !String(localId).startsWith('local-')
+      ? { ...payload, baseUpdatedAt: existingNote.updatedAtRaw || null }
+      : payload;
     await queueLocalMutation({
       action,
       localId,
       noteId: localId,
       serverId: action === 'update' && !String(localId).startsWith('local-') ? localId : null,
-      payload
+      payload: syncPayload
     });
     await refreshPendingMutationState();
 
@@ -614,9 +617,8 @@ function App() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(mutation.payload)
           });
-          if (!response.ok) throw new Error('local first sync failed');
-
-          const data = await response.json();
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(data.error || 'local first sync failed');
           const syncedNote = normalizeNote(data.note, categoriesData);
           await upsertLocalNote({ ...syncedNote, syncStatus: 'synced', isOffline: false });
           if (mutation.localId && mutation.localId !== syncedNote.id) await deleteLocalNote(mutation.localId);
@@ -1110,6 +1112,7 @@ function normalizeNote(note, categoryList = fallbackCategories) {
     richContent: note.richContent || null,
     createdAt: formatLongTime(note.createdAt),
     updatedAt: formatShortTime(note.updatedAt),
+    updatedAtRaw: note.updatedAt || '',
     attachments: attachments.map((attachment) => (typeof attachment === 'string' ? { originalName: attachment, fileName: attachment } : attachment))
   };
 }

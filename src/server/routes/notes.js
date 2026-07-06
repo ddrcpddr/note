@@ -168,6 +168,16 @@ notesRouter.patch('/:id', (request, response) => {
   }
 
   const payload = request.body || {};
+  const baseUpdatedAt = typeof payload.baseUpdatedAt === 'string' ? payload.baseUpdatedAt.trim() : '';
+  if (baseUpdatedAt && existing.updatedAt && baseUpdatedAt !== existing.updatedAt) {
+    response.status(409).json({
+      error: '记录已经在其他设备更新，请先刷新后再编辑',
+      code: 'note_conflict',
+      note: existing
+    });
+    return;
+  }
+
   const attachmentPayloads = Array.isArray(payload.attachments) ? payload.attachments : [];
   const preparedAttachments = attachmentPayloads.map((attachment, index) => {
     const attachmentId = createId('attachment');
