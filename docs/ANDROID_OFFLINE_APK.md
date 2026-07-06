@@ -308,3 +308,19 @@ output/android-device-smoke/
 ```
 
 该目录已被 `.gitignore` 忽略，不能提交。这个 Gate 仍然只是自动抓明显崩溃和脚本错误；家庭真实验收仍需要在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上手动测试离线新建、编辑、恢复联网同步。
+
+## 2026-07-06 Gate 13：恢复联网同步行为测试
+
+新增：
+
+- `src/client/offlineSync.js`
+- `tests/offline-sync-behavior.test.js`
+
+这轮把恢复联网后的待同步队列处理抽成可测试逻辑：
+
+- create 队列项写入 `/api/notes`。
+- update 队列项写入 `/api/notes/:id`。
+- 成功同步后，写回本地 `synced` 记录，删除 `local-*` 临时记录，清理成功 mutation。
+- 失败后，当前 mutation 标记为 `failed`，并停止本轮后续同步，避免连续错误造成重复或错乱。
+
+这让离线 APK 的“恢复联网同步”不再只靠 UI 源码静态检查。真机上仍需要继续验证：离线新建 / 离线编辑 / 重启保留 / 恢复联网同步 / 同步失败后重试。

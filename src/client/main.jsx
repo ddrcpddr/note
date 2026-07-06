@@ -85,6 +85,7 @@ import {
   saveLocalSnapshot,
   upsertLocalNote
 } from './offlineStore.js';
+import { buildSyncRequestDescriptor, syncPendingMutationBatch } from './offlineSync.js';
 import './styles.css';
 
 function getAndroidServerUrl() {
@@ -599,42 +600,37 @@ function App() {
 
   async function syncPendingLocalMutations() {
     if (offlineSyncingRef.current || dataMode !== 'sqlite') return;
-    const mutations = await readPendingMutations();
-    if (!mutations.length) return;
 
     offlineSyncingRef.current = true;
     setOfflineSyncing(true);
-    let syncedCount = 0;
-    let failedMessage = '';
 
     try {
-      for (const mutation of mutations) {
-        try {
-          const isUpdate = mutation.action === 'update';
-          const endpoint = isUpdate ? '/api/notes/' + encodeURIComponent(mutation.serverId || mutation.noteId) : '/api/notes';
-          const response = await fetchApi(endpoint, {
-            method: isUpdate ? 'PATCH' : 'POST',
+      const { syncedCount, failedMessage } = await syncPendingMutationBatch({
+        readPendingMutations,
+        requestMutation: async (mutation) => {
+          const request = buildSyncRequestDescriptor(mutation);
+          const response = await fetchApi(request.endpoint, {
+            method: request.method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(mutation.payload)
+            body: JSON.stringify(request.payload)
           });
           const data = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(data.error || 'local first sync failed');
-          const syncedNote = normalizeNote(data.note, categoriesData);
-          await upsertLocalNote({ ...syncedNote, syncStatus: 'synced', isOffline: false });
-          if (mutation.localId && mutation.localId !== syncedNote.id) await deleteLocalNote(mutation.localId);
-          await markMutationSynced(mutation.id);
+          return data.note;
+        },
+        normalizeSyncedNote: (note) => normalizeNote(note, categoriesData),
+        upsertLocalNote,
+        deleteLocalNote,
+        markMutationSynced,
+        markMutationFailed,
+        onMutationSynced: ({ mutation, syncedNote }) => {
           setNotesData((current) => {
             const withoutLocal = current.filter((note) => note.id !== mutation.localId && note.id !== syncedNote.id);
             return [syncedNote, ...withoutLocal];
           });
           setSelectedId((current) => (current === mutation.localId || current === mutation.noteId ? syncedNote.id : current));
-          syncedCount += 1;
-        } catch (error) {
-          failedMessage = error?.message || 'sync failed';
-          await markMutationFailed(mutation, failedMessage);
-          break;
         }
-      }
+      });
       await refreshPendingMutationState();
       if (failedMessage) {
         showToast(syncedCount ? '已同步部分记录，还有记录待重试' : '同步暂时失败，可稍后重试');

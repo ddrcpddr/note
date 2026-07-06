@@ -186,6 +186,7 @@ describe('Frontend mobile interactions', () => {
 
   test('keeps an IndexedDB offline queue and syncs it after the service returns', () => {
     const source = readText('src/client/main.jsx');
+    const syncSource = readText('src/client/offlineSync.js');
 
     assert.ok(source.includes('const OFFLINE_APP_DATA_CACHE_KEY ='));
     assert.ok(source.includes('const OFFLINE_APP_DATA_CACHE_LIMIT = 100'));
@@ -218,8 +219,14 @@ describe('Frontend mobile interactions', () => {
     assert.ok(!source.includes('syncOfflineCreateQueue'));
     assert.ok(!source.includes('enqueueOfflineCreate'));
     assert.ok(!source.includes('window.localStorage.setItem(OFFLINE_CREATE_QUEUE_KEY'));
-    assert.ok(source.includes("const endpoint = isUpdate ? '/api/notes/'"));
-    assert.ok(source.includes('fetchApi(endpoint,'));
+    assert.ok(source.includes("from './offlineSync.js'"));
+    assert.ok(source.includes('syncPendingMutationBatch({'));
+    assert.ok(source.includes('buildSyncRequestDescriptor(mutation)'));
+    assert.ok(source.includes('fetchApi(request.endpoint,'));
+    assert.ok(syncSource.includes("endpoint: isUpdate ? '/api/notes/' + encodeURIComponent(noteId) : '/api/notes'"));
+    assert.ok(syncSource.includes("method: isUpdate ? 'PATCH' : 'POST'"));
+    assert.ok(syncSource.includes('await markMutationFailed(mutation, failedMessage)'));
+    assert.ok(syncSource.includes('break'));
     assert.ok(source.includes('writeOfflineAppDataCache({'));
   });
 

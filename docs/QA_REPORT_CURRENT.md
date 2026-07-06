@@ -1830,6 +1830,7 @@ npm.cmd run test
 npm.cmd run build
 npm.cmd run android:build
 npm.cmd run android:verify
+npm.cmd run android:delivery-check
 ```
 
 ## 测试结果
@@ -1971,3 +1972,45 @@ npm.cmd run android:device-smoke
 
 - 本轮尚未连接真实手机成功执行 `npm.cmd run android:device-smoke`，所以不能声明 vivo / Huawei 真机已通过。
 - 后续交付 APK 前，如果电脑连接了手机，应先运行 `npm.cmd run android:device-smoke`，再做人工离线和同步流程。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 13，补齐恢复联网同步批处理行为测试。本轮不改数据库结构，不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+离线 APK 恢复联网时，最容易出问题的是待同步队列：成功项没有清理、失败项被误删、失败后继续乱同步后续记录，都会导致家庭记录重复、丢失或状态混乱。此前已有 IndexedDB 存储测试，但同步批处理主循环仍主要依赖源码静态检查。
+
+## 修复内容
+
+- 新增 `src/client/offlineSync.js`，把离线待同步批处理循环抽成可测试函数。
+- 新增 `tests/offline-sync-behavior.test.js`。
+- React 页面继续调用同一套同步逻辑，不改变用户交互。
+- 前端静态测试更新为检查 `offlineSync.js` 接入和失败后停止批处理。
+
+## 运行命令
+
+```bash
+node --test tests/offline-sync-behavior.test.js tests/offline-store-behavior.test.js tests/offline-store-static.test.js tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+```
+
+## 测试结果
+
+- 定向离线测试：通过，30 tests pass。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，`categoryCount=11`。
+- `npm.cmd run test`：通过，16 suites / 86 tests / 86 pass。
+- `npm.cmd run build`：通过，仍有已知 Tiptap chunk size warning。
+- `npm.cmd run android:build`：通过，APK 重新生成并签名验证通过。
+- `npm.cmd run android:verify`：通过，APK 内部 JS 为 `assets/www/assets/index-NFcfECEN.js`。
+- `npm.cmd run android:delivery-check`：通过，内部再次覆盖 `check/test/build/android:build/android:verify`，并启动临时 `http://127.0.0.1:3400` 执行 HTTP smoke；smoke 覆盖 health、app-data、列表、详情、新建、Note Station 网页导入、备份、JSON 导出和前端 shell。
+
+## 仍然存在的问题
+
+- 该测试证明恢复联网同步批处理的代码行为，但仍不能替代真实手机上的离线新建、编辑、重启、恢复联网同步人工验收。
+- 当前电脑未连接手机，因此本轮没有执行成功的 `npm.cmd run android:device-smoke`。
