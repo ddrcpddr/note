@@ -65,6 +65,22 @@ describe('Android WebView wrapper', () => {
     assert.ok(buildScript.includes("entry.includes('\\\\')"));
   });
 
+  test('verifies the built APK contains a file-safe offline web bundle', () => {
+    const packageJson = readText('package.json');
+    const verifyScript = readText('scripts/verify-android-debug-apk.js');
+
+    assert.ok(packageJson.includes('"android:verify": "node scripts/verify-android-debug-apk.js"'));
+    assert.ok(verifyScript.includes('assets/www/index.html'));
+    assert.ok(verifyScript.includes('src="./assets/'));
+    assert.ok(verifyScript.includes('href="./assets/'));
+    assert.ok(verifyScript.includes('file:///api'));
+    assert.ok(verifyScript.includes('remote api unavailable in offline Android mode'));
+    assert.ok(verifyScript.includes('home-notes-offline-first-v1'));
+    assert.ok(verifyScript.includes('HomeNoteAndroid'));
+    assert.ok(verifyScript.includes('baseUpdatedAt'));
+    assert.ok(verifyScript.includes('本机记录待同步'));
+  });
+
 
   test('ships a launcher icon for the installed APK', () => {
     const manifest = readText('android/app/src/main/AndroidManifest.xml');

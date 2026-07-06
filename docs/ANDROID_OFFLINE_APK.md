@@ -215,3 +215,22 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 - 前端 shell。
 
 这个结果说明服务端 / Docker 方向的主流程正常，但 APK 真机离线和恢复联网仍需要在实际手机上确认。
+
+## 2026-07-06 Gate 9：APK 离线包结构验证
+
+新增命令：
+
+```bash
+npm.cmd run android:verify
+```
+
+该命令直接检查 `android/app/build/outputs/apk/debug/app-debug.apk` 内部：
+
+- 必须包含 `assets/www/index.html`。
+- `assets/` 条目不能包含 Windows 反斜杠。
+- `index.html` 必须使用 `./assets/...` 相对 JS/CSS 路径，避免 `file://` 下失效。
+- 必须包含 PWA manifest 和图标。
+- 构建后的 JS 不能包含 `file:///api`、旧的 access/status fetch 写法或裸 `/api` fetch。
+- 构建后的 JS 必须包含 Android bridge、IndexedDB 离线库、待同步文案、冲突基线等运行时标记。
+
+以后交付 APK 前，除 `android:build` 外必须跑 `android:verify`。

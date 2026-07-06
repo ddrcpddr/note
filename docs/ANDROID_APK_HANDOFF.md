@@ -22,6 +22,7 @@ npm.cmd run check
 npm.cmd run test
 npm.cmd run build
 npm.cmd run android:build
+npm.cmd run android:verify
 npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 ```
 
@@ -31,6 +32,7 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 - `npm.cmd run test`：通过，77 tests。
 - `npm.cmd run build`：通过。
 - `npm.cmd run android:build`：通过，APK 签名校验通过。
+- `npm.cmd run android:verify`：通过，确认 APK 内包含 `assets/www/index.html`、相对路径 JS/CSS、PWA manifest/icons，并且构建后的 JS 不含 `file:///api` 离线错误路径。
 - HTTP smoke：通过，覆盖健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、Note Station 网页上传导入、手动备份、JSON 导出和前端 shell。
 
 ## 当前 APK 已具备

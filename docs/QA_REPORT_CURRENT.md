@@ -1803,3 +1803,46 @@ npm.cmd run android:build
 
 - 真机验收还需要用户在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上实际安装测试。
 - 当前文档说明的是 debug APK 家庭测试，不是商店发布版本。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 9，新增 Android APK 离线包结构验证，避免只靠源码静态测试或 APK build 通过就交付。本轮不改业务逻辑、不改数据库结构、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+之前出现过 APK 打包路径、离线 `file:///api`、Android 端和浏览器端行为不一致的问题。只跑 `npm.cmd run android:build` 不能证明 APK 内部前端资源就是 file-safe 的，也不能证明构建后的 JS 仍保留离线保护。
+
+## 修复内容
+
+- 新增 `scripts/verify-android-debug-apk.js`。
+- 新增 npm 命令 `android:verify`。
+- Android wrapper 测试新增对验证脚本的覆盖。
+- 交付文档补充：以后 APK 交付前必须跑 `android:verify`。
+
+## 运行命令
+
+```bash
+npm.cmd run android:verify
+node --test tests/android-wrapper.test.js tests/frontend-ui.test.js tests/offline-store-static.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+```
+
+## 测试结果
+
+- `npm.cmd run android:verify`：通过。
+- 定向测试：通过，28 tests pass。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，78 tests pass。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- 最终再次 `npm.cmd run android:verify`：通过。
+
+## 仍然存在的问题
+
+- 该验证能证明 APK 包结构和离线运行时标记正确，但不能替代 vivo / Huawei 真机手动测试。
+- 仍需用户在两台手机上测试离线新建、编辑、插图、重启、联网同步。

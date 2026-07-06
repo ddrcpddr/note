@@ -13,7 +13,8 @@
     "restore-db": "node src/server/scripts/restore-database-backup.js",
     "test": "node --test tests/*.test.js",
     "smoke": "node src/server/scripts/http-smoke.js",
-    "android:build": "node scripts/build-android-debug.js"
+    "android:build": "node scripts/build-android-debug.js",
+    "android:verify": "node scripts/verify-android-debug-apk.js"
   },
   "dependencies": {
     "@tiptap/extension-color": "^3.27.1",
