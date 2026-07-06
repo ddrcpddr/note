@@ -198,8 +198,12 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('function isPendingLocalNote(note)'));
     assert.ok(source.includes('function pickPendingLocalNotes(snapshot, categoryList)'));
     assert.ok(source.includes('const [offlineCreateQueue, setOfflineCreateQueue] = useState([])'));
+    assert.ok(source.includes('function retryRemoteConnection()'));
+    assert.ok(source.includes("window.addEventListener('online', handleOnline)"));
+    assert.ok(source.includes('onSyncNow={retryRemoteConnection}'));
     assert.ok(source.includes('offlineQueueCount > 0'));
     assert.ok(source.includes('本机记录待同步'));
+    assert.ok(source.includes('尝试同步'));
     assert.ok(source.includes("setDataMode('offline-first')"));
     assert.ok(!source.includes('OFFLINE_CREATE_QUEUE_KEY'));
     assert.ok(!source.includes('readOfflineCreateQueue'));

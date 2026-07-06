@@ -1535,3 +1535,51 @@ npm.cmd run android:build
 
 - 还需要真机实际安装验证：离线新建 / 编辑 / 重启 App 后记录、分类、成员状态是否仍在。
 - 恢复联网后的同步冲突和重复提交保护还没进入 Gate 3。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 3 第一刀，补齐 Android 离线记录恢复联网后的同步触发和重复队列保护。本轮不改数据库结构、不改真实运行数据、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+1. 离线新建一条本机记录后，如果继续离线编辑同一条记录，旧队列可能同时保留 create 和 update。恢复联网后 create 会生成服务端记录，但 update 仍指向 local-* ID，存在同步失败或重复处理风险。
+2. 首页只有“本机记录待同步”提示，没有明确的手动“尝试同步”入口，家庭用户恢复 Docker/NAS 后不知道该刷新还是等待。
+
+## 修复内容
+
+- IndexedDB syncQueue 增加队列压缩：同一条 local-* 记录已有 pending create 时，后续 update 会合并回这条 create，只保留最新 payload。
+- 首页待同步提示增加“尝试同步”按钮，点击后重新尝试连接家庭记录服务。
+- 浏览器 / WebView 触发 online 事件时，如果存在待同步记录，也会重新尝试连接。
+- 新增回归测试覆盖队列压缩和手动同步入口。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，26 tests pass。
+- npm.cmd run check：通过，integrityCheck=ok，categoryCount=11，noteCount=188。
+- npm.cmd run test：通过，75 tests pass。
+- npm.cmd run build：通过，保留已知 Tiptap bundle size warning。
+- npm.cmd run android:build：通过，APK 已重新生成并签名校验通过。
+
+## 仍然存在的问题
+
+- 还需要用户在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上做真机恢复联网同步验收。
+- 当前仍是基础同步：失败重试和本机待同步提示已补齐，但复杂多设备冲突合并、后台自动同步、大附件 Blob 完整长期同步仍需后续小阶段处理。
+
+## 下一步建议
+
+1. 不配置服务器地址，离线新建一条记录。
+2. 离线编辑这条记录，修改标题、正文、分类或标签。
+3. 重启 App，确认记录仍在并显示待同步。
+4. 配置正确 Docker/NAS 地址，点击“尝试同步”。
+5. 在 Docker/NAS 浏览器端确认只出现一条最终记录，内容是最后编辑后的版本。

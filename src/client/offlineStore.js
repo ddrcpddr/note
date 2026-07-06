@@ -189,11 +189,32 @@ export async function deleteLocalNote(noteId) {
 export async function queueLocalMutation(mutation) {
   if (!mutation?.action || !mutation?.payload) return null;
   const now = new Date().toISOString();
+  const localId = mutation.localId || mutation.noteId || null;
+  const existingMutations = await getAll('syncQueue');
+  const existingCreate = existingMutations.find((item) => (
+    item.status !== 'synced'
+    && item.action === 'create'
+    && item.localId === localId
+    && String(localId || '').startsWith('local-')
+  ));
+
+  if (existingCreate && mutation.action === 'update') {
+    const mergedCreate = {
+      ...existingCreate,
+      payload: mutation.payload,
+      status: 'pending',
+      updatedAt: now,
+      lastError: null
+    };
+    await putMany('syncQueue', [mergedCreate]);
+    return mergedCreate;
+  }
+
   const item = {
     id: mutation.id || `mutation-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     action: mutation.action,
     noteId: mutation.noteId || mutation.localId || null,
-    localId: mutation.localId || mutation.noteId || null,
+    localId,
     serverId: mutation.serverId || null,
     payload: mutation.payload,
     status: 'pending',

@@ -516,6 +516,11 @@ function App() {
     window.setTimeout(() => setToast(''), 1800);
   }
 
+  function retryRemoteConnection() {
+    showToast('正在尝试连接家庭记录服务');
+    setAccessNonce((value) => value + 1);
+  }
+
   function buildLocalNoteFromDraftPayload(payload, { category, currentMember, title, body, bodyHtml }, syncStatus, localId, existingNote = {}) {
     return {
       ...existingNote,
@@ -635,6 +640,15 @@ function App() {
       syncPendingLocalMutations();
     }
   }, [dataMode, offlineCreateQueue.length]);
+
+  useEffect(() => {
+    function handleOnline() {
+      if (offlineCreateQueue.length > 0) retryRemoteConnection();
+    }
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [offlineCreateQueue.length]);
 
   useEffect(() => {
     if (dataMode === 'locked') return;
@@ -939,6 +953,7 @@ function App() {
           onOpenDetail={openDetail}
           onOpenSearch={openSearch}
           onCreateNote={() => navigate('new')}
+          onSyncNow={retryRemoteConnection}
           members={members}
         />
       )}
@@ -1259,7 +1274,7 @@ function AccessLockScreen({ message, onUnlock }) {
   );
 }
 
-function HomeScreen({ notes, categories, offlineQueueCount, offlineSyncing, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote }) {
+function HomeScreen({ notes, categories, offlineQueueCount, offlineSyncing, filter, member, category, members, onFilterChange, onMemberChange, onCategoryChange, onOpenDetail, onOpenSearch, onCreateNote, onSyncNow }) {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const hasAdvancedFilter = member !== 'all' || category !== 'all';
   const visibleNotes = filterNotes(notes, { filter, member, category }, categories);
@@ -1282,8 +1297,16 @@ function HomeScreen({ notes, categories, offlineQueueCount, offlineSyncing, filt
       <SearchPill placeholder="搜索记录、标签或内容" onClick={onOpenSearch} />
       <QuickFilters active={filter} onChange={onFilterChange} showMore={showMoreFilters} onToggleMore={() => setShowMoreFilters((value) => !value)} />
       {offlineQueueCount > 0 && (
-        <section className="mt-3 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700">
-          {offlineSyncing ? '正在同步本机记录...' : '有 ' + offlineQueueCount + ' 条本机记录待同步'}
+        <section className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700">
+          <span>{offlineSyncing ? '正在同步本机记录...' : '有 ' + offlineQueueCount + ' 条本机记录待同步'}</span>
+          <button
+            type="button"
+            className="shrink-0 rounded-full border border-amber-200 bg-white px-3 py-1 text-[12px] font-semibold text-amber-700 disabled:opacity-60"
+            onClick={onSyncNow}
+            disabled={offlineSyncing}
+          >
+            尝试同步
+          </button>
         </section>
       )}
       {(showMoreFilters || hasAdvancedFilter) && (

@@ -33,6 +33,17 @@ describe('Offline first local store', () => {
     assert.ok(source.includes('export async function markMutationSynced'));
   });
 
+  test('compacts offline create then edit into one pending create mutation', () => {
+    const source = readText('src/client/offlineStore.js');
+
+    assert.ok(source.includes("const existingMutations = await getAll('syncQueue')"));
+    assert.ok(source.includes("item.action === 'create'"));
+    assert.ok(source.includes("String(localId || '').startsWith('local-')"));
+    assert.ok(source.includes("if (existingCreate && mutation.action === 'update')"));
+    assert.ok(source.includes('payload: mutation.payload'));
+    assert.ok(source.includes('return mergedCreate'));
+  });
+
 
   test('removes UI-only React values before IndexedDB structured cloning', async () => {
     const { toIndexedDbSafeValue } = await import('../src/client/offlineStore.js');
