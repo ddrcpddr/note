@@ -1777,3 +1777,29 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3400
 2. 用 Huawei P30 Pro / HarmonyOS 打开编辑页，确认不白屏。
 3. 配置 Docker/NAS 地址后点击同步。
 4. 在浏览器端确认新记录存在，NSX 导入仍可用。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 8，整理 Android APK 家庭测试交付说明。本轮不改业务代码、不改数据库结构、不提交 data/ 内容。
+
+## 内容
+
+- 新增 `docs/ANDROID_APK_HANDOFF.md`。
+- 记录 APK 路径、已验证命令、当前能力、真机验收流程、当前不承诺事项、Docker/NAS 地址填写注意点。
+
+## 运行命令
+
+提交前继续运行：
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 仍然存在的问题
+
+- 真机验收还需要用户在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上实际安装测试。
+- 当前文档说明的是 debug APK 家庭测试，不是商店发布版本。

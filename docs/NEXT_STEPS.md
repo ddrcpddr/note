@@ -298,12 +298,13 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 - Gate 5：已有服务端记录的离线编辑带 `baseUpdatedAt`，服务端发现旧版本同步会返回 `409 note_conflict`，避免静默覆盖。
 - Gate 6：富文本图片插入会压缩，超大图片 / 附件会提示并阻止假保存。
 - Gate 7：本机构建产物启动后，HTTP smoke 通过，覆盖新建、搜索、筛选、NSX 上传导入、备份、JSON 导出和前端 shell。
+- Gate 8：新增 `docs/ANDROID_APK_HANDOFF.md`，集中记录当前 APK 的测试方式、已验证能力和限制。
 
 下一步按家庭自用优先级继续：
 
-1. 真机验证 Gate 1-5：vivo X300 Pro、Huawei P30 Pro / HarmonyOS。
-2. 真机验证 Gate 6：离线图片、小附件、App 重启和恢复联网同步。
-3. Gate 8：整理可交付 APK 说明，明确已测流程和仍有限制。
+1. 真机验证：vivo X300 Pro 离线新建、编辑、富文本、图片、小附件、重启和恢复联网同步。
+2. 真机验证：Huawei P30 Pro / HarmonyOS 进入编辑页不白屏，必要时降级纯文本仍可保存。
+3. 用 Docker/NAS 浏览器端确认 APK 同步后的记录内容正确。
 4. 后续再根据真机反馈补冲突处理界面、大附件 Blob 或后台同步。
 
 暂不做：
