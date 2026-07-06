@@ -3,6 +3,7 @@ package com.homeoldnote.app;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -30,7 +31,9 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final String PREFS_NAME = "home_note_native_prefs";
+    private static final String PREF_SERVER_URL = "server_url";
+    private static final int DATABASE_VERSION = 3;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -38,6 +41,7 @@ public class MainActivity extends Activity {
     private static final int CARD = Color.WHITE;
 
     private NotesDb db;
+    private SharedPreferences prefs;
     private String currentSearchQuery = "";
     private String currentCategoryFilter = "";
 
@@ -45,6 +49,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         db = new NotesDb(this);
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         showHome();
     }
 
@@ -86,7 +91,7 @@ public class MainActivity extends Activity {
         header.addView(newButton, new LinearLayout.LayoutParams(dp(72), dp(44)));
         page.addView(header);
 
-        TextView offlineNotice = text("当前是原生离线版：不连接 Docker/NAS 也可以新建、编辑和保存。", 13, GREEN, false);
+        TextView offlineNotice = text("当前是原生离线版：不连接 Docker/NAS 也可以新建、编辑和保存。待同步：" + db.pendingSyncCount() + " 条", 13, GREEN, false);
         offlineNotice.setPadding(dp(12), dp(10), dp(12), dp(10));
         offlineNotice.setBackgroundColor(Color.rgb(232, 245, 238));
         LinearLayout.LayoutParams noticeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -265,6 +270,59 @@ public class MainActivity extends Activity {
         setScrollable(page);
     }
 
+    private void showSyncSettings() {
+        LinearLayout page = pageRoot();
+        LinearLayout top = horizontal();
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        Button back = smallButton("返回");
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showHome();
+            }
+        });
+        top.addView(back, new LinearLayout.LayoutParams(dp(76), dp(44)));
+        TextView title = text("离线同步", 20, DARK, true);
+        title.setGravity(Gravity.CENTER);
+        top.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        page.addView(top);
+
+        LinearLayout card = card();
+        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+        card.addView(text("服务器地址", 18, GREEN, true));
+        card.addView(text("填写家里 Docker/NAS 服务地址。离线记录会先保存在手机本地。", 13, MUTED, false));
+        final EditText serverInput = input("例如 http://192.168.2.213:3300", false);
+        serverInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        serverInput.setText(prefs.getString(PREF_SERVER_URL, ""));
+        card.addView(serverInput, inputParams(false));
+
+        TextView pending = text("待同步：" + db.pendingSyncCount() + " 条", 16, DARK, true);
+        pending.setPadding(0, dp(8), 0, dp(8));
+        card.addView(pending);
+
+        Button save = smallButton("保存服务器地址");
+        save.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                prefs.edit().putString(PREF_SERVER_URL, serverInput.getText().toString().trim()).apply();
+                hideKeyboard(serverInput);
+                Toast.makeText(MainActivity.this, "服务器地址已保存", Toast.LENGTH_SHORT).show();
+            }
+        });
+        card.addView(save, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+
+        Button manualSync = smallButton("手动同步");
+        manualSync.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(MainActivity.this, "同步功能下一阶段接入 Docker/NAS", Toast.LENGTH_LONG).show();
+            }
+        });
+        card.addView(manualSync, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+        page.addView(card, cardParams());
+
+        setScrollable(page);
+    }
     private Button selectCategoryButton(String label, final EditText categoryInput) {
         Button button = smallButton(label);
         button.setOnClickListener(new View.OnClickListener() {
@@ -555,6 +613,15 @@ public class MainActivity extends Activity {
                 ")");
         }
 
+        private void createSyncQueueTable(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS sync_queue (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "note_id INTEGER NOT NULL," +
+                "mutation_type TEXT NOT NULL," +
+                "status TEXT NOT NULL DEFAULT 'pending'," +
+                "created_at TEXT NOT NULL" +
+                ")");
+        }
         private void seedDefaultCategories(SQLiteDatabase db) {
             String[] defaults = new String[]{"家庭事务", "房屋 / 设备", "维修 / 售后", "购物 / 消费", "证件 / 账号", "孩子 / 教育", "老人 / 健康", "宠物", "工作 / 杂事", "临时记录", "未分类 / 待整理"};
             for (String name : defaults) insertCategory(db, name);
@@ -592,6 +659,25 @@ public class MainActivity extends Activity {
             getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(id)});
         }
 
+        void queueSyncMutation(long noteId, String mutationType) {
+            if (noteId <= 0) return;
+            ContentValues values = new ContentValues();
+            values.put("note_id", noteId);
+            values.put("mutation_type", mutationType == null ? "update" : mutationType);
+            values.put("status", "pending");
+            values.put("created_at", nowText());
+            getWritableDatabase().insert("sync_queue", null, values);
+        }
+
+        int pendingSyncCount() {
+            Cursor cursor = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM sync_queue WHERE status='pending'", null);
+            try {
+                if (!cursor.moveToFirst()) return 0;
+                return cursor.getInt(0);
+            } finally {
+                cursor.close();
+            }
+        }
         List<Note> listNotes(String searchQuery, String categoryFilter) {
             List<Note> notes = new ArrayList<Note>();
             StringBuilder where = new StringBuilder();

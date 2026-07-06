@@ -179,3 +179,24 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 
 - 这是原生离线功能推进的一小步，不是最终离线 Android App。
 - Docker/NAS 同步、富文本、图片、附件、Note Station `.nsx` 导入还未迁入原生端。
+
+## 2026-07-06 原生同步前置补充
+
+当前 debug APK 已加入同步前置能力：
+
+- `sync_queue` 本地待同步队列。
+- 新建 / 编辑记录会写入待同步项。
+- 首页显示待同步数量。
+- 原生同步页面可保存 Docker/NAS 服务器地址。
+- 手动同步按钮当前只提示“同步功能下一阶段接入 Docker/NAS”。
+
+验证结果：
+
+- `npm.cmd run android:delivery-check`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+边界：
+
+- 当前还没有真正把手机本地记录上传到 Docker/NAS。
+- 不应把这个 APK 说成“联网同步已完成”。

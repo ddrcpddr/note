@@ -40,7 +40,6 @@ describe('Android native offline app', () => {
     assert.equal(activity.includes('file:///android_asset/www/index.html'), false);
     assert.equal(activity.includes('HomeNoteAndroid'), false);
     assert.equal(activity.includes('loadServer'), false);
-    assert.equal(activity.includes('server_url'), false);
 
     assert.ok(buildScript.includes('Building native offline Android debug APK'));
     assert.ok(buildScript.includes('assertNativeApk'));
@@ -115,7 +114,7 @@ describe('Android native offline app', () => {
   test('supports native custom categories stored on the phone', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 2'));
+    assert.ok(activity.includes('DATABASE_VERSION = 3'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS categories'));
     assert.ok(activity.includes('seedDefaultCategories'));
     assert.ok(activity.includes('showCategories()'));
@@ -126,5 +125,21 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('selectCategoryButton'));
     assert.ok(activity.includes('家庭事务'));
     assert.ok(activity.includes('未分类 / 待整理'));
+  });
+  test('prepares native offline notes for later Docker NAS sync', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('DATABASE_VERSION = 3'));
+    assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
+    assert.ok(activity.includes('queueSyncMutation'));
+    assert.ok(activity.includes('pendingSyncCount()'));
+    assert.ok(activity.includes('SharedPreferences'));
+    assert.ok(activity.includes('PREFS_NAME'));
+    assert.ok(activity.includes('server_url'));
+    assert.ok(activity.includes('showSyncSettings()'));
+    assert.ok(activity.includes('服务器地址'));
+    assert.ok(activity.includes('待同步'));
+    assert.ok(activity.includes('手动同步'));
+    assert.ok(activity.includes('同步功能下一阶段接入 Docker/NAS'));
   });
 });
