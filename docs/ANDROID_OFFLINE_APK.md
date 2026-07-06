@@ -68,3 +68,26 @@ jar tf android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 合格结果应看到 `assets/www/index.html`、`assets/www/assets/...`，不能看到 `assets/www\index.html`。
+## 2026-07-06 Gate 1 修复：纯离线不再请求 file API
+
+用户真机反馈：首次不配置服务器、点击“离线使用”后，页面可保存记录，但会弹出：
+
+```text
+页面脚本异常：JS console: Fetch API cannot load file:///api/access/status
+```
+
+本轮修复结果：
+
+- `file://` 页面且没有 Android 服务器地址时，前端不再把 `/api/...` 交给 WebView `fetch`。
+- 业务 API 统一经过 `fetchApi()`；纯离线模式会走本地 IndexedDB 快照 / 本地空库降级。
+- 构建产物检查：生产 JS 含离线 guard，不含 `file:///api`，不含旧 access/status fetch 写法。
+- 已重新执行 `npm.cmd run android:build`，新 APK 在 `android/app/build/outputs/apk/debug/app-debug.apk`。
+
+真机验收重点：
+
+1. 不填服务器地址，点击“离线使用”。
+2. 首页不再弹 `file:///api/access/status` 脚本异常。
+3. 新建一条记录，完全退出 App 后再打开，记录仍在。
+4. 再填入正确 Docker/NAS 地址，进入联网模式后观察待同步记录是否能继续处理。
+
+注意：Gate 1 只解决启动阶段的 file API 错误。长期离线图片、附件和同步冲突属于下一阶段。

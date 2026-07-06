@@ -1396,3 +1396,54 @@ npm.cmd run build
 2. 不配置服务器地址，直接点“离线使用”。
 3. 新建一条离线记录，关闭 App 后重新打开确认记录仍在。
 4. 再配置 Docker/NAS 地址，检查恢复联网后的同步。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 1，修复离线 Android APK 在未配置服务器时仍请求 `file:///api/access/status` 的脚本异常。本轮只修离线启动 API 防护，不改数据库、不改业务数据、不提交 `data/` 运行内容。
+
+## 复现步骤
+
+1. 安装离线 APK。
+2. 不填写 Docker / NAS 服务器地址，点击“离线使用”。
+3. 进入首页后观察 WebView toast / 控制台报错。
+
+## 问题原因
+
+`apiUrl('/api/access/status')` 在 `file://` 页面且没有保存服务器地址时仍返回 `/api/access/status`，Android WebView 会把它解析为 `file:///api/access/status`。这不是服务端问题，而是离线壳启动阶段不应该发起远程 API 请求。
+
+## 修复内容
+
+- 新增 `canUseRemoteApi()` 判断：只有非 `file://` 页面，或 Android 已配置服务器地址时，才允许访问远程 API。
+- 新增 `fetchApi()` 包装，纯离线 Android 模式下直接抛出可控错误，让页面进入 IndexedDB 本地快照 / 本地空库逻辑，不再触发浏览器级 `file:///api/...` 请求。
+- 将前端所有业务 `fetch(apiUrl(...))` 调整为 `fetchApi(...)`。
+- 增加前端静态回归测试，覆盖纯离线 Android 不请求 file API URL。
+
+## 运行命令
+
+```bash
+node --test tests/frontend-ui.test.js tests/offline-store-static.test.js tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向测试：通过，25 tests pass。
+- `npm.cmd run check`：通过，SQLite integrityCheck ok。
+- `npm.cmd run test`：通过，74 tests pass。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过，APK 已重新生成并签名校验通过。
+- 生产构建检查：`dist/assets/index-n4InEOVD.js` 含离线 guard，未包含 `file:///api`，未包含旧 `fetch(apiUrl('/api/access/status'))`。
+
+## 仍然存在的问题
+
+- 仍需用户在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上安装新 APK 做真机确认。
+- Gate 1 只解决“纯离线启动不请求 file:///api”的报错；长期离线完整附件、图片 Blob 和恢复联网同步仍属于 Gate 2 / Gate 3。
+
+## 下一步建议
+
+- 安装本轮新 APK，先不填服务器地址，点击“离线使用”，确认不再出现 `Fetch API cannot load file:///api/access/status`。
+- 若 Gate 1 真机通过，继续 Gate 2：离线新建、编辑、富文本、分类、标签、图片/附件在本机长期保存。

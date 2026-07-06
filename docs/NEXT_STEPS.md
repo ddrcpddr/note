@@ -217,3 +217,17 @@ otestation-web-import 三项。
 3. vivo X300 Pro：同样走离线新建、编辑和恢复联网同步。
 4. 两台设备都连接 Docker/NAS 后，确认服务器地址、首页、详情、富文本编辑、NSX 选择、备份/导出入口正常。
 5. 若继续做离线增强，优先处理图片/附件 Blob 的 IndexedDB 长期保存和同步冲突提示。
+
+## 2026-07-06 当前目标：离线可用 Android App
+
+用户已明确要求：这是家庭自用工具，不走大项目流程；最终交付应是经过测试、没有明显关键 bug、可长期离线使用的 Android App。
+
+当前按 Gate 小阶段推进：
+
+1. Gate 1：离线启动稳定。本轮已修 `file:///api/access/status` 报错，APK 已重新构建，待真机确认。
+2. Gate 2：离线日常记录完整。离线状态下新建、编辑、富文本、分类、标签、图片 / 附件都要能本地持久化。
+3. Gate 3：恢复联网同步。Android 恢复连接 Docker/NAS 后，把本地待同步记录写回服务端。
+4. Gate 4：同步安全。处理重复同步、基础冲突提示、失败重试，不静默丢记录。
+5. Gate 5：交付验收。在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上完成安装、离线、联网、同步和回归测试后再交付 APK。
+
+不要再提供未自测的半成品 APK。每个 Gate 至少执行：定向测试、`npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build`、需要 APK 时执行 `npm.cmd run android:build`。
