@@ -81,6 +81,22 @@ describe('Android WebView wrapper', () => {
     assert.ok(verifyScript.includes('本机记录待同步'));
   });
 
+  test('provides a one-command Android delivery check before handing over APKs', () => {
+    const packageJson = readText('package.json');
+    const deliveryScript = readText('scripts/android-delivery-check.js');
+
+    assert.ok(packageJson.includes('"android:delivery-check": "node scripts/android-delivery-check.js"'));
+    assert.ok(deliveryScript.includes("run(npmCommand, ['run', 'check']"));
+    assert.ok(deliveryScript.includes("run(npmCommand, ['run', 'test']"));
+    assert.ok(deliveryScript.includes("run(npmCommand, ['run', 'build']"));
+    assert.ok(deliveryScript.includes("run(npmCommand, ['run', 'android:build']"));
+    assert.ok(deliveryScript.includes("run(npmCommand, ['run', 'android:verify']"));
+    assert.ok(deliveryScript.includes("spawn(nodeCommand, ['src/server/index.js']"));
+    assert.ok(deliveryScript.includes("run(npmCommand, ['run', 'smoke', '--', '--base-url', smokeBaseUrl]"));
+    assert.ok(deliveryScript.includes('ANDROID_DELIVERY_SMOKE_PORT'));
+    assert.ok(deliveryScript.includes('assertApkExists'));
+  });
+
 
   test('ships a launcher icon for the installed APK', () => {
     const manifest = readText('android/app/src/main/AndroidManifest.xml');

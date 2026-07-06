@@ -14,7 +14,8 @@
     "test": "node --test tests/*.test.js",
     "smoke": "node src/server/scripts/http-smoke.js",
     "android:build": "node scripts/build-android-debug.js",
-    "android:verify": "node scripts/verify-android-debug-apk.js"
+    "android:verify": "node scripts/verify-android-debug-apk.js",
+    "android:delivery-check": "node scripts/android-delivery-check.js"
   },
   "dependencies": {
     "@tiptap/extension-color": "^3.27.1",

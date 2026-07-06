@@ -1885,3 +1885,45 @@ node --test tests/offline-store-behavior.test.js tests/offline-store-static.test
 
 - 这是函数级自动化测试，不等同于真实手机 WebView 的完整离线 / 联网同步验收。
 - 仍需要在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上验证：离线新建、离线编辑、插图、重启后保留、恢复 Docker/NAS 后同步。
+
+---
+测试时间：2026-07-06
+
+当前目标：Gate 11，新增 Android APK 交付前一键自检，避免以后漏跑 build、APK verify 或 HTTP smoke。本轮不改业务逻辑、不改数据库结构、不提交 data/ 内容。
+
+## 复现 / 风险来源
+
+此前多次出现“某个环境好用，但交付到 APK / Docker / GHCR 后版本或功能不一致”的问题。零散手动运行命令容易漏掉步骤，也容易忘记启动真实 HTTP 服务做 smoke。
+
+## 修复内容
+
+- 新增 `scripts/android-delivery-check.js`。
+- 新增 npm 命令 `android:delivery-check`。
+- Android wrapper 测试新增对该命令和脚本关键步骤的覆盖。
+- 自检会执行：`check`、`test`、`build`、`android:build`、`android:verify`，并启动临时 `3400` 端口服务跑 HTTP smoke。
+- 第一次实现用 `npm run server` 启动临时服务时，Windows 上退出不够干净；已改为直接 `node src/server/index.js`，最终脚本能正常退出。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run android:delivery-check
+```
+
+## 测试结果
+
+- `node --test tests/android-wrapper.test.js`：通过，5 tests pass。
+- `npm.cmd run android:delivery-check`：通过。
+- 自检内部结果：
+  - `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，`categoryCount=11`。
+  - `npm.cmd run test`：通过，15 suites / 83 tests / 83 pass。
+  - `npm.cmd run build`：通过，仍有已知 Tiptap chunk size warning。
+  - `npm.cmd run android:build`：通过，APK 签名校验通过。
+  - `npm.cmd run android:verify`：通过。
+  - `npm.cmd run smoke -- --base-url http://127.0.0.1:3400`：通过，覆盖 health、app-data、列表、详情、新建、Note Station 网页导入、备份、JSON 导出和前端 shell。
+  - APK 输出：`android/app/build/outputs/apk/debug/app-debug.apk`，大小约 `518079` bytes。
+
+## 仍然存在的问题
+
+- 一键自检仍是本机自动化，不等同于 vivo X300 Pro / Huawei P30 Pro 真机完整验收。
+- HTTP smoke 会在本地 ignored `data/` 下生成测试记录、备份和导出文件，提交前必须继续确认不跟踪运行数据。

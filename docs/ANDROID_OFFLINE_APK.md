@@ -251,3 +251,30 @@ node --test tests/offline-store-behavior.test.js tests/offline-store-static.test
 - 循环引用、函数等不可写入 IndexedDB 的值会在保存前被剔除。
 
 这个测试不能替代真机，但以后能防止离线 APK 的本地存储逻辑在代码层面退化。
+
+## 2026-07-06 Gate 11：Android 交付一键自检
+
+新增命令：
+
+```bash
+npm.cmd run android:delivery-check
+```
+
+该命令用于给家庭手机安装 APK 前的本机自检，会顺序执行：
+
+- `npm.cmd run check`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- `npm.cmd run android:build`
+- `npm.cmd run android:verify`
+- 临时启动 `http://127.0.0.1:3400` 并执行 `npm.cmd run smoke -- --base-url http://127.0.0.1:3400`
+
+通过后会输出 APK 路径、APK 大小和每一步结果。以后如果只是给自己或家人装最新 APK，优先跑这一条命令，再把：
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+安装到手机上测试。
+
+注意：这仍然不能替代真机验证；它只是把本机自动化和 APK 包检查集中到一个命令里。

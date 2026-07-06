@@ -114,6 +114,12 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3300
 npm.cmd run android:build
 ```
 
+交付给手机安装前的一键自检：
+
+```bash
+npm.cmd run android:delivery-check
+```
+
 输出文件：
 
 ```text
