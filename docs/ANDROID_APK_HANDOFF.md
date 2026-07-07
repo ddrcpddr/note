@@ -416,3 +416,44 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 独立标签管理页。
 - 原生端富文本、图片、附件和 `.nsx` 导入。
 - 两台家庭手机真机通过，除非用户后续人工确认。
+
+## 2026-07-07 原生成员归属补充
+
+当前 debug APK 已加入默认成员归属能力：
+
+- 默认成员只保留“我 / 爱人”。
+- 新建 / 编辑记录时可以选择当前成员。
+- 首页可以按“全部成员 / 我 / 爱人”筛选。
+- 首页记录卡片和详情页会显示记录归属。
+- 本机 SQLite 数据库版本为 v8，`notes.member_id` 保存成员归属。
+- 手动同步到 Docker/NAS 时会带上记录自己的 `memberId`，不再固定为 `self`。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，15 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，95 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+当前可测试 APK：
+
+- `D:\工作文件夹\XYZL\领航未来\GitHub项目\note\android\app\build\outputs\apk\debug\app-debug.apk`
+
+建议真机重点测：
+
+1. 完全断网打开 APK，新建记录并选择“爱人”。
+2. 保存后回首页，点“爱人”筛选，确认能看到这条记录。
+3. 点“我”筛选，确认不会显示刚才归属“爱人”的记录。
+4. 编辑记录，把成员从“爱人”改回“我”，保存后重新筛选确认归属更新。
+5. 填写 Docker/NAS 地址并手动同步，在服务端确认 `memberId` 不再固定为 `self`。
+
+仍不承诺：
+
+- 新增真实家庭成员。
+- 独立成员管理页。
+- 原生端富文本、图片、附件和 `.nsx` 导入。
+- 两台家庭手机真机通过，除非用户后续人工确认。

@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
     private static final String PREFS_NAME = "home_note_native_prefs";
     private static final String PREF_SERVER_URL = "server_url";
-    private static final int DATABASE_VERSION = 7;
+    private static final int DATABASE_VERSION = 8;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     private String currentSearchQuery = "";
     private String currentCategoryFilter = "";
     private String currentTagFilter = "";
+    private String currentMemberFilter = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,8 +111,8 @@ public class MainActivity extends Activity {
 
         addHomeFilters(page);
 
-        List<Note> notes = db.listNotes(currentSearchQuery, currentCategoryFilter, currentTagFilter);
-        String listLabel = currentSearchQuery.length() == 0 && currentCategoryFilter.length() == 0 && currentTagFilter.length() == 0 ? "最新记录" : "筛选结果";
+        List<Note> notes = db.listNotes(currentSearchQuery, currentCategoryFilter, currentTagFilter, currentMemberFilter);
+        String listLabel = currentSearchQuery.length() == 0 && currentCategoryFilter.length() == 0 && currentTagFilter.length() == 0 && currentMemberFilter.length() == 0 ? "最新记录" : "筛选结果";
         TextView listTitle = text(listLabel + "（" + notes.size() + "）", 18, DARK, true);
         page.addView(listTitle);
 
@@ -133,7 +134,7 @@ public class MainActivity extends Activity {
                 TextView itemTitle = text(note.title.length() == 0 ? "未命名记录" : note.title, 18, DARK, true);
                 TextView summary = text(note.content.length() == 0 ? "没有正文" : note.content, 14, MUTED, false);
                 summary.setMaxLines(3);
-                TextView meta = text(note.category + "  ·  " + note.updatedAt, 12, GREEN, false);
+                TextView meta = text(memberLabelFor(note.memberId) + "  ·  " + note.category + "  ·  " + note.updatedAt, 12, GREEN, false);
                 item.addView(itemTitle);
                 item.addView(summary);
                 item.addView(meta);
@@ -170,7 +171,7 @@ public class MainActivity extends Activity {
         searchRow.addView(searchButton, new LinearLayout.LayoutParams(dp(76), dp(48)));
         searchCard.addView(searchRow);
 
-        if (currentSearchQuery.length() > 0 || currentCategoryFilter.length() > 0 || currentTagFilter.length() > 0) {
+        if (currentSearchQuery.length() > 0 || currentCategoryFilter.length() > 0 || currentTagFilter.length() > 0 || currentMemberFilter.length() > 0) {
             Button clear = smallButton("清除筛选");
             clear.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -178,12 +179,23 @@ public class MainActivity extends Activity {
                     currentSearchQuery = "";
                     currentCategoryFilter = "";
                     currentTagFilter = "";
+                    currentMemberFilter = "";
                     showHome();
                 }
             });
             searchCard.addView(clear, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
         }
         page.addView(searchCard, cardParams());
+
+        HorizontalScrollView memberScroll = new HorizontalScrollView(this);
+        memberScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout memberRow = horizontal();
+        memberRow.setPadding(0, dp(8), 0, dp(4));
+        memberRow.addView(memberFilterButton("全部成员", ""));
+        memberRow.addView(memberFilterButton("我", "self"));
+        memberRow.addView(memberFilterButton("爱人", "partner"));
+        memberScroll.addView(memberRow);
+        page.addView(memberScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         HorizontalScrollView categoryScroll = new HorizontalScrollView(this);
         categoryScroll.setHorizontalScrollBarEnabled(false);
@@ -235,6 +247,24 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View view) {
                 currentTagFilter = tagValue;
+                showHome();
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    private Button memberFilterButton(String label, final String memberValue) {
+        Button button = smallButton(label);
+        boolean selected = currentMemberFilter.equals(memberValue);
+        button.setTextColor(selected ? Color.WHITE : GREEN);
+        button.setBackgroundColor(selected ? GREEN : CARD);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                currentMemberFilter = memberValue;
                 showHome();
             }
         });
@@ -332,7 +362,7 @@ public class MainActivity extends Activity {
         card.setPadding(dp(16), dp(14), dp(16), dp(14));
         card.addView(text("服务器地址", 18, GREEN, true));
         card.addView(text("填写家里 Docker/NAS 服务地址。离线记录会先保存在手机本地。", 13, MUTED, false));
-        final EditText serverInput = input("例如 http://192.168.2.213:3300", false);
+        final EditText serverInput = input("例如 http://家庭NAS地址:3300", false);
         serverInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         serverInput.setText(prefs.getString(PREF_SERVER_URL, ""));
         card.addView(serverInput, inputParams(false));
@@ -570,7 +600,7 @@ public class MainActivity extends Activity {
         payload.put("content", mutation.content == null ? "" : mutation.content);
         payload.put("contentText", mutation.content == null ? "" : mutation.content);
         payload.put("categoryId", categoryIdFor(mutation.category));
-        payload.put("memberId", "self");
+        payload.put("memberId", memberIdFor(mutation.memberId));
         payload.put("noteType", "normal");
         payload.put("sourceType", "manual");
         JSONArray tags = new JSONArray();
@@ -673,6 +703,33 @@ public class MainActivity extends Activity {
         button.setLayoutParams(params);
         return button;
     }
+
+    private Button selectMemberButton(final String label, final EditText memberInput) {
+        Button button = smallButton(label);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                memberInput.setText(label);
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    private static String memberLabelFor(String memberId) {
+        String value = memberId == null ? "" : memberId.trim();
+        if ("partner".equals(value) || "爱人".equals(value)) return "爱人";
+        return "我";
+    }
+
+    private static String memberIdFor(String memberValue) {
+        String value = memberValue == null ? "" : memberValue.trim();
+        if ("partner".equals(value) || "爱人".equals(value)) return "partner";
+        return "self";
+    }
+
     private void showDetail(long id) {
         final Note note = db.getNote(id);
         if (note == null) {
@@ -709,6 +766,7 @@ public class MainActivity extends Activity {
         card.setPadding(dp(18), dp(18), dp(18), dp(18));
         card.addView(text(note.title.length() == 0 ? "未命名记录" : note.title, 22, DARK, true));
         card.addView(text(note.category + "  ·  " + note.tags, 13, GREEN, false));
+        card.addView(text("成员：" + memberLabelFor(note.memberId), 12, GREEN, false));
         card.addView(text("创建：" + note.createdAt, 12, MUTED, false));
         card.addView(text("更新：" + note.updatedAt, 12, MUTED, false));
         page.addView(card, cardParams());
@@ -774,15 +832,18 @@ public class MainActivity extends Activity {
 
         final EditText titleInput = input("标题（可选）", false);
         final EditText contentInput = input("写下家里的小事、账单、维修、临时备忘……", true);
+        final EditText memberInput = input("当前成员", false);
         final EditText categoryInput = input("分类，例如 家庭事务", false);
         final EditText tagsInput = input("标签，例如 待办 重要", false);
 
         if (existing != null) {
             titleInput.setText(existing.title);
             contentInput.setText(existing.content);
+            memberInput.setText(memberLabelFor(existing.memberId));
             categoryInput.setText(existing.category);
             tagsInput.setText(existing.tags);
         } else {
+            memberInput.setText("我");
             categoryInput.setText("未分类 / 待整理");
         }
 
@@ -790,6 +851,13 @@ public class MainActivity extends Activity {
         page.addView(titleInput, inputParams(false));
         page.addView(label("内容"));
         page.addView(contentInput, inputParams(true));
+        page.addView(label("当前成员"));
+        page.addView(memberInput, inputParams(false));
+        LinearLayout memberRow = horizontal();
+        memberRow.setPadding(0, dp(8), 0, 0);
+        memberRow.addView(selectMemberButton("我", memberInput));
+        memberRow.addView(selectMemberButton("爱人", memberInput));
+        page.addView(memberRow);
         page.addView(label("分类"));
         page.addView(categoryInput, inputParams(false));
         HorizontalScrollView editorCategoryScroll = new HorizontalScrollView(this);
@@ -827,6 +895,7 @@ public class MainActivity extends Activity {
             public void onClick(View view) {
                 String title = titleInput.getText().toString().trim();
                 String content = contentInput.getText().toString().trim();
+                String memberId = memberIdFor(memberInput.getText().toString());
                 String category = categoryInput.getText().toString().trim();
                 String tags = normalizeTags(tagsInput.getText().toString());
                 if (title.length() == 0 && content.length() == 0) {
@@ -835,9 +904,9 @@ public class MainActivity extends Activity {
                 }
                 if (category.length() == 0) category = "未分类 / 待整理";
                 long savedId;
-                if (existing == null) savedId = db.createNote(title, content, category, tags);
+                if (existing == null) savedId = db.createNote(title, content, category, tags, memberId);
                 else {
-                    db.updateNote(existing.id, title, content, category, tags);
+                    db.updateNote(existing.id, title, content, category, tags, memberId);
                     savedId = existing.id;
                 }
                 hideKeyboard(contentInput);
@@ -976,6 +1045,7 @@ public class MainActivity extends Activity {
         String content;
         String category;
         String tags;
+        String memberId;
         String errorMessage;
         String lastAttemptAt;
     }
@@ -985,6 +1055,7 @@ public class MainActivity extends Activity {
         String content;
         String category;
         String tags;
+        String memberId;
         String createdAt;
         String updatedAt;
     }
@@ -1024,6 +1095,9 @@ public class MainActivity extends Activity {
             if (oldVersion < 7) {
                 ensureNoteLifecycleColumns(db);
             }
+            if (oldVersion < 8) {
+                ensureMemberIdColumn(db);
+            }
         }
 
         private void createNotesTable(SQLiteDatabase db) {
@@ -1033,6 +1107,7 @@ public class MainActivity extends Activity {
                 "content TEXT NOT NULL DEFAULT ''," +
                 "remote_id TEXT," +
                 "remote_updated_at TEXT," +
+                "member_id TEXT NOT NULL DEFAULT 'self'," +
                 "category TEXT NOT NULL DEFAULT '未分类 / 待整理'," +
                 "tags TEXT NOT NULL DEFAULT ''," +
                 "is_archived INTEGER NOT NULL DEFAULT 0," +
@@ -1081,6 +1156,18 @@ public class MainActivity extends Activity {
             }
             if (!hasArchived) db.execSQL("ALTER TABLE notes ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0");
             if (!hasDeleted) db.execSQL("ALTER TABLE notes ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0");
+        }
+
+        private void ensureMemberIdColumn(SQLiteDatabase db) {
+            Cursor cursor = db.rawQuery("PRAGMA table_info(notes)", null);
+            try {
+                while (cursor.moveToNext()) {
+                    if ("member_id".equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) return;
+                }
+            } finally {
+                cursor.close();
+            }
+            db.execSQL("ALTER TABLE notes ADD COLUMN member_id TEXT NOT NULL DEFAULT 'self'");
         }
 
         private void createCategoriesTable(SQLiteDatabase db) {
@@ -1132,12 +1219,13 @@ public class MainActivity extends Activity {
             db.insertWithOnConflict("categories", null, values, SQLiteDatabase.CONFLICT_IGNORE);
         }
 
-        long createNote(String title, String content, String category, String tags) {
+        long createNote(String title, String content, String category, String tags, String memberId) {
             ensureCategory(category);
             String now = nowText();
             ContentValues values = new ContentValues();
             values.put("title", title);
             values.put("content", content);
+            values.put("member_id", memberIdFor(memberId));
             values.put("category", category);
             values.put("tags", tags);
             values.put("created_at", now);
@@ -1147,11 +1235,12 @@ public class MainActivity extends Activity {
             return id;
         }
 
-        void updateNote(long id, String title, String content, String category, String tags) {
+        void updateNote(long id, String title, String content, String category, String tags, String memberId) {
             ensureCategory(category);
             ContentValues values = new ContentValues();
             values.put("title", title);
             values.put("content", content);
+            values.put("member_id", memberIdFor(memberId));
             values.put("category", category);
             values.put("tags", tags);
             values.put("updated_at", nowText());
@@ -1233,7 +1322,7 @@ public class MainActivity extends Activity {
         List<SyncMutation> listPendingSyncMutations() {
             List<SyncMutation> mutations = new ArrayList<SyncMutation>();
             Cursor cursor = getReadableDatabase().rawQuery(
-                "SELECT q.id, q.note_id, n.remote_id, n.remote_updated_at, q.mutation_type, n.title, n.content, n.category, n.tags " +
+                "SELECT q.id, q.note_id, n.remote_id, n.remote_updated_at, q.mutation_type, n.title, n.content, n.category, n.tags, n.member_id " +
                 "FROM sync_queue q JOIN notes n ON n.id = q.note_id " +
                 "WHERE q.status IN ('pending', 'failed') ORDER BY q.id ASC",
                 null
@@ -1250,6 +1339,7 @@ public class MainActivity extends Activity {
                     mutation.content = cursor.getString(6);
                     mutation.category = cursor.getString(7);
                     mutation.tags = cursor.getString(8);
+                    mutation.memberId = cursor.getString(9);
                     mutations.add(mutation);
                 }
             } finally {
@@ -1311,7 +1401,7 @@ public class MainActivity extends Activity {
             }
             return mutations;
         }
-        List<Note> listNotes(String searchQuery, String categoryFilter, String tagFilter) {
+        List<Note> listNotes(String searchQuery, String categoryFilter, String tagFilter, String memberFilter) {
             List<Note> notes = new ArrayList<Note>();
             StringBuilder where = new StringBuilder();
             List<String> args = new ArrayList<String>();
@@ -1334,6 +1424,11 @@ public class MainActivity extends Activity {
                 where.append("tags LIKE ?");
                 args.add("%" + tagFilter.trim() + "%");
             }
+            if (memberFilter != null && memberFilter.trim().length() > 0) {
+                if (where.length() > 0) where.append(" AND ");
+                where.append("member_id = ?");
+                args.add(memberIdFor(memberFilter));
+            }
             Cursor cursor = getReadableDatabase().query(
                 "notes",
                 null,
@@ -1352,7 +1447,11 @@ public class MainActivity extends Activity {
         }
 
         List<Note> listNotes(String searchQuery, String categoryFilter) {
-            return listNotes(searchQuery, categoryFilter, "");
+            return listNotes(searchQuery, categoryFilter, "", "");
+        }
+
+        List<Note> listNotes(String searchQuery, String categoryFilter, String tagFilter) {
+            return listNotes(searchQuery, categoryFilter, tagFilter, "");
         }
 
         void createCategory(String name) {
@@ -1426,6 +1525,7 @@ public class MainActivity extends Activity {
             note.content = cursor.getString(cursor.getColumnIndexOrThrow("content"));
             note.category = cursor.getString(cursor.getColumnIndexOrThrow("category"));
             note.tags = cursor.getString(cursor.getColumnIndexOrThrow("tags"));
+            note.memberId = cursor.getString(cursor.getColumnIndexOrThrow("member_id"));
             note.createdAt = cursor.getString(cursor.getColumnIndexOrThrow("created_at"));
             note.updatedAt = cursor.getString(cursor.getColumnIndexOrThrow("updated_at"));
             return note;

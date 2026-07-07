@@ -2582,3 +2582,51 @@ npm.cmd run android:device-smoke
 
 - 标签仍是轻量文本标签，没有独立标签管理页。
 - 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+
+---
+
+测试时间：2026-07-07
+
+当前目标：原生离线 Android 成员归属与筛选。
+
+## 复现 / 风险来源
+
+上一阶段原生 APK 已经可以离线新建、编辑、搜索、分类、标签、归档、删除和同步，但同步 payload 里的 `memberId` 仍固定为 `self`，两人家庭使用时无法区分“我 / 爱人”的记录归属。
+
+## TDD 过程
+
+- 新增 `supports native offline member ownership and filtering for family use` 测试。
+- 红灯结果：测试因缺少数据库 v8、`member_id` 字段、成员筛选、编辑页成员选择和同步成员 payload 而失败。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- 本机 SQLite `notes` 表新增 `member_id`。
+- 数据库版本升级到 8，并提供旧库自动迁移。
+- 首页新增“全部成员 / 我 / 爱人”筛选。
+- 新建 / 编辑记录页新增当前成员选择。
+- 详情页和首页记录卡片显示成员归属。
+- 同步到 Docker/NAS 时使用记录自己的 `memberId`，不再硬编码。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run android:build
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，15 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 95 tests / 95 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含临时 HTTP smoke；覆盖健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、NSX Web 导入、备份、JSON 导出和前端 shell。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；真机验证仍需用户在实际手机上执行。
+
+## 仍然存在的问题
+
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+- 当前没有 USB 真机连接，无法由 Codex 本机执行 `android:device-smoke`。

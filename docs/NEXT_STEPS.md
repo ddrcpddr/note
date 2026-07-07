@@ -504,3 +504,25 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 2. 补原生端富文本基础能力，不追求一次做成 Note Station 全量编辑器，但至少让日常记录能有简单格式。
 3. 补原生端图片 / 附件本地保存和同步。
 4. 再迁入原生端 Note Station `.nsx` 导入。
+
+## 2026-07-07 原生 Android 成员归属后续
+
+当前已经实现：原生离线 APK 支持默认成员“我 / 爱人”的选择、记录归属展示、首页成员筛选，并在同步到 Docker/NAS 时携带对应 `memberId`。
+
+已验证：
+
+- 定向 Android 测试通过，覆盖 v8 数据库、`member_id`、首页成员筛选、编辑页成员选择、详情页成员展示和同步 payload。
+- `npm.cmd run check` / `npm.cmd run test` / `npm.cmd run build` 通过。
+- `npm.cmd run android:build` / `npm.cmd run android:verify` / `npm.cmd run android:delivery-check` 通过。
+- `npm.cmd run android:device-smoke` 未完成，当前没有检测到 USB 手机。
+
+给用户真机测试的 APK：
+
+- `android/app/build/outputs/apk/debug/app-debug.apk`
+
+下一步继续按“可用闭环”推进：
+
+1. 用户真机验证：新建记录选择“爱人” -> 保存 -> 首页筛选“爱人” -> 同步到 Docker/NAS。
+2. 补原生端富文本基础能力，不追求一次做成 Note Station 全量编辑器，但要能满足日常记录。
+3. 补原生端图片 / 附件本地保存和同步。
+4. 再迁入原生端 Note Station `.nsx` 导入。

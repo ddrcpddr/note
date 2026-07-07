@@ -114,7 +114,7 @@ describe('Android native offline app', () => {
   test('supports native custom categories stored on the phone', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 7'));
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS categories'));
     assert.ok(activity.includes('seedDefaultCategories'));
     assert.ok(activity.includes('showCategories()'));
@@ -129,7 +129,7 @@ describe('Android native offline app', () => {
   test('prepares native offline notes for later Docker NAS sync', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 7'));
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
     assert.ok(activity.includes('createSyncQueueTable(db);'));
     assert.ok(activity.includes('queueSyncMutation'));
@@ -164,7 +164,7 @@ describe('Android native offline app', () => {
   test('stores remote note ids and syncs native offline edits back to Docker NAS', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 7'));
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
     assert.ok(activity.includes('remote_id TEXT'));
     assert.ok(activity.includes('ensureRemoteIdColumn'));
     assert.ok(activity.includes('saveRemoteId'));
@@ -179,7 +179,7 @@ describe('Android native offline app', () => {
   test('shows native sync failure details for retry decisions', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 7'));
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
     assert.ok(activity.includes('error_message TEXT'));
     assert.ok(activity.includes('last_attempt_at TEXT'));
     assert.ok(activity.includes('ensureSyncQueueDetailColumns'));
@@ -197,7 +197,7 @@ describe('Android native offline app', () => {
     assert.ok(serverRoutes.includes('baseUpdatedAt'));
     assert.ok(serverRoutes.includes("code: 'note_conflict'"));
 
-    assert.ok(activity.includes('DATABASE_VERSION = 7'));
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
     assert.ok(activity.includes('remote_updated_at TEXT'));
     assert.ok(activity.includes('ensureRemoteUpdatedAtColumn'));
     assert.ok(activity.includes('saveRemoteSyncState'));
@@ -214,7 +214,7 @@ describe('Android native offline app', () => {
     assert.ok(serverRoutes.includes("notesRouter.post('/:id/archive'"));
     assert.ok(serverRoutes.includes("notesRouter.delete('/:id'"));
 
-    assert.ok(activity.includes('DATABASE_VERSION = 7'));
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
     assert.ok(activity.includes('is_archived INTEGER NOT NULL DEFAULT 0'));
     assert.ok(activity.includes('is_deleted INTEGER NOT NULL DEFAULT 0'));
     assert.ok(activity.includes('ensureNoteLifecycleColumns'));
@@ -244,5 +244,28 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('重要'));
     assert.ok(activity.includes('维修'));
     assert.ok(activity.includes('账单'));
+  });
+
+  test('supports native offline member ownership and filtering for family use', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('DATABASE_VERSION = 8'));
+    assert.ok(activity.includes('member_id TEXT NOT NULL DEFAULT \'self\''));
+    assert.ok(activity.includes('ensureMemberIdColumn'));
+    assert.ok(activity.includes('currentMemberFilter'));
+    assert.ok(activity.includes('memberFilterButton'));
+    assert.ok(activity.includes('全部成员'));
+    assert.ok(activity.includes('memberLabelFor'));
+    assert.ok(activity.includes('memberIdFor'));
+    assert.ok(activity.includes('selectMemberButton'));
+    assert.ok(activity.includes('createNote(String title, String content, String category, String tags, String memberId)'));
+    assert.ok(activity.includes('updateNote(long id, String title, String content, String category, String tags, String memberId)'));
+    assert.ok(activity.includes('listNotes(String searchQuery, String categoryFilter, String tagFilter, String memberFilter)'));
+    assert.ok(activity.includes('payload.put("memberId", memberIdFor(mutation.memberId))'));
+    assert.ok(activity.includes('n.member_id'));
+    assert.ok(activity.includes('成员：'));
+    assert.equal(activity.includes('老婆'), false);
+    assert.equal(activity.includes('妈妈'), false);
+    assert.equal(activity.includes('爸爸'), false);
   });
 });
