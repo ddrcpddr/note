@@ -2702,3 +2702,22 @@ npm.cmd run android:device-smoke
 - 本机附件目前只保存在当前手机，不会同步到 Docker/NAS。
 - 原生端还没有 `.nsx` 导入。
 - 需要用户真机验证“添加附件 / 图片”系统选择器和详情页展示。
+
+## 2026-07-07 原生 Android 附件同步验收
+
+测试目标：原生离线 APK 添加的本机附件 / 图片在恢复连接 Docker/NAS 后可以随记录同步上传，且同步成功后不重复上传。
+
+修复内容：
+- `android/app/src/main/java/com/homeoldnote/app/MainActivity.java`：附件表升级到 v10，新增 `remote_id`、`sync_status`；记录创建 / 更新同步时携带未同步附件 payload；成功后调用 `markAttachmentsSynced`。
+- `tests/android-wrapper.test.js`：新增并补强“本机附件同步到 Docker/NAS 且不重复上传”的验收。
+- 本轮没有修改 Android UI 风格，只补数据同步闭环。
+
+运行命令与结果：
+- `node --test tests/android-wrapper.test.js`：通过，18/18。
+- `npm.cmd run android:build`：通过，APK 编译、签名和验证通过。
+- `npm.cmd run android:delivery-check`：通过，包含 check/test/build/android build/android verify/HTTP smoke。
+- `npm.cmd run android:device-smoke`：未通过，当前电脑没有检测到 USB 调试手机。
+
+仍然存在的问题：
+- 尚未在用户真实手机上验证“附件同步后浏览器端可下载/查看”。
+- 原生 APK 仍未迁入 `.nsx` 文件导入。

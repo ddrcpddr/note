@@ -21,6 +21,7 @@ import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,7 +38,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -55,7 +58,7 @@ public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
     private static final String PREFS_NAME = "home_note_native_prefs";
     private static final String PREF_SERVER_URL = "server_url";
-    private static final int DATABASE_VERSION = 9;
+    private static final int DATABASE_VERSION = 10;
     private static final int REQUEST_PICK_ATTACHMENT = 2001;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
@@ -472,12 +475,14 @@ public class MainActivity extends Activity {
                 if ("create".equals(mutation.mutationType)) {
                     RemoteSyncState remoteState = postCreateMutation(serverUrl, mutation);
                     db.saveRemoteSyncState(mutation.noteId, remoteState.remoteId, remoteState.remoteUpdatedAt);
+                    db.markAttachmentsSynced(mutation.noteId);
                 } else if ("update".equals(mutation.mutationType)) {
                     if (mutation.remoteId == null || mutation.remoteId.trim().length() == 0) {
                         throw new Exception("没有远端记录 ID，先同步新建记录");
                     }
                     RemoteSyncState remoteState = postUpdateMutation(serverUrl, mutation);
                     db.saveRemoteSyncState(mutation.noteId, remoteState.remoteId, remoteState.remoteUpdatedAt);
+                    db.markAttachmentsSynced(mutation.noteId);
                 } else if ("archive".equals(mutation.mutationType)) {
                     if (mutation.remoteId == null || mutation.remoteId.trim().length() == 0) {
                         throw new Exception("没有远端记录 ID，先同步新建记录");
@@ -638,6 +643,8 @@ public class MainActivity extends Activity {
         JSONArray tags = new JSONArray();
         for (String tag : splitTags(mutation.tags)) tags.put(tag);
         payload.put("tags", tags);
+        JSONArray attachments = buildAttachmentPayloads(mutation.noteId);
+        if (attachments.length() > 0) payload.put("attachments", attachments);
         return payload;
     }
 
@@ -649,6 +656,41 @@ public class MainActivity extends Activity {
         return payload;
     }
 
+    private JSONArray buildAttachmentPayloads(long noteId) throws Exception {
+        JSONArray attachments = new JSONArray();
+        for (NoteAttachment attachment : db.listPendingAttachments(noteId)) {
+            File file = new File(attachment.localPath == null ? "" : attachment.localPath);
+            if (!file.isFile()) throw new IOException("本机附件不存在：" + attachment.fileName);
+            JSONObject payload = new JSONObject();
+            payload.put("originalName", attachment.fileName == null ? "附件" : attachment.fileName);
+            payload.put("fileName", attachment.fileName == null ? "附件" : attachment.fileName);
+            payload.put("mimeType", attachment.mimeType == null ? "" : attachment.mimeType);
+            payload.put("fileSize", attachment.sizeBytes > 0 ? attachment.sizeBytes : file.length());
+            payload.put("kind", attachmentKind(attachment.mimeType));
+            payload.put("isInline", false);
+            payload.put("contentBase64", readFileBase64(file));
+            attachments.put(payload);
+        }
+        return attachments;
+    }
+
+    private static String readFileBase64(File file) throws IOException {
+        FileInputStream input = new FileInputStream(file);
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+        } finally {
+            input.close();
+        }
+        return Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+    }
+
+    private static String attachmentKind(String mimeType) {
+        String value = mimeType == null ? "" : mimeType;
+        return value.startsWith("image/") ? "image" : "file";
+    }
     private String readResponse(HttpURLConnection connection) {
         try {
             InputStream stream = connection.getErrorStream();
@@ -1333,6 +1375,8 @@ public class MainActivity extends Activity {
         String mimeType;
         long sizeBytes;
         String createdAt;
+        String remoteId;
+        String syncStatus;
     }
 
     private static class Note {
@@ -1387,6 +1431,9 @@ public class MainActivity extends Activity {
             }
             if (oldVersion < 9) {
                 ensureAttachmentsTable(db);
+            }
+            if (oldVersion < 10) {
+                ensureAttachmentSyncColumns(db);
             }
         }
 
@@ -1492,10 +1539,28 @@ public class MainActivity extends Activity {
                 "local_path TEXT NOT NULL DEFAULT ''," +
                 "mime_type TEXT NOT NULL DEFAULT ''," +
                 "size_bytes INTEGER NOT NULL DEFAULT 0," +
-                "created_at TEXT NOT NULL" +
+                "created_at TEXT NOT NULL," +
+                "remote_id TEXT," +
+                "sync_status TEXT NOT NULL DEFAULT 'local'" +
                 ")");
         }
 
+        private void ensureAttachmentSyncColumns(SQLiteDatabase db) {
+            boolean hasRemoteId = false;
+            boolean hasSyncStatus = false;
+            Cursor cursor = db.rawQuery("PRAGMA table_info(note_attachments)", null);
+            try {
+                while (cursor.moveToNext()) {
+                    String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+                    if ("remote_id".equals(name)) hasRemoteId = true;
+                    if ("sync_status".equals(name)) hasSyncStatus = true;
+                }
+            } finally {
+                cursor.close();
+            }
+            if (!hasRemoteId) db.execSQL("ALTER TABLE note_attachments ADD COLUMN remote_id TEXT");
+            if (!hasSyncStatus) db.execSQL("ALTER TABLE note_attachments ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'local'");
+        }
         private void ensureSyncQueueDetailColumns(SQLiteDatabase db) {
             boolean hasErrorMessage = false;
             boolean hasLastAttemptAt = false;
@@ -1714,16 +1779,32 @@ public class MainActivity extends Activity {
             values.put("local_path", localPath == null ? "" : localPath);
             values.put("mime_type", mimeType == null ? "" : mimeType);
             values.put("size_bytes", sizeBytes);
+            values.put("sync_status", "local");
             values.put("created_at", nowText());
             getWritableDatabase().insert("note_attachments", null, values);
+            queueSyncMutation(noteId, "update");
+        }
+
+        List<NoteAttachment> listPendingAttachments(long noteId) {
+            return listAttachmentsByWhere(noteId, "note_id=? AND sync_status != 'synced'");
+        }
+
+        void markAttachmentsSynced(long noteId) {
+            ContentValues values = new ContentValues();
+            values.put("sync_status", "synced");
+            getWritableDatabase().update("note_attachments", values, "note_id=? AND sync_status != 'synced'", new String[]{String.valueOf(noteId)});
         }
 
         List<NoteAttachment> listAttachments(long noteId) {
+            return listAttachmentsByWhere(noteId, "note_id=?");
+        }
+
+        private List<NoteAttachment> listAttachmentsByWhere(long noteId, String where) {
             List<NoteAttachment> attachments = new ArrayList<NoteAttachment>();
             Cursor cursor = getReadableDatabase().query(
                 "note_attachments",
                 null,
-                "note_id=?",
+                where,
                 new String[]{String.valueOf(noteId)},
                 null,
                 null,
@@ -1739,6 +1820,8 @@ public class MainActivity extends Activity {
                     attachment.mimeType = cursor.getString(cursor.getColumnIndexOrThrow("mime_type"));
                     attachment.sizeBytes = cursor.getLong(cursor.getColumnIndexOrThrow("size_bytes"));
                     attachment.createdAt = cursor.getString(cursor.getColumnIndexOrThrow("created_at"));
+                    attachment.remoteId = cursor.getString(cursor.getColumnIndexOrThrow("remote_id"));
+                    attachment.syncStatus = cursor.getString(cursor.getColumnIndexOrThrow("sync_status"));
                     attachments.add(attachment);
                 }
             } finally {
@@ -1877,8 +1960,5 @@ public class MainActivity extends Activity {
         }
     }
 }
-
-
-
 
 

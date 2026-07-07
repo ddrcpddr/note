@@ -519,3 +519,26 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 限制：
 - 目前附件只在当前手机本机可用，尚未同步到 Docker/NAS。
 - 当前没有 USB 真机连接，因此 `android:device-smoke` 未完成。
+
+## 2026-07-07 APK 交接：本机附件同步到 Docker/NAS
+
+当前 APK：`D:\工作文件夹\XYZL\领航未来\GitHub项目\note\android\app\build\outputs\apk\debug\app-debug.apk`
+
+已新增：
+- 本机附件 / 图片离线保存后，恢复连接 Docker/NAS 可以随记录同步上传。
+- 本机 SQLite `note_attachments` 升级到 v10，保存 `sync_status`，同步成功后标记为 `synced`，避免重复上传。
+- 使用现有服务端 notes API 的 `attachments` payload，不新增服务端架构。
+- UI 保持当前 Android 原生家事记风格，本轮不做视觉重设计。
+
+本机验证：
+- `node --test tests/android-wrapper.test.js`：18 tests 通过。
+- `npm.cmd run android:build`：通过，重新生成 APK。
+- `npm.cmd run android:delivery-check`：通过。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+建议真机重点测：
+1. 断网打开 APK，新建记录并保存。
+2. 进入详情页添加一张图片或小文件。
+3. 关闭重开 APK，确认记录和附件仍在。
+4. 设置 Docker/NAS 地址并手动同步。
+5. 用浏览器打开 Docker/NAS 端同一记录，确认附件已进入服务端。
