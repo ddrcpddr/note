@@ -222,3 +222,42 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 只同步新建记录。
 - 编辑同步、冲突处理、富文本、附件、NSX 导入仍未迁入原生端。
 - 真实手机局域网同步还需要连接设备或用户人工验收。
+
+## 2026-07-07 原生编辑同步补充
+
+当前 debug APK 已把原生同步从“只上传新建记录”推进到“新建后保存远端 ID，后续编辑可 PATCH 回 Docker/NAS”：
+
+- 本机 SQLite 数据库版本为 v4。
+- `notes.remote_id` 保存服务端返回的 `note.id`。
+- 本机新建记录同步成功后，会把服务端 `note.id` 写回本机记录。
+- 本机编辑已同步记录后，手动同步会调用 `PATCH /api/notes/:remoteId`。
+- 如果一条记录还没完成 create 同步，多次编辑会合并进同一条 create，不会生成错误的 update。
+- 如果 update 缺少 `remote_id`，会保留失败状态，不会静默当作成功。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，10 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，90 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+建议真机重点测：
+
+1. 不连接 Docker/NAS，新建一条记录并保存。
+2. 填写 Docker/NAS 地址，手动同步。
+3. 用浏览器打开 Docker/NAS，确认记录出现。
+4. 回到 APK 编辑这条记录，保存。
+5. 再次手动同步。
+6. Docker/NAS 浏览器端刷新，确认标题、正文、分类、标签是编辑后的最终版本。
+
+仍不承诺：
+
+- 原生端富文本编辑。
+- 原生端图片 / 附件。
+- 原生端 Note Station `.nsx` 导入。
+- 多设备冲突合并界面。
+- vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 真机通过，除非用户或 `android:device-smoke` 后续确认。

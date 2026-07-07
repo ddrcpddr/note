@@ -2309,3 +2309,60 @@ npm.cmd run android:device-smoke
 - 原生端冲突处理未完成。
 - 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
 - 需要真实手机验证手动同步按钮是否能在局域网内把记录上传到 Docker/NAS。
+
+---
+
+测试时间：2026-07-07
+
+当前目标：原生离线 Android 保存远端 ID，并同步本地编辑到 Docker/NAS。
+
+## 复现 / 风险来源
+
+上一阶段只完成了原生端新建记录同步。新建记录同步成功后如果不保存服务端 `note.id`，后续手机本地编辑无法知道应该 PATCH 哪条 Docker/NAS 记录，容易继续停留在“只能上传新建，不能更新”的半闭环状态。
+
+## TDD 过程
+
+- 新增 `stores remote note ids and syncs native offline edits back to Docker NAS` 测试。
+- 红灯结果：测试因 `DATABASE_VERSION = 4`、`remote_id`、`saveRemoteId`、`postUpdateMutation`、`PATCH` 等能力缺失失败。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- Android 原生数据库升级到 v4。
+- `notes` 表新增 `remote_id` 字段和升级迁移。
+- 本地新建和编辑保存都会进入 `sync_queue`。
+- 本地 pending create 期间再次编辑会合并到同一个 create，不额外生成 update。
+- `POST /api/notes` 成功后解析并保存服务端返回的 `note.id`。
+- 已有 `remote_id` 的本地编辑记录会通过 `PATCH /api/notes/:remoteId` 同步。
+- 缺少 `remote_id` 的 update 不会静默丢弃，会失败并保留待同步状态。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，10 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 90 tests / 90 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含临时 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；不能声称真机通过。
+
+## 仍然存在的问题
+
+- 原生端还没有同步失败详情页，只能保留 failed 并显示待同步数量。
+- 原生端冲突处理未完成。
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+- 需要真实手机验证：离线新建 -> 同步 -> 编辑 -> 再同步 -> Docker/NAS 端确认最终内容。

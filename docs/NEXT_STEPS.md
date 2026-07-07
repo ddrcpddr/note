@@ -400,3 +400,23 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 5. 最后再迁入富文本、图片、附件和 Note Station `.nsx` 导入。
 
 注意：当前不要宣称“完整同步完成”。它只完成了新建记录最小同步。
+
+## 2026-07-07 原生 Android 编辑同步后续
+
+当前已经实现：原生端新建同步成功后保存服务端 `note.id` 到本机 `notes.remote_id`，后续本机编辑会通过 `PATCH /api/notes/:remoteId` 同步回 Docker/NAS。
+
+已验证：
+
+- 定向 Android 测试通过，覆盖 `remote_id`、create 响应解析和 PATCH 更新路径。
+- `npm.cmd run check` / `npm.cmd run test` / `npm.cmd run build` 通过。
+- `npm.cmd run android:build` / `npm.cmd run android:verify` 通过。
+- `npm.cmd run android:delivery-check` 通过。
+- `npm.cmd run android:device-smoke` 未完成，当前没有检测到 USB 手机。
+
+下一步不要跳回 WebView 壳路线，也不要直接宣称最终版。继续按这个顺序：
+
+1. 真实手机验证：离线新建 -> 手动同步 -> Docker/NAS 端看到记录 -> 手机端编辑 -> 再同步 -> Docker/NAS 端看到最终内容。
+2. 补原生同步失败详情：失败原因、最近失败时间、重试入口。
+3. 补基础冲突提示：服务端记录已变化时，不静默覆盖。
+4. 再迁入原生端富文本、图片、附件。
+5. 最后才迁入原生端 Note Station `.nsx` 导入。

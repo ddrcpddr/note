@@ -114,7 +114,7 @@ describe('Android native offline app', () => {
   test('supports native custom categories stored on the phone', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 3'));
+    assert.ok(activity.includes('DATABASE_VERSION = 4'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS categories'));
     assert.ok(activity.includes('seedDefaultCategories'));
     assert.ok(activity.includes('showCategories()'));
@@ -129,7 +129,7 @@ describe('Android native offline app', () => {
   test('prepares native offline notes for later Docker NAS sync', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 3'));
+    assert.ok(activity.includes('DATABASE_VERSION = 4'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
     assert.ok(activity.includes('createSyncQueueTable(db);'));
     assert.ok(activity.includes('queueSyncMutation'));
@@ -141,7 +141,7 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('服务器地址'));
     assert.ok(activity.includes('待同步'));
     assert.ok(activity.includes('手动同步'));
-    assert.ok(activity.includes('开始同步本机新建记录'));
+    assert.ok(activity.includes('开始同步本机记录'));
   });
   test('syncs native offline created notes to Docker NAS when server is reachable', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
@@ -159,5 +159,20 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('markSyncFailed'));
     assert.ok(activity.includes('同步完成'));
     assert.ok(activity.includes('同步失败'));
+  });
+
+  test('stores remote note ids and syncs native offline edits back to Docker NAS', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('DATABASE_VERSION = 4'));
+    assert.ok(activity.includes('remote_id TEXT'));
+    assert.ok(activity.includes('ensureRemoteIdColumn'));
+    assert.ok(activity.includes('saveRemoteId'));
+    assert.ok(activity.includes('mutation.remoteId'));
+    assert.ok(activity.includes('parseCreatedRemoteId'));
+    assert.ok(activity.includes('postUpdateMutation'));
+    assert.ok(activity.includes('setRequestMethod("PATCH")'));
+    assert.ok(activity.includes('normalizeServerUrl(serverUrl) + "/api/notes/" + mutation.remoteId'));
+    assert.ok(activity.includes('没有远端记录 ID，先同步新建记录'));
   });
 });
