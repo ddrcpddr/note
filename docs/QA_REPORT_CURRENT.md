@@ -2682,3 +2682,23 @@ npm.cmd run android:device-smoke
 
 - 这是轻量格式能力，不是完整 Note Station 级编辑器。
 - 原生端图片、附件和 Note Station `.nsx` 导入仍未迁入。
+
+## 2026-07-07 原生 Android 本机附件验收
+
+测试目标：原生离线 APK 支持在不连接 Docker/NAS 时为已保存记录添加本机附件 / 图片。
+
+修改内容：
+- `android/app/src/main/java/com/homeoldnote/app/MainActivity.java`：新增系统文件选择、复制到 App 私有附件目录、详情页附件列表展示。
+- `tests/android-wrapper.test.js`：新增原生离线本机附件静态验收。
+
+运行命令与结果：
+- `node --test tests/android-wrapper.test.js`：通过，17/17。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，确认是 native offline APK，未包含 WebView assets。
+- `npm.cmd run android:delivery-check`：通过，包含 check/test/build/android build/android verify/HTTP smoke。
+- `npm.cmd run android:device-smoke`：未通过，当前没有 USB 调试手机连接。
+
+仍然存在的问题：
+- 本机附件目前只保存在当前手机，不会同步到 Docker/NAS。
+- 原生端还没有 `.nsx` 导入。
+- 需要用户真机验证“添加附件 / 图片”系统选择器和详情页展示。

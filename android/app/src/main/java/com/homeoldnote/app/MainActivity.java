@@ -2,14 +2,18 @@ package com.homeoldnote.app;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.InputType;
@@ -33,6 +37,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -48,7 +55,8 @@ public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
     private static final String PREFS_NAME = "home_note_native_prefs";
     private static final String PREF_SERVER_URL = "server_url";
-    private static final int DATABASE_VERSION = 8;
+    private static final int DATABASE_VERSION = 9;
+    private static final int REQUEST_PICK_ATTACHMENT = 2001;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -61,6 +69,7 @@ public class MainActivity extends Activity {
     private String currentCategoryFilter = "";
     private String currentTagFilter = "";
     private String currentMemberFilter = "";
+    private long pendingAttachmentNoteId = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +83,23 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         if (db != null) db.close();
         super.onDestroy();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_PICK_ATTACHMENT) return;
+        final long noteId = pendingAttachmentNoteId;
+        pendingAttachmentNoteId = -1;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null || noteId <= 0) return;
+        try {
+            NoteAttachment attachment = copyAttachmentToLocalStorage(noteId, data.getData());
+            db.createAttachment(noteId, attachment.fileName, attachment.localPath, attachment.mimeType, attachment.sizeBytes);
+            Toast.makeText(this, "附件已保存在这台手机本地", Toast.LENGTH_SHORT).show();
+            showDetail(noteId);
+        } catch (Exception error) {
+            Toast.makeText(this, "附件保存失败：" + error.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void showHome() {
@@ -846,6 +872,31 @@ public class MainActivity extends Activity {
         contentCard.addView(content);
         page.addView(contentCard, cardParams());
 
+        LinearLayout attachmentCard = card();
+        attachmentCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+        attachmentCard.addView(text("本机附件", 18, GREEN, true));
+        List<NoteAttachment> attachments = db.listAttachments(note.id);
+        if (attachments.isEmpty()) {
+            attachmentCard.addView(text("可以把图片或文件保存在这台手机本地，后续再补同步到 NAS。", 13, MUTED, false));
+        } else {
+            for (NoteAttachment attachment : attachments) {
+                LinearLayout item = card();
+                item.setPadding(dp(12), dp(10), dp(12), dp(10));
+                item.addView(text(attachment.fileName, 15, DARK, true));
+                item.addView(text("保存在这台手机本地" + attachmentSizeLabel(attachment.sizeBytes), 12, MUTED, false));
+                attachmentCard.addView(item, cardParams());
+            }
+        }
+        Button addAttachment = smallButton("添加附件 / 图片");
+        addAttachment.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startAttachmentPicker(note.id);
+            }
+        });
+        attachmentCard.addView(addAttachment, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46)));
+        page.addView(attachmentCard, cardParams());
+
         LinearLayout actions = card();
         actions.setPadding(dp(16), dp(14), dp(16), dp(14));
         actions.addView(text("记录操作", 18, GREEN, true));
@@ -986,6 +1037,76 @@ public class MainActivity extends Activity {
         setScrollable(page);
     }
 
+    private void startAttachmentPicker(long noteId) {
+        pendingAttachmentNoteId = noteId;
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        startActivityForResult(Intent.createChooser(intent, "选择附件 / 图片"), REQUEST_PICK_ATTACHMENT);
+    }
+
+    private NoteAttachment copyAttachmentToLocalStorage(long noteId, Uri uri) throws IOException {
+        ContentResolver resolver = getContentResolver();
+        String fileName = getAttachmentDisplayName(uri);
+        String mimeType = resolver.getType(uri);
+        File dir = new File(getFilesDir(), "attachments");
+        if (!dir.exists() && !dir.mkdirs()) throw new IOException("无法创建附件目录");
+        File target = new File(dir, "note_" + noteId + "_" + System.currentTimeMillis() + "_" + safeAttachmentName(fileName));
+        InputStream input = resolver.openInputStream(uri);
+        if (input == null) throw new IOException("无法读取选择的文件");
+        long total = 0;
+        FileOutputStream output = null;
+        try {
+            output = new FileOutputStream(target);
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                output.write(buffer, 0, read);
+                total += read;
+            }
+        } finally {
+            input.close();
+            if (output != null) output.close();
+        }
+        NoteAttachment attachment = new NoteAttachment();
+        attachment.noteId = noteId;
+        attachment.fileName = fileName;
+        attachment.localPath = target.getAbsolutePath();
+        attachment.mimeType = mimeType == null ? "" : mimeType;
+        attachment.sizeBytes = total;
+        return attachment;
+    }
+
+    private String getAttachmentDisplayName(Uri uri) {
+        Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (index >= 0) {
+                    String name = cursor.getString(index);
+                    if (name != null && name.trim().length() > 0) return name.trim();
+                }
+            }
+        } finally {
+            if (cursor != null) cursor.close();
+        }
+        String fallback = uri.getLastPathSegment();
+        if (fallback == null || fallback.trim().length() == 0) return "attachment-" + System.currentTimeMillis();
+        return fallback.trim();
+    }
+
+    private static String safeAttachmentName(String fileName) {
+        String value = fileName == null ? "attachment" : fileName.trim();
+        if (value.length() == 0) value = "attachment";
+        return value.replaceAll("[^a-zA-Z0-9._\\-\\u4e00-\\u9fa5]", "_");
+    }
+
+    private static String attachmentSizeLabel(long sizeBytes) {
+        if (sizeBytes <= 0) return "";
+        if (sizeBytes < 1024) return " · " + sizeBytes + " B";
+        if (sizeBytes < 1024 * 1024) return " · " + (sizeBytes / 1024) + " KB";
+        return " · " + String.format(Locale.CHINA, "%.1f MB", sizeBytes / 1024.0 / 1024.0);
+    }
     @Override
     public void onBackPressed() {
         showHome();
@@ -1204,6 +1325,16 @@ public class MainActivity extends Activity {
         String errorMessage;
         String lastAttemptAt;
     }
+    private static class NoteAttachment {
+        long id;
+        long noteId;
+        String fileName;
+        String localPath;
+        String mimeType;
+        long sizeBytes;
+        String createdAt;
+    }
+
     private static class Note {
         long id;
         String title;
@@ -1225,6 +1356,7 @@ public class MainActivity extends Activity {
             createNotesTable(db);
             createCategoriesTable(db);
             createSyncQueueTable(db);
+            createAttachmentsTable(db);
             seedDefaultCategories(db);
         }
 
@@ -1252,6 +1384,9 @@ public class MainActivity extends Activity {
             }
             if (oldVersion < 8) {
                 ensureMemberIdColumn(db);
+            }
+            if (oldVersion < 9) {
+                ensureAttachmentsTable(db);
             }
         }
 
@@ -1341,6 +1476,22 @@ public class MainActivity extends Activity {
                 "status TEXT NOT NULL DEFAULT 'pending'," +
                 "error_message TEXT," +
                 "last_attempt_at TEXT," +
+                "created_at TEXT NOT NULL" +
+                ")");
+        }
+
+        private void ensureAttachmentsTable(SQLiteDatabase db) {
+            createAttachmentsTable(db);
+        }
+
+        private void createAttachmentsTable(SQLiteDatabase db) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS note_attachments (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "note_id INTEGER NOT NULL," +
+                "file_name TEXT NOT NULL DEFAULT ''," +
+                "local_path TEXT NOT NULL DEFAULT ''," +
+                "mime_type TEXT NOT NULL DEFAULT ''," +
+                "size_bytes INTEGER NOT NULL DEFAULT 0," +
                 "created_at TEXT NOT NULL" +
                 ")");
         }
@@ -1556,6 +1707,45 @@ public class MainActivity extends Activity {
             }
             return mutations;
         }
+        void createAttachment(long noteId, String fileName, String localPath, String mimeType, long sizeBytes) {
+            ContentValues values = new ContentValues();
+            values.put("note_id", noteId);
+            values.put("file_name", fileName == null ? "" : fileName);
+            values.put("local_path", localPath == null ? "" : localPath);
+            values.put("mime_type", mimeType == null ? "" : mimeType);
+            values.put("size_bytes", sizeBytes);
+            values.put("created_at", nowText());
+            getWritableDatabase().insert("note_attachments", null, values);
+        }
+
+        List<NoteAttachment> listAttachments(long noteId) {
+            List<NoteAttachment> attachments = new ArrayList<NoteAttachment>();
+            Cursor cursor = getReadableDatabase().query(
+                "note_attachments",
+                null,
+                "note_id=?",
+                new String[]{String.valueOf(noteId)},
+                null,
+                null,
+                "id ASC"
+            );
+            try {
+                while (cursor.moveToNext()) {
+                    NoteAttachment attachment = new NoteAttachment();
+                    attachment.id = cursor.getLong(cursor.getColumnIndexOrThrow("id"));
+                    attachment.noteId = cursor.getLong(cursor.getColumnIndexOrThrow("note_id"));
+                    attachment.fileName = cursor.getString(cursor.getColumnIndexOrThrow("file_name"));
+                    attachment.localPath = cursor.getString(cursor.getColumnIndexOrThrow("local_path"));
+                    attachment.mimeType = cursor.getString(cursor.getColumnIndexOrThrow("mime_type"));
+                    attachment.sizeBytes = cursor.getLong(cursor.getColumnIndexOrThrow("size_bytes"));
+                    attachment.createdAt = cursor.getString(cursor.getColumnIndexOrThrow("created_at"));
+                    attachments.add(attachment);
+                }
+            } finally {
+                cursor.close();
+            }
+            return attachments;
+        }
         List<Note> listNotes(String searchQuery, String categoryFilter, String tagFilter, String memberFilter) {
             List<Note> notes = new ArrayList<Note>();
             StringBuilder where = new StringBuilder();
@@ -1687,3 +1877,8 @@ public class MainActivity extends Activity {
         }
     }
 }
+
+
+
+
+

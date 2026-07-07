@@ -497,3 +497,25 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 图片 / 附件本地保存与同步。
 - 原生端 Note Station `.nsx` 导入。
 - 两台家庭手机真机通过，除非用户后续人工确认。
+
+## 2026-07-07 APK 交接：本机附件 / 图片保存
+
+当前 APK：`android/app/build/outputs/apk/debug/app-debug.apk`
+
+已新增：
+- 记录详情页的“本机附件”卡片。
+- “添加附件 / 图片”按钮，调用 Android 系统文件选择器。
+- 文件复制到 App 私有附件目录，不需要旧式存储权限。
+- SQLite `note_attachments` 只保存元数据，不把文件 BLOB 塞进数据库。
+
+验收建议：
+1. 安装 APK，完全断网打开。
+2. 新建一条记录并保存。
+3. 进入详情页，点击“添加附件 / 图片”。
+4. 选择一张图片或一个小文件。
+5. 返回详情页确认附件名称显示。
+6. 关闭并重开 App，确认记录和附件列表仍在。
+
+限制：
+- 目前附件只在当前手机本机可用，尚未同步到 Docker/NAS。
+- 当前没有 USB 真机连接，因此 `android:device-smoke` 未完成。
