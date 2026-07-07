@@ -2366,3 +2366,56 @@ npm.cmd run android:device-smoke
 - 原生端冲突处理未完成。
 - 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
 - 需要真实手机验证：离线新建 -> 同步 -> 编辑 -> 再同步 -> Docker/NAS 端确认最终内容。
+
+---
+
+测试时间：2026-07-07
+
+当前目标：原生离线 Android 同步失败详情可见。
+
+## 复现 / 风险来源
+
+上一阶段已经能同步新建和编辑，但同步失败只保留 failed 状态和待同步数量。家庭用户看到失败后无法判断是网络问题、服务器地址问题、HTTP 返回错误，还是缺少远端记录 ID。
+
+## TDD 过程
+
+- 新增 `shows native sync failure details for retry decisions` 测试。
+- 红灯结果：测试因 `DATABASE_VERSION = 5`、`error_message`、`last_attempt_at`、`listFailedSyncItems()`、失败详情文案缺失而失败。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- Android 原生数据库升级到 v5。
+- `sync_queue` 新增 `error_message` 和 `last_attempt_at` 字段。
+- 升级路径 `ensureSyncQueueDetailColumns()` 会补齐旧库字段。
+- `markSyncFailed(long queueId, String message)` 保存失败原因和最后尝试时间。
+- `markSyncDone()` 清空失败原因并记录最后尝试时间。
+- 同步页新增“最近同步失败”列表，展示记录标题、同步类型、失败原因和最后尝试时间。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，11 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 91 tests / 91 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；不能声称真机通过。
+
+## 仍然存在的问题
+
+- 原生端冲突处理未完成。
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+- 需要真实手机验证失败详情：错误地址同步失败 -> 页面显示原因 -> 改回正确地址后重试。

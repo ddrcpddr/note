@@ -261,3 +261,38 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 原生端 Note Station `.nsx` 导入。
 - 多设备冲突合并界面。
 - vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 真机通过，除非用户或 `android:device-smoke` 后续确认。
+
+## 2026-07-07 原生同步失败详情补充
+
+当前 debug APK 已加入原生同步失败详情：
+
+- 本机 SQLite 数据库版本为 v5。
+- `sync_queue.error_message` 保存最近失败原因。
+- `sync_queue.last_attempt_at` 保存最近尝试同步时间。
+- 同步页会显示“最近同步失败”，列出记录标题、同步类型、失败原因和最后尝试。
+- 同步成功后会清空失败原因，避免旧错误误导。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，11 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，91 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+建议真机重点测：
+
+1. 在同步页填写一个错误服务器地址。
+2. 新建或编辑一条本机记录。
+3. 点击手动同步。
+4. 确认同步页出现“最近同步失败”和具体失败原因。
+5. 改回正确 Docker/NAS 地址。
+6. 再次手动同步，确认失败项消失或待同步数量减少。
+
+仍不承诺：
+
+- 多设备冲突提示。
+- 原生端富文本、图片、附件和 `.nsx` 导入。
+- 两台家庭手机真机通过。

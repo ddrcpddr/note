@@ -420,3 +420,21 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 3. 补基础冲突提示：服务端记录已变化时，不静默覆盖。
 4. 再迁入原生端富文本、图片、附件。
 5. 最后才迁入原生端 Note Station `.nsx` 导入。
+
+## 2026-07-07 原生 Android 同步失败详情后续
+
+当前已经实现：原生同步失败会保存失败原因和最后尝试时间，并在同步页展示最近失败项。
+
+已验证：
+
+- 定向 Android 测试通过，覆盖 v5 数据库、失败原因字段、失败列表展示。
+- `npm.cmd run check` / `npm.cmd run test` / `npm.cmd run build` 通过。
+- `npm.cmd run android:build` / `npm.cmd run android:verify` 通过。
+- `npm.cmd run android:device-smoke` 未完成，当前没有检测到 USB 手机。
+
+下一步继续：
+
+1. 真机验证错误地址失败详情和正确地址重试。
+2. 补基础冲突提示：服务端记录已变化时，不静默覆盖。
+3. 原生端日常编辑能力继续补富文本、图片、附件。
+4. 最后迁入原生端 Note Station `.nsx` 导入。

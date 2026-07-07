@@ -114,7 +114,7 @@ describe('Android native offline app', () => {
   test('supports native custom categories stored on the phone', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 4'));
+    assert.ok(activity.includes('DATABASE_VERSION = 5'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS categories'));
     assert.ok(activity.includes('seedDefaultCategories'));
     assert.ok(activity.includes('showCategories()'));
@@ -129,7 +129,7 @@ describe('Android native offline app', () => {
   test('prepares native offline notes for later Docker NAS sync', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 4'));
+    assert.ok(activity.includes('DATABASE_VERSION = 5'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
     assert.ok(activity.includes('createSyncQueueTable(db);'));
     assert.ok(activity.includes('queueSyncMutation'));
@@ -164,7 +164,7 @@ describe('Android native offline app', () => {
   test('stores remote note ids and syncs native offline edits back to Docker NAS', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 4'));
+    assert.ok(activity.includes('DATABASE_VERSION = 5'));
     assert.ok(activity.includes('remote_id TEXT'));
     assert.ok(activity.includes('ensureRemoteIdColumn'));
     assert.ok(activity.includes('saveRemoteId'));
@@ -174,5 +174,19 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('setRequestMethod("PATCH")'));
     assert.ok(activity.includes('normalizeServerUrl(serverUrl) + "/api/notes/" + mutation.remoteId'));
     assert.ok(activity.includes('没有远端记录 ID，先同步新建记录'));
+  });
+
+  test('shows native sync failure details for retry decisions', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('DATABASE_VERSION = 5'));
+    assert.ok(activity.includes('error_message TEXT'));
+    assert.ok(activity.includes('last_attempt_at TEXT'));
+    assert.ok(activity.includes('ensureSyncQueueDetailColumns'));
+    assert.ok(activity.includes('markSyncFailed(long queueId, String message)'));
+    assert.ok(activity.includes('listFailedSyncItems()'));
+    assert.ok(activity.includes('最近同步失败'));
+    assert.ok(activity.includes('失败原因'));
+    assert.ok(activity.includes('最后尝试'));
   });
 });

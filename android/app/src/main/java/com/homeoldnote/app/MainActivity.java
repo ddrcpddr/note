@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
     private static final String PREFS_NAME = "home_note_native_prefs";
     private static final String PREF_SERVER_URL = "server_url";
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -309,6 +309,22 @@ public class MainActivity extends Activity {
         pending.setPadding(0, dp(8), 0, dp(8));
         card.addView(pending);
 
+        List<SyncMutation> failedItems = db.listFailedSyncItems();
+        if (!failedItems.isEmpty()) {
+            TextView failedTitle = text("最近同步失败", 16, DARK, true);
+            failedTitle.setPadding(0, dp(8), 0, dp(4));
+            card.addView(failedTitle);
+            for (SyncMutation failed : failedItems) {
+                LinearLayout failedBox = card();
+                failedBox.setPadding(dp(10), dp(8), dp(10), dp(8));
+                failedBox.setBackgroundColor(Color.rgb(255, 246, 232));
+                failedBox.addView(text((failed.title == null || failed.title.length() == 0 ? "未命名记录" : failed.title) + " · " + failed.mutationType, 14, DARK, true));
+                failedBox.addView(text("失败原因：" + (failed.errorMessage == null ? "未知错误" : failed.errorMessage), 12, MUTED, false));
+                failedBox.addView(text("最后尝试：" + (failed.lastAttemptAt == null ? "暂无" : failed.lastAttemptAt), 12, MUTED, false));
+                card.addView(failedBox, cardParams());
+            }
+        }
+
         Button save = smallButton("保存服务器地址");
         save.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -373,7 +389,7 @@ public class MainActivity extends Activity {
                 db.markSyncDone(mutation.queueId);
                 synced++;
             } catch (Exception error) {
-                db.markSyncFailed(mutation.queueId);
+                db.markSyncFailed(mutation.queueId, error.getMessage());
                 return new SyncResult(false, "同步失败：" + error.getMessage());
             }
         }
@@ -765,6 +781,8 @@ public class MainActivity extends Activity {
         String content;
         String category;
         String tags;
+        String errorMessage;
+        String lastAttemptAt;
     }
     private static class Note {
         long id;
@@ -801,6 +819,9 @@ public class MainActivity extends Activity {
             }
             if (oldVersion < 4) {
                 ensureRemoteIdColumn(db);
+            }
+            if (oldVersion < 5) {
+                ensureSyncQueueDetailColumns(db);
             }
         }
 
@@ -843,8 +864,27 @@ public class MainActivity extends Activity {
                 "note_id INTEGER NOT NULL," +
                 "mutation_type TEXT NOT NULL," +
                 "status TEXT NOT NULL DEFAULT 'pending'," +
+                "error_message TEXT," +
+                "last_attempt_at TEXT," +
                 "created_at TEXT NOT NULL" +
                 ")");
+        }
+
+        private void ensureSyncQueueDetailColumns(SQLiteDatabase db) {
+            boolean hasErrorMessage = false;
+            boolean hasLastAttemptAt = false;
+            Cursor cursor = db.rawQuery("PRAGMA table_info(sync_queue)", null);
+            try {
+                while (cursor.moveToNext()) {
+                    String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+                    if ("error_message".equals(name)) hasErrorMessage = true;
+                    if ("last_attempt_at".equals(name)) hasLastAttemptAt = true;
+                }
+            } finally {
+                cursor.close();
+            }
+            if (!hasErrorMessage) db.execSQL("ALTER TABLE sync_queue ADD COLUMN error_message TEXT");
+            if (!hasLastAttemptAt) db.execSQL("ALTER TABLE sync_queue ADD COLUMN last_attempt_at TEXT");
         }
         private void seedDefaultCategories(SQLiteDatabase db) {
             String[] defaults = new String[]{"家庭事务", "房屋 / 设备", "维修 / 售后", "购物 / 消费", "证件 / 账号", "孩子 / 教育", "老人 / 健康", "宠物", "工作 / 杂事", "临时记录", "未分类 / 待整理"};
@@ -956,12 +996,16 @@ public class MainActivity extends Activity {
         void markSyncDone(long queueId) {
             ContentValues values = new ContentValues();
             values.put("status", "done");
+            values.put("error_message", "");
+            values.put("last_attempt_at", nowText());
             getWritableDatabase().update("sync_queue", values, "id=?", new String[]{String.valueOf(queueId)});
         }
 
-        void markSyncFailed(long queueId) {
+        void markSyncFailed(long queueId, String message) {
             ContentValues values = new ContentValues();
             values.put("status", "failed");
+            values.put("error_message", message == null ? "未知错误" : message);
+            values.put("last_attempt_at", nowText());
             getWritableDatabase().update("sync_queue", values, "id=?", new String[]{String.valueOf(queueId)});
         }
 
@@ -970,6 +1014,32 @@ public class MainActivity extends Activity {
             ContentValues values = new ContentValues();
             values.put("remote_id", remoteId.trim());
             getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(noteId)});
+        }
+
+        List<SyncMutation> listFailedSyncItems() {
+            List<SyncMutation> mutations = new ArrayList<SyncMutation>();
+            Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT q.id, q.note_id, n.remote_id, q.mutation_type, n.title, q.error_message, q.last_attempt_at " +
+                "FROM sync_queue q JOIN notes n ON n.id = q.note_id " +
+                "WHERE q.status = 'failed' ORDER BY q.id DESC LIMIT 5",
+                null
+            );
+            try {
+                while (cursor.moveToNext()) {
+                    SyncMutation mutation = new SyncMutation();
+                    mutation.queueId = cursor.getLong(0);
+                    mutation.noteId = cursor.getLong(1);
+                    mutation.remoteId = cursor.getString(2);
+                    mutation.mutationType = cursor.getString(3);
+                    mutation.title = cursor.getString(4);
+                    mutation.errorMessage = cursor.getString(5);
+                    mutation.lastAttemptAt = cursor.getString(6);
+                    mutations.add(mutation);
+                }
+            } finally {
+                cursor.close();
+            }
+            return mutations;
         }
         List<Note> listNotes(String searchQuery, String categoryFilter) {
             List<Note> notes = new ArrayList<Note>();
