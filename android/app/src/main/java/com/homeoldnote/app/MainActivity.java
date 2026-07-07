@@ -53,6 +53,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private String currentSearchQuery = "";
     private String currentCategoryFilter = "";
+    private String currentTagFilter = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,8 +110,8 @@ public class MainActivity extends Activity {
 
         addHomeFilters(page);
 
-        List<Note> notes = db.listNotes(currentSearchQuery, currentCategoryFilter);
-        String listLabel = currentSearchQuery.length() == 0 && currentCategoryFilter.length() == 0 ? "最新记录" : "筛选结果";
+        List<Note> notes = db.listNotes(currentSearchQuery, currentCategoryFilter, currentTagFilter);
+        String listLabel = currentSearchQuery.length() == 0 && currentCategoryFilter.length() == 0 && currentTagFilter.length() == 0 ? "最新记录" : "筛选结果";
         TextView listTitle = text(listLabel + "（" + notes.size() + "）", 18, DARK, true);
         page.addView(listTitle);
 
@@ -169,13 +170,14 @@ public class MainActivity extends Activity {
         searchRow.addView(searchButton, new LinearLayout.LayoutParams(dp(76), dp(48)));
         searchCard.addView(searchRow);
 
-        if (currentSearchQuery.length() > 0 || currentCategoryFilter.length() > 0) {
+        if (currentSearchQuery.length() > 0 || currentCategoryFilter.length() > 0 || currentTagFilter.length() > 0) {
             Button clear = smallButton("清除筛选");
             clear.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     currentSearchQuery = "";
                     currentCategoryFilter = "";
+                    currentTagFilter = "";
                     showHome();
                 }
             });
@@ -193,6 +195,17 @@ public class MainActivity extends Activity {
         }
         categoryScroll.addView(categoryRow);
         page.addView(categoryScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        HorizontalScrollView tagScroll = new HorizontalScrollView(this);
+        tagScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout tagRow = horizontal();
+        tagRow.setPadding(0, dp(8), 0, dp(4));
+        tagRow.addView(tagFilterButton("全部标签", ""));
+        for (String tag : db.listTags()) {
+            tagRow.addView(tagFilterButton(tag, tag));
+        }
+        tagScroll.addView(tagRow);
+        page.addView(tagScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     private Button filterButton(String label, final String categoryValue) {
@@ -212,6 +225,25 @@ public class MainActivity extends Activity {
         button.setLayoutParams(params);
         return button;
     }
+
+    private Button tagFilterButton(String label, final String tagValue) {
+        Button button = smallButton(label);
+        boolean selected = currentTagFilter.equals(tagValue);
+        button.setTextColor(selected ? Color.WHITE : GREEN);
+        button.setBackgroundColor(selected ? GREEN : CARD);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                currentTagFilter = tagValue;
+                showHome();
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
+
     private void showCategories() {
         LinearLayout page = pageRoot();
         LinearLayout top = horizontal();
@@ -598,10 +630,36 @@ public class MainActivity extends Activity {
         String[] parts = tags.split("[\\s,，、]+");
         for (String part : parts) {
             String value = part.trim();
-            if (value.length() > 0) result.add(value);
+            if (value.length() > 0 && !result.contains(value)) result.add(value);
         }
         return result;
     }
+
+    private String normalizeTags(String tags) {
+        StringBuilder builder = new StringBuilder();
+        for (String tag : splitTags(tags)) {
+            if (builder.length() > 0) builder.append(' ');
+            builder.append(tag);
+        }
+        return builder.toString();
+    }
+
+    private Button quickTagButton(final String tag, final EditText tagsInput) {
+        Button button = smallButton(tag);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String existing = tagsInput.getText().toString();
+                String next = existing.length() == 0 ? tag : existing + " " + tag;
+                tagsInput.setText(normalizeTags(next));
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
+
     private Button selectCategoryButton(String label, final EditText categoryInput) {
         Button button = smallButton(label);
         button.setOnClickListener(new View.OnClickListener() {
@@ -745,6 +803,24 @@ public class MainActivity extends Activity {
         page.addView(editorCategoryScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         page.addView(label("标签"));
         page.addView(tagsInput, inputParams(false));
+        HorizontalScrollView quickTagScroll = new HorizontalScrollView(this);
+        quickTagScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout quickTagRow = horizontal();
+        quickTagRow.setPadding(0, dp(8), 0, 0);
+        String[] quickTags = new String[]{"待办", "重要", "维修", "账单"};
+        for (String tag : quickTags) {
+            quickTagRow.addView(quickTagButton(tag, tagsInput));
+        }
+        Button clearTags = smallButton("清空标签");
+        clearTags.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                tagsInput.setText("");
+            }
+        });
+        quickTagRow.addView(clearTags);
+        quickTagScroll.addView(quickTagRow);
+        page.addView(quickTagScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         save.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -752,7 +828,7 @@ public class MainActivity extends Activity {
                 String title = titleInput.getText().toString().trim();
                 String content = contentInput.getText().toString().trim();
                 String category = categoryInput.getText().toString().trim();
-                String tags = tagsInput.getText().toString().trim();
+                String tags = normalizeTags(tagsInput.getText().toString());
                 if (title.length() == 0 && content.length() == 0) {
                     Toast.makeText(MainActivity.this, "先写一点内容再保存", Toast.LENGTH_SHORT).show();
                     return;
@@ -1235,7 +1311,7 @@ public class MainActivity extends Activity {
             }
             return mutations;
         }
-        List<Note> listNotes(String searchQuery, String categoryFilter) {
+        List<Note> listNotes(String searchQuery, String categoryFilter, String tagFilter) {
             List<Note> notes = new ArrayList<Note>();
             StringBuilder where = new StringBuilder();
             List<String> args = new ArrayList<String>();
@@ -1253,6 +1329,11 @@ public class MainActivity extends Activity {
                 where.append("category = ?");
                 args.add(categoryFilter.trim());
             }
+            if (tagFilter != null && tagFilter.trim().length() > 0) {
+                if (where.length() > 0) where.append(" AND ");
+                where.append("tags LIKE ?");
+                args.add("%" + tagFilter.trim() + "%");
+            }
             Cursor cursor = getReadableDatabase().query(
                 "notes",
                 null,
@@ -1268,6 +1349,10 @@ public class MainActivity extends Activity {
                 cursor.close();
             }
             return notes;
+        }
+
+        List<Note> listNotes(String searchQuery, String categoryFilter) {
+            return listNotes(searchQuery, categoryFilter, "");
         }
 
         void createCategory(String name) {
@@ -1302,6 +1387,26 @@ public class MainActivity extends Activity {
                 noteCursor.close();
             }
             return categories;
+        }
+
+        List<String> listTags() {
+            List<String> tags = new ArrayList<String>();
+            Cursor cursor = getReadableDatabase().rawQuery(
+                "SELECT tags FROM notes WHERE is_deleted = 0 AND is_archived = 0 AND tags IS NOT NULL AND tags != ''",
+                null
+            );
+            try {
+                while (cursor.moveToNext()) {
+                    String[] parts = cursor.getString(0).split("[\\s,，、]+");
+                    for (String part : parts) {
+                        String value = part.trim();
+                        if (value.length() > 0 && !tags.contains(value)) tags.add(value);
+                    }
+                }
+            } finally {
+                cursor.close();
+            }
+            return tags;
         }
 
         Note getNote(long id) {

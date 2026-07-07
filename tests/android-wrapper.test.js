@@ -227,4 +227,22 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('删除记录'));
     assert.ok(activity.includes('is_deleted = 0 AND is_archived = 0'));
   });
+
+  test('supports native offline tag chips and quick tag editing', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('currentTagFilter'));
+    assert.ok(activity.includes('全部标签'));
+    assert.ok(activity.includes('tagFilterButton'));
+    assert.ok(activity.includes('quickTagButton'));
+    assert.ok(activity.includes('清空标签'));
+    assert.ok(activity.includes('normalizeTags'));
+    assert.ok(activity.includes('listTags()'));
+    assert.ok(activity.includes('listNotes(String searchQuery, String categoryFilter, String tagFilter)'));
+    assert.ok(activity.includes('tags LIKE ?'));
+    assert.ok(activity.includes('待办'));
+    assert.ok(activity.includes('重要'));
+    assert.ok(activity.includes('维修'));
+    assert.ok(activity.includes('账单'));
+  });
 });

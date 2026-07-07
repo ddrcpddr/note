@@ -377,3 +377,42 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 归档列表 / 回收站。
 - 原生端富文本、图片、附件和 `.nsx` 导入。
 - 两台家庭手机真机通过，除非用户后续人工确认。
+
+## 2026-07-07 原生标签筛选补充
+
+当前 debug APK 已加入原生标签使用能力：
+
+- 首页筛选区新增“全部标签”和现有标签 chip。
+- 点击标签 chip 可以只看对应标签的本机记录。
+- 编辑页标签输入框下新增快速标签：`待办`、`重要`、`维修`、`账单`。
+- 编辑页新增“清空标签”。
+- 保存时会去重和规范化标签。
+- 标签会继续参与同步到 Docker/NAS。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，14 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，94 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+当前可测试 APK：
+
+- `D:\工作文件夹\XYZL\领航未来\GitHub项目\note\android\app\build\outputs\apk\debug\app-debug.apk`
+
+建议真机重点测：
+
+1. 新建记录，点击 `待办`、`重要` 标签，保存。
+2. 回首页，确认出现对应标签 chip。
+3. 点击标签 chip，确认只显示带该标签的记录。
+4. 编辑记录，点击“清空标签”，保存后确认标签筛选不再包含它。
+
+仍不承诺：
+
+- 独立标签管理页。
+- 原生端富文本、图片、附件和 `.nsx` 导入。
+- 两台家庭手机真机通过，除非用户后续人工确认。

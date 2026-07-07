@@ -2528,3 +2528,57 @@ npm.cmd run android:device-smoke
 - 原生端没有归档列表/回收站，归档和删除后只是从默认列表隐藏。
 - 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
 - 原生端标签筛选仍然比较基础，当前主要依赖搜索框搜索标签。
+
+---
+
+测试时间：2026-07-07
+
+当前目标：原生离线 Android 标签筛选与快速标签。
+
+## 复现 / 风险来源
+
+上一阶段已经支持本机新建、编辑、搜索、分类、归档和删除，但家庭日常记录常见的“待办 / 重要 / 维修 / 账单”仍然只能手动输入后靠搜索框找回，离实际使用还不够顺手。
+
+## TDD 过程
+
+- 新增 `supports native offline tag chips and quick tag editing` 测试。
+- 红灯结果：测试因缺少 `currentTagFilter`、`tagFilterButton`、`quickTagButton`、`清空标签`、`normalizeTags`、`listTags()` 和三参 `listNotes` 而失败。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- 首页新增标签 chip 筛选。
+- 编辑页新增常用标签按钮：`待办`、`重要`、`维修`、`账单`。
+- 编辑页新增“清空标签”按钮。
+- 保存时对标签去重和规范化。
+- 本机数据库从现有记录中提取标签，过滤已删除 / 已归档记录。
+- 同步 payload 继续复用已有 tags 数组，不破坏服务端。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，14 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 94 tests / 94 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含临时 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；真机验证交给用户在实际手机上执行。
+
+## 仍然存在的问题
+
+- 标签仍是轻量文本标签，没有独立标签管理页。
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
