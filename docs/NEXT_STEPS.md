@@ -581,3 +581,15 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 - 下一步不要直接做 Android 外壳细节，应先做真机离线验收：飞行模式打开首页、本地新建、本地编辑、本地删除 / 归档、重启后保留。
 - 真机离线稳定后，再做手动 NAS 同步：device register、sync status、push pending queue、pull changes、附件上传下载、冲突副本。
 - 不要提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或 APK 文件。
+
+## 2026-07-07 下一步：Android 长期离线验证
+
+当前已补强 Android SQLite 本地资料层：notes、attachments、categories、members、tags、sync_queue 都有本地持久化入口。下一步不要回到壳 APK，也不要优先做新 UI。
+
+建议顺序：
+1. 继续验证 APK 纯离线：首次打开、无服务器地址、新建、编辑、删除、归档、重启保留。
+2. 增加 App 内本地诊断信息：SQLite 初始化状态、记录数、待同步队列数量、最近错误，便于没有 ADB 时定位用户手机问题。
+3. 做 NAS 手动同步闭环：push pending queue、pull 服务端变化、附件上传下载、冲突提示。
+4. 再考虑原生端 Note Station .nsx 导入和最终视觉细节。
+
+不要提交 data/、数据库、附件、备份、导出、.nsx、日志或 APK 文件。

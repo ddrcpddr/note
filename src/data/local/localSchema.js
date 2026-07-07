@@ -46,6 +46,44 @@ CREATE TABLE IF NOT EXISTS attachments (
 CREATE INDEX IF NOT EXISTS idx_attachments_note ON attachments(note_id);
 CREATE INDEX IF NOT EXISTS idx_attachments_sync_status ON attachments(sync_status);
 
+
+CREATE TABLE IF NOT EXISTS categories (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  slug TEXT,
+  color TEXT,
+  icon_key TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_system INTEGER NOT NULL DEFAULT 0,
+  note_count INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  payload_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order, name);
+
+CREATE TABLE IF NOT EXISTS members (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  avatar TEXT,
+  avatar_image TEXT,
+  color TEXT,
+  is_current INTEGER NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  payload_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_members_sort ON members(sort_order, name);
+
+CREATE TABLE IF NOT EXISTS tags (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  label TEXT,
+  color TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  payload_json TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_tags_sort ON tags(sort_order, name);
 CREATE TABLE IF NOT EXISTS sync_queue (
   id TEXT PRIMARY KEY NOT NULL,
   entity_type TEXT NOT NULL,

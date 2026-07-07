@@ -44,6 +44,9 @@ describe('Android Capacitor local-first app', () => {
     assert.ok(schema.includes('content_json TEXT'));
     assert.ok(schema.includes('sync_status TEXT'));
     assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS attachments'));
+    assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS categories'));
+    assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS members'));
+    assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS tags'));
     assert.ok(schema.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
     assert.ok(localDb.includes('SQLiteConnection'));
     assert.ok(localDb.includes('initializeLocalDatabase'));
@@ -51,6 +54,28 @@ describe('Android Capacitor local-first app', () => {
     assert.ok(notesRepo.includes('readLocalNotesFromSqlite'));
     assert.ok(notesRepo.includes('deleteLocalNoteFromSqlite'));
     assert.ok(queueRepo.includes('queueMutationToSqlite'));
+  });
+  test('persists Android offline categories members tags and attachments in SQLite', () => {
+    const offlineStore = readText('src/client/offlineStore.js');
+    const categoriesRepo = readText('src/data/local/localCategoriesRepository.js');
+    const membersRepo = readText('src/data/local/localMembersRepository.js');
+    const tagsRepo = readText('src/data/local/localTagsRepository.js');
+    const attachmentsRepo = readText('src/data/local/localAttachmentsRepository.js');
+
+    assert.ok(categoriesRepo.includes('upsertCategoriesToSqlite'));
+    assert.ok(categoriesRepo.includes('readCategoriesFromSqlite'));
+    assert.ok(membersRepo.includes('upsertMembersToSqlite'));
+    assert.ok(membersRepo.includes('readMembersFromSqlite'));
+    assert.ok(tagsRepo.includes('upsertTagsToSqlite'));
+    assert.ok(tagsRepo.includes('readTagsFromSqlite'));
+    assert.ok(attachmentsRepo.includes('readAttachmentsFromSqlite'));
+    assert.ok(offlineStore.includes('upsertCategoriesToSqlite(categories)'));
+    assert.ok(offlineStore.includes('upsertMembersToSqlite(members)'));
+    assert.ok(offlineStore.includes('upsertTagsToSqlite(tags)'));
+    assert.ok(offlineStore.includes('readCategoriesFromSqlite()'));
+    assert.ok(offlineStore.includes('readMembersFromSqlite()'));
+    assert.ok(offlineStore.includes('readTagsFromSqlite()'));
+    assert.ok(offlineStore.includes('readAttachmentsFromSqlite()'));
   });
 
   test('keeps existing React UI but routes note mutations through local storage first', () => {

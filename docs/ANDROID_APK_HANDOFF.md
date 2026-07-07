@@ -606,3 +606,36 @@ npm.cmd run android:delivery-check
 - APK verify：`bundledReact=true`，`nativeShellOnly=false`。
 
 当前可以交给用户做真机测试，但不要把真机离线能力写成已自动验证。
+
+## 2026-07-07 Android SQLite 基础资料补强
+
+本轮 APK 代码路径继续使用 Capacitor 本地资源打包，不是远程 URL 壳。
+
+新增：
+- SQLite categories、members、	ags 表。
+- 分类、成员、标签 repository。
+- 附件元数据批量写入 / 读取。
+- offlineStore 保存和恢复快照时，把基础资料和附件元数据写入 / 读出 Android SQLite。
+
+已验证：
+-
+ode --test tests/android-wrapper.test.js：通过。
+-
+pm.cmd run test：通过。
+-
+pm.cmd run build：通过。
+
+仍需用户真机验证：
+- 飞行模式首次打开是否正常。
+- 新建 / 编辑 / 删除 / 归档后关闭重开是否保留。
+- 有附件记录在离线重启后是否仍能看到附件入口。
+
+### 本轮交付检查补充
+
+-
+pm.cmd run android:delivery-check 已通过。
+- APK 大小：25,706,306 bytes。
+- ndroid:verify 输出：kind=capacitor-local-first、undledReact=true、
+ativeShellOnly=false。
+- 临时 HTTP smoke 通过：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建、Note Station Web 导入、备份、JSON 导出和前端 shell。
+- 真机飞行模式仍需用户安装当前 APK 后实际验证；当前电脑未接入可用 USB 手机。

@@ -2806,3 +2806,37 @@ npm.cmd run android:device-smoke
 - 原生 APK 仍未迁入 `.nsx` 文件导入。
 
 
+
+## 2026-07-07 Android 离线本地数据层补强 QA
+
+测试时间：2026-07-07 20:49
+
+测试目标：补齐 Android 本地 SQLite 对分类、成员、标签、附件元数据的持久化，减少首次离线和长期离线时只依赖 IndexedDB / fallback 的风险。
+
+修复内容：
+- SQLite schema 新增 categories、members、	ags。
+- 新增分类 / 成员 / 标签本地仓储读写。
+- 附件本地仓储新增批量写入和读取。
+- offlineStore 在 Android 原生环境保存 / 读取快照时接入上述仓储，并将附件元数据挂回记录。
+
+运行命令与结果：
+-
+ode --test tests/android-wrapper.test.js：通过，5/5。
+-
+pm.cmd run test：通过，85 tests / 0 fail。
+-
+pm.cmd run build：通过，仅保留 Vite chunk size 提示。
+
+仍然存在的问题：
+- 真机飞行模式完整验收仍需要用户手机实际安装测试。
+- NAS 同步完整 push/pull 和多设备冲突处理仍在后续阶段。
+
+补充交付检查：2026-07-07 20:57
+
+-
+pm.cmd run android:delivery-check：通过。
+- 覆盖步骤：check、	est、uild、ndroid:build、ndroid:verify、临时 http://127.0.0.1:3400 HTTP smoke。
+- APK：ndroid/app/build/outputs/apk/debug/app-debug.apk，大小 25,706,306 bytes。
+- APK verify：kind=capacitor-local-first，undledReact=true，
+ativeShellOnly=false。
+- HTTP smoke：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、Note Station Web 导入、备份、JSON 导出、前端 shell 均通过。

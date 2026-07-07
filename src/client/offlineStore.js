@@ -1,4 +1,8 @@
+import { readAttachmentsFromSqlite, upsertAttachmentsToSqlite } from '../data/local/localAttachmentsRepository.js';
+import { readCategoriesFromSqlite, upsertCategoriesToSqlite } from '../data/local/localCategoriesRepository.js';
 import { initializeLocalDatabase, shouldUseNativeSqlite } from '../data/local/localDb.js';
+import { readMembersFromSqlite, upsertMembersToSqlite } from '../data/local/localMembersRepository.js';
+import { readTagsFromSqlite, upsertTagsToSqlite } from '../data/local/localTagsRepository.js';
 import { deleteLocalNoteFromSqlite, markLocalNoteArchivedInSqlite, readLocalNotesFromSqlite, upsertLocalNoteToSqlite } from '../data/local/localNotesRepository.js';
 import { markMutationFailedInSqlite, queueMutationToSqlite, readPendingMutationsFromSqlite, removeMutationFromSqlite } from '../data/local/syncQueueRepository.js';
 
@@ -122,6 +126,25 @@ function toIndexedDbSafeValue(value, seen = new WeakSet()) {
   seen.delete(value);
   return output;
 }
+
+function extractSnapshotAttachments(snapshot = {}, notes = []) {
+  const byId = new Map();
+  const addAttachment = (attachment, fallbackNoteId = null, index = 0) => {
+    if (!attachment) return;
+    const noteId = attachment.noteId || attachment.note_id || fallbackNoteId;
+    const filename = attachment.filename || attachment.name || attachment.fileName || '附件';
+    const id = attachment.id || attachment.localId || `${noteId || 'note'}-${filename}-${index}`;
+    if (!id || byId.has(id)) return;
+    byId.set(id, { ...attachment, id, noteId, filename, name: attachment.name || filename });
+  };
+
+  if (Array.isArray(snapshot.attachments)) snapshot.attachments.forEach((attachment, index) => addAttachment(attachment, attachment.noteId, index));
+  notes.forEach((note) => {
+    if (!Array.isArray(note?.attachments)) return;
+    note.attachments.forEach((attachment, index) => addAttachment(attachment, note.id, index));
+  });
+  return [...byId.values()].filter((attachment) => attachment.id && attachment.noteId);
+}
 async function getMeta(key) {
   const db = await openOfflineDb();
   if (!db) return null;
@@ -140,6 +163,7 @@ export async function saveLocalSnapshot(snapshot = {}) {
   const categories = Array.isArray(snapshot.categories) ? snapshot.categories : [];
   const members = Array.isArray(snapshot.members) ? snapshot.members : [];
   const tags = Array.isArray(snapshot.tags) ? snapshot.tags : [];
+  const attachments = extractSnapshotAttachments(snapshot, notes);
 
   await putMany('notes', notes.map((note) => ({
     ...note,
@@ -150,11 +174,16 @@ export async function saveLocalSnapshot(snapshot = {}) {
   await putMany('categories', categories);
   await putMany('members', members);
   await putMany('tags', tags.map((tag, index) => ({ id: tag.id || tag.name || tag.label || `tag-${index}`, ...tag })));
+  await putMany('attachments', attachments);
   await putMeta('snapshot', {
     currentMemberId: snapshot.currentMemberId || 'self',
     savedAt: snapshot.savedAt || new Date().toISOString()
   });
   if (shouldUseNativeSqlite()) {
+    await upsertCategoriesToSqlite(categories);
+    await upsertMembersToSqlite(members);
+    await upsertTagsToSqlite(tags);
+    await upsertAttachmentsToSqlite(attachments);
     for (const note of notes) await upsertLocalNoteToSqlite(note);
   }
 }
@@ -163,22 +192,30 @@ export async function readLocalSnapshot() {
   await initializeLocalStore();
   if (shouldUseNativeSqlite()) {
     const sqliteNotes = await readLocalNotesFromSqlite();
-    const [categories, members, tags, meta] = await Promise.all([
-      getAll('categories'),
-      getAll('members'),
-      getAll('tags'),
+    const [categories, members, tags, attachments, meta] = await Promise.all([
+      readCategoriesFromSqlite(),
+      readMembersFromSqlite(),
+      readTagsFromSqlite(),
+      readAttachmentsFromSqlite(),
       getMeta('snapshot')
     ]);
     if (sqliteNotes.length || categories.length || members.length) {
-      return { notes: sqliteNotes, categories, members, tags, currentMemberId: meta?.currentMemberId || 'self', savedAt: meta?.savedAt || null };
+      const notesWithAttachments = sqliteNotes.map((note) => ({
+        ...note,
+        attachments: Array.isArray(note.attachments) && note.attachments.length
+          ? note.attachments
+          : attachments.filter((attachment) => attachment.noteId === note.id)
+      }));
+      return { notes: notesWithAttachments, categories, members, tags, attachments, currentMemberId: meta?.currentMemberId || 'self', savedAt: meta?.savedAt || null };
     }
   }
 
-  const [notes, categories, members, tags, meta] = await Promise.all([
+  const [notes, categories, members, tags, attachments, meta] = await Promise.all([
     getAll('notes'),
     getAll('categories'),
     getAll('members'),
     getAll('tags'),
+    getAll('attachments'),
     getMeta('snapshot')
   ]);
 
@@ -189,6 +226,7 @@ export async function readLocalSnapshot() {
     categories,
     members,
     tags,
+    attachments,
     currentMemberId: meta?.currentMemberId || 'self',
     savedAt: meta?.savedAt || null
   };
@@ -197,7 +235,10 @@ export async function readLocalSnapshot() {
 export async function upsertLocalNote(localNote) {
   if (!localNote?.id) return;
   await initializeLocalStore();
-  if (shouldUseNativeSqlite()) await upsertLocalNoteToSqlite(localNote);
+  if (shouldUseNativeSqlite()) {
+    await upsertAttachmentsToSqlite(extractSnapshotAttachments({}, [localNote]));
+    await upsertLocalNoteToSqlite(localNote);
+  }
   await putMany('notes', [{
     ...localNote,
     localUpdatedAt: new Date().toISOString()
