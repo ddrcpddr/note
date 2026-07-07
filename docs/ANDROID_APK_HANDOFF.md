@@ -296,3 +296,43 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 多设备冲突提示。
 - 原生端富文本、图片、附件和 `.nsx` 导入。
 - 两台家庭手机真机通过。
+
+## 2026-07-07 原生冲突保护补充
+
+当前 debug APK 已加入原生编辑同步冲突保护：
+
+- 本机 SQLite 数据库版本为 v6。
+- `notes.remote_updated_at` 保存最近一次成功同步时服务端返回的更新时间。
+- 新建记录同步成功后会保存服务端 `note.id` 和 `note.updatedAt`。
+- 已同步记录再次编辑后，手动同步会向 Docker/NAS 发送 `baseUpdatedAt`。
+- 如果 Docker/NAS 上同一条记录已经被其他设备更新，服务端会返回冲突，APK 会把同步项保留为失败并显示“记录已经在其他设备更新，请先确认后再同步”。
+- 这一步只做“不静默覆盖”的保护，还没有做冲突合并 UI。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，12 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，92 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+当前可测试 APK：
+
+- `D:\工作文件夹\XYZL\领航未来\GitHub项目\note\android\app\build\outputs\apk\debug\app-debug.apk`
+
+建议真机重点测：
+
+1. 不连接 Docker/NAS，打开 APK 并新建记录。
+2. 重启 APK，确认本地记录还在。
+3. 填写 Docker/NAS 地址，手动同步，浏览器端确认记录出现。
+4. APK 编辑这条记录，再同步，浏览器端确认内容更新。
+5. 浏览器端先改这条记录，再让 APK 同步较旧基准上的编辑，确认 APK 显示冲突失败而不是覆盖浏览器端内容。
+
+仍不承诺：
+
+- 冲突合并界面。
+- 原生端富文本、图片、附件和 `.nsx` 导入。
+- 两台家庭手机真机通过，除非用户后续人工确认。

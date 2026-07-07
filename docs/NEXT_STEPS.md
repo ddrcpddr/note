@@ -438,3 +438,25 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 2. 补基础冲突提示：服务端记录已变化时，不静默覆盖。
 3. 原生端日常编辑能力继续补富文本、图片、附件。
 4. 最后迁入原生端 Note Station `.nsx` 导入。
+
+## 2026-07-07 原生 Android 冲突保护后续
+
+当前已经实现：原生端编辑同步会携带 `baseUpdatedAt`，如果 Docker/NAS 上同一条记录已经被其他设备更新，服务端会返回冲突，APK 会保留失败项并提示“记录已经在其他设备更新，请先确认后再同步”，不会静默覆盖。
+
+已验证：
+
+- 定向 Android 测试通过，覆盖 v6 数据库、`remote_updated_at`、`baseUpdatedAt` 和冲突提示。
+- `npm.cmd run check` / `npm.cmd run test` / `npm.cmd run build` 通过。
+- `npm.cmd run android:build` / `npm.cmd run android:verify` / `npm.cmd run android:delivery-check` 通过。
+- `npm.cmd run android:device-smoke` 未完成，当前没有检测到 USB 手机。
+
+给用户真机测试的 APK：
+
+- `android/app/build/outputs/apk/debug/app-debug.apk`
+
+下一步按这个顺序：
+
+1. 用户真机验证当前 APK：完全断网新建、联网同步、编辑再同步、错误地址失败提示。
+2. 真机验证冲突保护：手机同步一条记录后，Web 端改同一条，手机端再改并同步，应出现冲突失败提示而不是覆盖。
+3. 原生端继续补日常富文本、图片、附件能力。
+4. 最后迁入原生端 Note Station `.nsx` 导入。

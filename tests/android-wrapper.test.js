@@ -114,7 +114,7 @@ describe('Android native offline app', () => {
   test('supports native custom categories stored on the phone', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 5'));
+    assert.ok(activity.includes('DATABASE_VERSION = 6'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS categories'));
     assert.ok(activity.includes('seedDefaultCategories'));
     assert.ok(activity.includes('showCategories()'));
@@ -129,7 +129,7 @@ describe('Android native offline app', () => {
   test('prepares native offline notes for later Docker NAS sync', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 5'));
+    assert.ok(activity.includes('DATABASE_VERSION = 6'));
     assert.ok(activity.includes('CREATE TABLE IF NOT EXISTS sync_queue'));
     assert.ok(activity.includes('createSyncQueueTable(db);'));
     assert.ok(activity.includes('queueSyncMutation'));
@@ -164,7 +164,7 @@ describe('Android native offline app', () => {
   test('stores remote note ids and syncs native offline edits back to Docker NAS', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 5'));
+    assert.ok(activity.includes('DATABASE_VERSION = 6'));
     assert.ok(activity.includes('remote_id TEXT'));
     assert.ok(activity.includes('ensureRemoteIdColumn'));
     assert.ok(activity.includes('saveRemoteId'));
@@ -179,7 +179,7 @@ describe('Android native offline app', () => {
   test('shows native sync failure details for retry decisions', () => {
     const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
 
-    assert.ok(activity.includes('DATABASE_VERSION = 5'));
+    assert.ok(activity.includes('DATABASE_VERSION = 6'));
     assert.ok(activity.includes('error_message TEXT'));
     assert.ok(activity.includes('last_attempt_at TEXT'));
     assert.ok(activity.includes('ensureSyncQueueDetailColumns'));
@@ -188,5 +188,22 @@ describe('Android native offline app', () => {
     assert.ok(activity.includes('最近同步失败'));
     assert.ok(activity.includes('失败原因'));
     assert.ok(activity.includes('最后尝试'));
+  });
+
+  test('sends baseUpdatedAt to avoid silently overwriting server edits', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+    const serverRoutes = readText('src/server/routes/notes.js');
+
+    assert.ok(serverRoutes.includes('baseUpdatedAt'));
+    assert.ok(serverRoutes.includes("code: 'note_conflict'"));
+
+    assert.ok(activity.includes('DATABASE_VERSION = 6'));
+    assert.ok(activity.includes('remote_updated_at TEXT'));
+    assert.ok(activity.includes('ensureRemoteUpdatedAtColumn'));
+    assert.ok(activity.includes('saveRemoteSyncState'));
+    assert.ok(activity.includes('parseRemoteSyncState'));
+    assert.ok(activity.includes('mutation.remoteUpdatedAt'));
+    assert.ok(activity.includes('payload.put("baseUpdatedAt", mutation.remoteUpdatedAt)'));
+    assert.ok(activity.includes('记录已经在其他设备更新'));
   });
 });

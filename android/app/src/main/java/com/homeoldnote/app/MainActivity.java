@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
     private static final String PREFS_NAME = "home_note_native_prefs";
     private static final String PREF_SERVER_URL = "server_url";
-    private static final int DATABASE_VERSION = 5;
+    private static final int DATABASE_VERSION = 6;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -376,13 +376,14 @@ public class MainActivity extends Activity {
         for (SyncMutation mutation : mutations) {
             try {
                 if ("create".equals(mutation.mutationType)) {
-                    String remoteId = postCreateMutation(serverUrl, mutation);
-                    db.saveRemoteId(mutation.noteId, remoteId);
+                    RemoteSyncState remoteState = postCreateMutation(serverUrl, mutation);
+                    db.saveRemoteSyncState(mutation.noteId, remoteState.remoteId, remoteState.remoteUpdatedAt);
                 } else if ("update".equals(mutation.mutationType)) {
                     if (mutation.remoteId == null || mutation.remoteId.trim().length() == 0) {
                         throw new Exception("没有远端记录 ID，先同步新建记录");
                     }
-                    postUpdateMutation(serverUrl, mutation);
+                    RemoteSyncState remoteState = postUpdateMutation(serverUrl, mutation);
+                    db.saveRemoteSyncState(mutation.noteId, remoteState.remoteId, remoteState.remoteUpdatedAt);
                 } else {
                     throw new Exception("暂不支持的同步类型：" + mutation.mutationType);
                 }
@@ -397,7 +398,7 @@ public class MainActivity extends Activity {
         return new SyncResult(true, "同步完成：" + synced + " 条");
     }
 
-    private String postCreateMutation(String serverUrl, SyncMutation mutation) throws Exception {
+    private RemoteSyncState postCreateMutation(String serverUrl, SyncMutation mutation) throws Exception {
         URL url = new URL(normalizeServerUrl(serverUrl) + "/api/notes");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setConnectTimeout(8000);
@@ -419,13 +420,16 @@ public class MainActivity extends Activity {
         int code = connection.getResponseCode();
         String response = readResponse(connection);
         if (code < 200 || code >= 300) {
+            if (code == 409 || response.contains("note_conflict")) {
+                throw new Exception("记录已经在其他设备更新，请先确认后再同步");
+            }
             throw new Exception("HTTP " + code + " " + response);
         }
         connection.disconnect();
-        return parseCreatedRemoteId(response);
+        return parseRemoteSyncState(response);
     }
 
-    private void postUpdateMutation(String serverUrl, SyncMutation mutation) throws Exception {
+    private RemoteSyncState postUpdateMutation(String serverUrl, SyncMutation mutation) throws Exception {
         URL url = new URL(normalizeServerUrl(serverUrl) + "/api/notes/" + mutation.remoteId);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setConnectTimeout(8000);
@@ -435,7 +439,7 @@ public class MainActivity extends Activity {
         connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
         connection.setRequestProperty("Accept", "application/json");
 
-        byte[] body = buildCreatePayload(mutation).toString().getBytes("UTF-8");
+        byte[] body = buildUpdatePayload(mutation).toString().getBytes("UTF-8");
         connection.setFixedLengthStreamingMode(body.length);
         OutputStream output = connection.getOutputStream();
         try {
@@ -450,14 +454,20 @@ public class MainActivity extends Activity {
             throw new Exception("HTTP " + code + " " + response);
         }
         connection.disconnect();
+        return parseRemoteSyncState(response);
     }
 
-    private String parseCreatedRemoteId(String response) throws Exception {
+    private RemoteSyncState parseCreatedRemoteId(String response) throws Exception {
+        return parseRemoteSyncState(response);
+    }
+
+    private RemoteSyncState parseRemoteSyncState(String response) throws Exception {
         JSONObject root = new JSONObject(response == null ? "{}" : response);
         JSONObject note = root.optJSONObject("note");
         String remoteId = note == null ? "" : note.optString("id", "");
         if (remoteId.trim().length() == 0) throw new Exception("服务端未返回记录 ID");
-        return remoteId.trim();
+        String remoteUpdatedAt = note.optString("updatedAt", "");
+        return new RemoteSyncState(remoteId.trim(), remoteUpdatedAt == null ? "" : remoteUpdatedAt.trim());
     }
 
     private JSONObject buildCreatePayload(SyncMutation mutation) throws Exception {
@@ -472,6 +482,14 @@ public class MainActivity extends Activity {
         JSONArray tags = new JSONArray();
         for (String tag : splitTags(mutation.tags)) tags.put(tag);
         payload.put("tags", tags);
+        return payload;
+    }
+
+    private JSONObject buildUpdatePayload(SyncMutation mutation) throws Exception {
+        JSONObject payload = buildCreatePayload(mutation);
+        if (mutation.remoteUpdatedAt != null && mutation.remoteUpdatedAt.trim().length() > 0) {
+            payload.put("baseUpdatedAt", mutation.remoteUpdatedAt);
+        }
         return payload;
     }
 
@@ -772,10 +790,21 @@ public class MainActivity extends Activity {
         }
     }
 
+    private static class RemoteSyncState {
+        String remoteId;
+        String remoteUpdatedAt;
+
+        RemoteSyncState(String remoteId, String remoteUpdatedAt) {
+            this.remoteId = remoteId;
+            this.remoteUpdatedAt = remoteUpdatedAt;
+        }
+    }
+
     private static class SyncMutation {
         long queueId;
         long noteId;
         String remoteId;
+        String remoteUpdatedAt;
         String mutationType;
         String title;
         String content;
@@ -823,6 +852,9 @@ public class MainActivity extends Activity {
             if (oldVersion < 5) {
                 ensureSyncQueueDetailColumns(db);
             }
+            if (oldVersion < 6) {
+                ensureRemoteUpdatedAtColumn(db);
+            }
         }
 
         private void createNotesTable(SQLiteDatabase db) {
@@ -831,6 +863,7 @@ public class MainActivity extends Activity {
                 "title TEXT NOT NULL DEFAULT ''," +
                 "content TEXT NOT NULL DEFAULT ''," +
                 "remote_id TEXT," +
+                "remote_updated_at TEXT," +
                 "category TEXT NOT NULL DEFAULT '未分类 / 待整理'," +
                 "tags TEXT NOT NULL DEFAULT ''," +
                 "created_at TEXT NOT NULL," +
@@ -848,6 +881,18 @@ public class MainActivity extends Activity {
                 cursor.close();
             }
             db.execSQL("ALTER TABLE notes ADD COLUMN remote_id TEXT");
+        }
+
+        private void ensureRemoteUpdatedAtColumn(SQLiteDatabase db) {
+            Cursor cursor = db.rawQuery("PRAGMA table_info(notes)", null);
+            try {
+                while (cursor.moveToNext()) {
+                    if ("remote_updated_at".equals(cursor.getString(cursor.getColumnIndexOrThrow("name")))) return;
+                }
+            } finally {
+                cursor.close();
+            }
+            db.execSQL("ALTER TABLE notes ADD COLUMN remote_updated_at TEXT");
         }
 
         private void createCategoriesTable(SQLiteDatabase db) {
@@ -969,7 +1014,7 @@ public class MainActivity extends Activity {
         List<SyncMutation> listPendingSyncMutations() {
             List<SyncMutation> mutations = new ArrayList<SyncMutation>();
             Cursor cursor = getReadableDatabase().rawQuery(
-                "SELECT q.id, q.note_id, n.remote_id, q.mutation_type, n.title, n.content, n.category, n.tags " +
+                "SELECT q.id, q.note_id, n.remote_id, n.remote_updated_at, q.mutation_type, n.title, n.content, n.category, n.tags " +
                 "FROM sync_queue q JOIN notes n ON n.id = q.note_id " +
                 "WHERE q.status IN ('pending', 'failed') ORDER BY q.id ASC",
                 null
@@ -980,11 +1025,12 @@ public class MainActivity extends Activity {
                     mutation.queueId = cursor.getLong(0);
                     mutation.noteId = cursor.getLong(1);
                     mutation.remoteId = cursor.getString(2);
-                    mutation.mutationType = cursor.getString(3);
-                    mutation.title = cursor.getString(4);
-                    mutation.content = cursor.getString(5);
-                    mutation.category = cursor.getString(6);
-                    mutation.tags = cursor.getString(7);
+                    mutation.remoteUpdatedAt = cursor.getString(3);
+                    mutation.mutationType = cursor.getString(4);
+                    mutation.title = cursor.getString(5);
+                    mutation.content = cursor.getString(6);
+                    mutation.category = cursor.getString(7);
+                    mutation.tags = cursor.getString(8);
                     mutations.add(mutation);
                 }
             } finally {
@@ -1010,9 +1056,14 @@ public class MainActivity extends Activity {
         }
 
         void saveRemoteId(long noteId, String remoteId) {
+            saveRemoteSyncState(noteId, remoteId, "");
+        }
+
+        void saveRemoteSyncState(long noteId, String remoteId, String remoteUpdatedAt) {
             if (noteId <= 0 || remoteId == null || remoteId.trim().length() == 0) return;
             ContentValues values = new ContentValues();
             values.put("remote_id", remoteId.trim());
+            values.put("remote_updated_at", remoteUpdatedAt == null ? "" : remoteUpdatedAt.trim());
             getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(noteId)});
         }
 

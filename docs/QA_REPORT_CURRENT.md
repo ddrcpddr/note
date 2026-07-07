@@ -2419,3 +2419,57 @@ npm.cmd run android:device-smoke
 - 原生端冲突处理未完成。
 - 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
 - 需要真实手机验证失败详情：错误地址同步失败 -> 页面显示原因 -> 改回正确地址后重试。
+
+---
+
+测试时间：2026-07-07
+
+当前目标：原生离线 Android 编辑同步冲突保护。
+
+## 复现 / 风险来源
+
+上一阶段已经能把手机端离线新建和编辑同步到 Docker/NAS，但如果同一条记录在手机离线期间被其他设备改过，手机端再次同步可能静默覆盖服务端较新的内容。家庭自用场景也需要避免这种“看起来同步成功，实际覆盖了别人修改”的问题。
+
+## TDD 过程
+
+- 新增 `sends baseUpdatedAt to avoid silently overwriting server edits` 测试。
+- 红灯结果：测试因缺少 `DATABASE_VERSION = 6`、`remote_updated_at`、`saveRemoteSyncState`、`baseUpdatedAt` 和冲突提示而失败。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- Android 原生数据库升级到 v6。
+- `notes.remote_updated_at` 保存最近一次服务端同步成功返回的 `updatedAt`。
+- create 同步成功后保存 `remote_id` 和 `remote_updated_at`。
+- update 同步时提交 `baseUpdatedAt`。
+- 服务端返回 `409 note_conflict` 时，Android 原生端保留失败队列项并显示“记录已经在其他设备更新，请先确认后再同步”，不静默覆盖。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，12 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 92 tests / 92 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含临时 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；真机验证交给用户在 vivo / Huawei 手机上执行。
+
+## 仍然存在的问题
+
+- 原生端还没有冲突详情/合并界面，目前只阻止静默覆盖并显示失败原因。
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+- 需要真实手机验证：离线新建、同步、编辑、冲突失败提示。
