@@ -2833,10 +2833,30 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 
 补充交付检查：2026-07-07 20:57
 
--
-pm.cmd run android:delivery-check：通过。
-- 覆盖步骤：check、	est、uild、ndroid:build、ndroid:verify、临时 http://127.0.0.1:3400 HTTP smoke。
-- APK：ndroid/app/build/outputs/apk/debug/app-debug.apk，大小 25,706,306 bytes。
-- APK verify：kind=capacitor-local-first，undledReact=true，
-ativeShellOnly=false。
+- npm.cmd run android:delivery-check：通过。
+- 覆盖步骤：check、test、build、android:build、android:verify、临时 http://127.0.0.1:3400 HTTP smoke。
+- APK：android/app/build/outputs/apk/debug/app-debug.apk，大小 25,706,306 bytes。
+- APK verify：kind=capacitor-local-first，bundledReact=true，nativeShellOnly=false。
 - HTTP smoke：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建记录、Note Station Web 导入、备份、JSON 导出、前端 shell 均通过。
+
+## 2026-07-07 Android 本地数据诊断 QA
+
+测试时间：2026-07-07 21:23
+
+修复内容：
+- offlineStore 新增 getLocalStoreDiagnostics()。
+- 设置页新增“本地数据诊断”卡片和“刷新诊断”按钮。
+- 卡片展示本地库状态、记录 / 附件、分类 / 标签、待同步数量和最近错误。
+
+运行命令与结果：
+- node --test tests/android-wrapper.test.js：通过，6/6。
+- npm.cmd run check：通过，SQLite integrityCheck=ok。
+- npm.cmd run test：通过，86 tests / 0 fail。
+- npm.cmd run build：通过。
+- npm.cmd run android:build：通过，APK 25,707,077 bytes。
+- npm.cmd run android:verify：通过，nativeShellOnly=false。
+- npm.cmd run android:delivery-check：通过，包含 check / test / build / android:build / android:verify / 临时 3400 HTTP smoke。
+
+仍需真机验证：
+- 手机断网打开设置页，查看“本地数据诊断”是否显示。
+- 新建离线记录后刷新诊断，记录数 / 待同步数量是否变化。

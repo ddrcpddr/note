@@ -78,6 +78,7 @@ import {
 import { categoryImageAssets, illustrationAssets, memberAvatarAssets } from './assetMap.js';
 import {
   deleteLocalNote,
+  getLocalStoreDiagnostics,
   initializeLocalStore,
   markLocalNoteArchivedInSqlite,
   markMutationFailed,
@@ -2584,8 +2585,17 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
   const [storageStatus, setStorageStatus] = useState(null);
   const [storageMessage, setStorageMessage] = useState('');
   const [storageProbe, setStorageProbe] = useState(null);
+  const [localDiagnostics, setLocalDiagnostics] = useState(null);
   const canOpenAndroidServerSettings = typeof window.HomeNoteAndroid?.openServerSettings === 'function';
 
+  async function refreshLocalDiagnostics() {
+    try {
+      const diagnostics = await getLocalStoreDiagnostics();
+      setLocalDiagnostics(diagnostics);
+    } catch (error) {
+      setLocalDiagnostics({ lastError: error?.message || '本地诊断读取失败', pendingMutationCount: 0 });
+    }
+  }
   useEffect(() => {
     async function loadStorageStatus() {
       try {
@@ -2604,6 +2614,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
     }
 
     loadStorageStatus();
+    refreshLocalDiagnostics();
   }, []);
 
   async function runBackup() {
@@ -2690,6 +2701,37 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         </div>
       </header>
 
+      <SectionTitle>本地数据诊断</SectionTitle>
+      <section className="soft-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold text-ink">本地数据诊断</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted">不用连接 Docker，也能检查手机本地库状态。</p>
+          </div>
+          <button className="shrink-0 rounded-full border border-teal-600 bg-teal-50 px-3 py-1.5 text-[12px] font-medium text-teal-700" type="button" onClick={refreshLocalDiagnostics}>
+            刷新诊断
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+          <div className="rounded-2xl bg-soft px-3 py-2">
+            <p className="text-muted">本地库</p>
+            <p className="mt-1 font-semibold text-ink">{localDiagnostics?.sqliteReady ? '正常' : localDiagnostics?.nativeSqlite ? '需检查' : '浏览器缓存'}</p>
+          </div>
+          <div className="rounded-2xl bg-soft px-3 py-2">
+            <p className="text-muted">待同步</p>
+            <p className="mt-1 font-semibold text-ink">{localDiagnostics?.pendingMutationCount ?? 0} 条</p>
+          </div>
+          <div className="rounded-2xl bg-soft px-3 py-2">
+            <p className="text-muted">记录 / 附件</p>
+            <p className="mt-1 font-semibold text-ink">{localDiagnostics?.noteCount ?? 0} / {localDiagnostics?.attachmentCount ?? 0}</p>
+          </div>
+          <div className="rounded-2xl bg-soft px-3 py-2">
+            <p className="text-muted">分类 / 标签</p>
+            <p className="mt-1 font-semibold text-ink">{localDiagnostics?.categoryCount ?? 0} / {localDiagnostics?.tagCount ?? 0}</p>
+          </div>
+        </div>
+        {localDiagnostics?.lastError && <p className="mt-3 break-words rounded-2xl bg-amber-50 px-3 py-2 text-[12px] leading-relaxed text-amber-700">{localDiagnostics.lastError}</p>}
+      </section>
       <SectionTitle>数据备份</SectionTitle>
       <section className="soft-card p-4">
         <div className="grid grid-cols-[42px_minmax(0,1fr)_84px] items-center gap-3">
@@ -3062,7 +3104,6 @@ function BottomNav({ active, onChange }) {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
-
 
 
 

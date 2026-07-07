@@ -78,6 +78,20 @@ describe('Android Capacitor local-first app', () => {
     assert.ok(offlineStore.includes('readAttachmentsFromSqlite()'));
   });
 
+
+  test('shows Android local storage diagnostics inside settings', () => {
+    const main = readText('src/client/main.jsx');
+    const offlineStore = readText('src/client/offlineStore.js');
+
+    assert.ok(offlineStore.includes('getLocalStoreDiagnostics'));
+    assert.ok(offlineStore.includes('getLastLocalDbError'));
+    assert.ok(offlineStore.includes('pendingMutationCount'));
+    assert.ok(main.includes('getLocalStoreDiagnostics'));
+    assert.ok(main.includes('本地数据诊断'));
+    assert.ok(main.includes('待同步'));
+    assert.ok(main.includes('刷新诊断'));
+  });
+
   test('keeps existing React UI but routes note mutations through local storage first', () => {
     const main = readText('src/client/main.jsx');
     const offlineStore = readText('src/client/offlineStore.js');

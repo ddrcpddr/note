@@ -632,10 +632,19 @@ pm.cmd run build：通过。
 
 ### 本轮交付检查补充
 
--
-pm.cmd run android:delivery-check 已通过。
-- APK 大小：25,706,306 bytes。
-- ndroid:verify 输出：kind=capacitor-local-first、undledReact=true、
-ativeShellOnly=false。
+- npm.cmd run android:delivery-check 已通过。
+- APK 大小：25,707,077 bytes。
+- android:verify 输出：kind=capacitor-local-first、bundledReact=true、nativeShellOnly=false。
 - 临时 HTTP smoke 通过：健康接口、app-data、列表、详情、搜索、分类筛选、成员筛选、新建、Note Station Web 导入、备份、JSON 导出和前端 shell。
 - 真机飞行模式仍需用户安装当前 APK 后实际验证；当前电脑未接入可用 USB 手机。
+
+## 2026-07-07 设置页本地数据诊断
+
+新增设置页“本地数据诊断”：
+- 本地库状态；
+- 记录 / 附件数量；
+- 分类 / 标签数量；
+- 待同步数量；
+- 最近本地库错误。
+
+用途：用户真机离线测试时，如果无法连接 Docker/NAS，可以先打开设置页查看本地库是否初始化成功，减少盲测。

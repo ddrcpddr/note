@@ -1,6 +1,6 @@
 import { readAttachmentsFromSqlite, upsertAttachmentsToSqlite } from '../data/local/localAttachmentsRepository.js';
 import { readCategoriesFromSqlite, upsertCategoriesToSqlite } from '../data/local/localCategoriesRepository.js';
-import { initializeLocalDatabase, shouldUseNativeSqlite } from '../data/local/localDb.js';
+import { getLastLocalDbError, initializeLocalDatabase, shouldUseNativeSqlite } from '../data/local/localDb.js';
 import { readMembersFromSqlite, upsertMembersToSqlite } from '../data/local/localMembersRepository.js';
 import { readTagsFromSqlite, upsertTagsToSqlite } from '../data/local/localTagsRepository.js';
 import { deleteLocalNoteFromSqlite, markLocalNoteArchivedInSqlite, readLocalNotesFromSqlite, upsertLocalNoteToSqlite } from '../data/local/localNotesRepository.js';
@@ -339,3 +339,44 @@ export async function markMutationFailed(mutation, errorMessage) {
 export { OFFLINE_DB_NAME, OFFLINE_DB_VERSION, STORE_NAMES, toIndexedDbSafeValue, markLocalNoteArchivedInSqlite };
 
 
+
+export async function getLocalStoreDiagnostics() {
+  let snapshot = null;
+  let pendingMutations = [];
+  let readError = null;
+
+  try {
+    await initializeLocalStore();
+    snapshot = await readLocalSnapshot();
+  } catch (error) {
+    readError = error?.message || String(error);
+  }
+
+  try {
+    pendingMutations = await readPendingMutations();
+  } catch (error) {
+    readError = readError || error?.message || String(error);
+  }
+
+  const notes = Array.isArray(snapshot?.notes) ? snapshot.notes : [];
+  const categories = Array.isArray(snapshot?.categories) ? snapshot.categories : [];
+  const members = Array.isArray(snapshot?.members) ? snapshot.members : [];
+  const tags = Array.isArray(snapshot?.tags) ? snapshot.tags : [];
+  const attachments = Array.isArray(snapshot?.attachments) && snapshot.attachments.length
+    ? snapshot.attachments
+    : extractSnapshotAttachments(snapshot || {}, notes);
+  const lastError = getLastLocalDbError() || readError || null;
+
+  return {
+    nativeSqlite: shouldUseNativeSqlite(),
+    sqliteReady: shouldUseNativeSqlite() ? !lastError : false,
+    noteCount: notes.length,
+    categoryCount: categories.length,
+    memberCount: members.length,
+    tagCount: tags.length,
+    attachmentCount: attachments.length,
+    pendingMutationCount: pendingMutations.length,
+    lastError,
+    checkedAt: new Date().toISOString()
+  };
+}
