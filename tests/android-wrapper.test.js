@@ -268,4 +268,26 @@ describe('Android native offline app', () => {
     assert.equal(activity.includes('妈妈'), false);
     assert.equal(activity.includes('爸爸'), false);
   });
+
+  test('supports native offline basic rich text formatting for daily notes', () => {
+    const activity = readText('android/app/src/main/java/com/homeoldnote/app/MainActivity.java');
+
+    assert.ok(activity.includes('richText(note.content.length() == 0 ? "没有正文" : note.content'));
+    assert.ok(activity.includes('addRichTextToolbar(page, contentInput)'));
+    assert.ok(activity.includes('formatButton("加粗", "**", "**", contentInput)'));
+    assert.ok(activity.includes('formatButton("斜体", "*", "*", contentInput)'));
+    assert.ok(activity.includes('formatButton("下划线", "__", "__", contentInput)'));
+    assert.ok(activity.includes('formatButton("删除线", "~~", "~~", contentInput)'));
+    assert.ok(activity.includes('insertLinePrefixButton("标题", "# ", contentInput)'));
+    assert.ok(activity.includes('insertLinePrefixButton("列表", "- ", contentInput)'));
+    assert.ok(activity.includes('insertLinePrefixButton("待办", "- [ ] ", contentInput)'));
+    assert.ok(activity.includes('toRichSpannable'));
+    assert.ok(activity.includes('SpannableStringBuilder'));
+    assert.ok(activity.includes('StyleSpan(Typeface.BOLD)'));
+    assert.ok(activity.includes('StyleSpan(Typeface.ITALIC)'));
+    assert.ok(activity.includes('UnderlineSpan'));
+    assert.ok(activity.includes('StrikethroughSpan'));
+    assert.ok(activity.includes('☐ '));
+    assert.ok(activity.includes('☑ '));
+  });
 });

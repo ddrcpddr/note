@@ -526,3 +526,24 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 2. 补原生端富文本基础能力，不追求一次做成 Note Station 全量编辑器，但要能满足日常记录。
 3. 补原生端图片 / 附件本地保存和同步。
 4. 再迁入原生端 Note Station `.nsx` 导入。
+
+## 2026-07-07 原生 Android 基础富文本后续
+
+当前已经实现：原生离线 APK 支持轻量正文格式工具和详情页格式展示。
+
+已验证：
+
+- 定向 Android 测试通过，覆盖格式工具栏和详情页 `SpannableStringBuilder` 渲染。
+- `npm.cmd run check` / `npm.cmd run test` / `npm.cmd run build` 通过。
+- `npm.cmd run android:build` / `npm.cmd run android:verify` / `npm.cmd run android:delivery-check` 通过。
+- `npm.cmd run android:device-smoke` 未完成，当前没有检测到 USB 手机。
+
+给用户真机测试的 APK：
+
+- `android/app/build/outputs/apk/debug/app-debug.apk`
+
+下一步继续按“可用闭环”推进：
+
+1. 用户真机验证：断网新建记录，使用加粗、标题、列表、待办，保存后详情页确认格式可见。
+2. 补原生端图片 / 附件本地保存和同步。
+3. 再迁入原生端 Note Station `.nsx` 导入。

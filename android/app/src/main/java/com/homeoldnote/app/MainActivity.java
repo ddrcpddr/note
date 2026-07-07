@@ -10,7 +10,13 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
 import android.text.InputType;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -718,6 +724,67 @@ public class MainActivity extends Activity {
         return button;
     }
 
+    private void addRichTextToolbar(LinearLayout page, final EditText contentInput) {
+        HorizontalScrollView toolbarScroll = new HorizontalScrollView(this);
+        toolbarScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout toolbar = horizontal();
+        toolbar.setPadding(0, 0, 0, dp(8));
+        toolbar.addView(formatButton("加粗", "**", "**", contentInput));
+        toolbar.addView(formatButton("斜体", "*", "*", contentInput));
+        toolbar.addView(formatButton("下划线", "__", "__", contentInput));
+        toolbar.addView(formatButton("删除线", "~~", "~~", contentInput));
+        toolbar.addView(insertLinePrefixButton("标题", "# ", contentInput));
+        toolbar.addView(insertLinePrefixButton("列表", "- ", contentInput));
+        toolbar.addView(insertLinePrefixButton("待办", "- [ ] ", contentInput));
+        toolbarScroll.addView(toolbar);
+        page.addView(toolbarScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    private Button formatButton(String label, final String prefix, final String suffix, final EditText contentInput) {
+        Button button = smallButton(label);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int start = Math.max(0, contentInput.getSelectionStart());
+                int end = Math.max(0, contentInput.getSelectionEnd());
+                if (end < start) {
+                    int temp = start;
+                    start = end;
+                    end = temp;
+                }
+                String selected = contentInput.getText().subSequence(start, end).toString();
+                if (selected.length() == 0) selected = "文字";
+                contentInput.getText().replace(start, end, prefix + selected + suffix);
+                contentInput.setSelection(start + prefix.length(), start + prefix.length() + selected.length());
+                contentInput.requestFocus();
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    private Button insertLinePrefixButton(String label, final String prefix, final EditText contentInput) {
+        Button button = smallButton(label);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int cursor = Math.max(0, contentInput.getSelectionStart());
+                String current = contentInput.getText().toString();
+                boolean needsNewLine = cursor > 0 && current.charAt(cursor - 1) != '\n';
+                String insertion = (needsNewLine ? "\n" : "") + prefix;
+                contentInput.getText().insert(cursor, insertion);
+                contentInput.setSelection(cursor + insertion.length());
+                contentInput.requestFocus();
+            }
+        });
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(42));
+        params.setMargins(0, 0, dp(8), 0);
+        button.setLayoutParams(params);
+        return button;
+    }
+
     private static String memberLabelFor(String memberId) {
         String value = memberId == null ? "" : memberId.trim();
         if ("partner".equals(value) || "爱人".equals(value)) return "爱人";
@@ -774,7 +841,7 @@ public class MainActivity extends Activity {
         LinearLayout contentCard = card();
         contentCard.setPadding(dp(18), dp(18), dp(18), dp(18));
         contentCard.addView(text("内容", 18, GREEN, true));
-        TextView content = text(note.content.length() == 0 ? "没有正文" : note.content, 17, DARK, false);
+        TextView content = richText(note.content.length() == 0 ? "没有正文" : note.content, 17, DARK);
         content.setLineSpacing(dp(4), 1.0f);
         contentCard.addView(content);
         page.addView(contentCard, cardParams());
@@ -850,6 +917,7 @@ public class MainActivity extends Activity {
         page.addView(label("标题"));
         page.addView(titleInput, inputParams(false));
         page.addView(label("内容"));
+        addRichTextToolbar(page, contentInput);
         page.addView(contentInput, inputParams(true));
         page.addView(label("当前成员"));
         page.addView(memberInput, inputParams(false));
@@ -972,6 +1040,93 @@ public class MainActivity extends Activity {
         textView.setLineSpacing(dp(2), 1.0f);
         if (bold) textView.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         return textView;
+    }
+
+    private TextView richText(String value, int size, int color) {
+        TextView textView = text("", size, color, false);
+        textView.setText(toRichSpannable(value == null ? "" : value));
+        return textView;
+    }
+
+    private CharSequence toRichSpannable(String raw) {
+        SpannableStringBuilder builder = new SpannableStringBuilder();
+        String[] lines = raw.replace("\r\n", "\n").split("\n", -1);
+        for (int index = 0; index < lines.length; index++) {
+            if (index > 0) builder.append('\n');
+            appendRichLine(builder, lines[index]);
+        }
+        return builder;
+    }
+
+    private void appendRichLine(SpannableStringBuilder builder, String line) {
+        String value = line == null ? "" : line;
+        boolean heading = false;
+        if (value.startsWith("# ")) {
+            heading = true;
+            value = value.substring(2);
+        } else if (value.startsWith("- [x] ") || value.startsWith("- [X] ")) {
+            builder.append("☑ ");
+            value = value.substring(6);
+        } else if (value.startsWith("- [ ] ")) {
+            builder.append("☐ ");
+            value = value.substring(6);
+        } else if (value.startsWith("- ")) {
+            builder.append("• ");
+            value = value.substring(2);
+        }
+
+        int start = builder.length();
+        appendInlineRichText(builder, value);
+        if (heading && builder.length() > start) {
+            builder.setSpan(new StyleSpan(Typeface.BOLD), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            builder.setSpan(new RelativeSizeSpan(1.2f), start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+    }
+
+    private void appendInlineRichText(SpannableStringBuilder builder, String text) {
+        int index = 0;
+        while (index < text.length()) {
+            if (text.startsWith("**", index)) {
+                int end = text.indexOf("**", index + 2);
+                if (end > index + 2) {
+                    appendSpanText(builder, text.substring(index + 2, end), new StyleSpan(Typeface.BOLD));
+                    index = end + 2;
+                    continue;
+                }
+            }
+            if (text.startsWith("__", index)) {
+                int end = text.indexOf("__", index + 2);
+                if (end > index + 2) {
+                    appendSpanText(builder, text.substring(index + 2, end), new UnderlineSpan());
+                    index = end + 2;
+                    continue;
+                }
+            }
+            if (text.startsWith("~~", index)) {
+                int end = text.indexOf("~~", index + 2);
+                if (end > index + 2) {
+                    appendSpanText(builder, text.substring(index + 2, end), new StrikethroughSpan());
+                    index = end + 2;
+                    continue;
+                }
+            }
+            if (text.startsWith("*", index)) {
+                int end = text.indexOf("*", index + 1);
+                if (end > index + 1) {
+                    appendSpanText(builder, text.substring(index + 1, end), new StyleSpan(Typeface.ITALIC));
+                    index = end + 1;
+                    continue;
+                }
+            }
+            builder.append(text.charAt(index));
+            index++;
+        }
+    }
+
+    private void appendSpanText(SpannableStringBuilder builder, String value, Object span) {
+        int start = builder.length();
+        builder.append(value);
+        builder.setSpan(span, start, builder.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
 
     private EditText input(String hint, boolean multiline) {

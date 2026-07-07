@@ -457,3 +457,43 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 独立成员管理页。
 - 原生端富文本、图片、附件和 `.nsx` 导入。
 - 两台家庭手机真机通过，除非用户后续人工确认。
+
+## 2026-07-07 原生基础富文本补充
+
+当前 debug APK 已加入轻量正文格式能力：
+
+- 编辑页内容输入框上方新增格式工具栏。
+- 支持：加粗、斜体、下划线、删除线、标题、列表、待办。
+- 详情页会把基础格式渲染成原生 Android 文本样式。
+- 待办行显示为 `☐`，已完成行 `- [x]` 显示为 `☑`。
+- 格式仍保存在正文文本中，不依赖 Docker/NAS，不需要联网。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，16 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，96 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+当前可测试 APK：
+
+- `D:\工作文件夹\XYZL\领航未来\GitHub项目\note\android\app\build\outputs\apk\debug\app-debug.apk`
+
+建议真机重点测：
+
+1. 开飞行模式或断开 Docker/NAS，打开 APK。
+2. 新建记录，输入一段文字，选中文字后点“加粗”。
+3. 点“标题”“列表”“待办”，保存。
+4. 打开详情页，确认标题、粗体、列表、待办符号能看见。
+5. 重启 APK，确认记录和格式仍在本机。
+
+仍不承诺：
+
+- 完整 Note Station 级富文本编辑器。
+- 图片 / 附件本地保存与同步。
+- 原生端 Note Station `.nsx` 导入。
+- 两台家庭手机真机通过，除非用户后续人工确认。
