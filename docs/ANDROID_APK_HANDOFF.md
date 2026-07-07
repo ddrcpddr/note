@@ -585,3 +585,24 @@ APK size: 25,393,803 bytes
 4. 新建一条记录，退出 App 后重新打开。
 5. 编辑、删除、归档这条记录。
 6. 把测试结果反馈给主开发线程，再进入 NAS 同步阶段。
+
+---
+
+## 2026-07-07 交付检查补充
+
+已运行：
+
+```bash
+npm.cmd run android:device-smoke
+npm.cmd run android:delivery-check
+```
+
+结果：
+
+- `android:device-smoke`：未通过，原因是没有检测到 USB 连接且授权的手机。
+- `android:delivery-check`：通过。覆盖 `check/test/build/android:build/android:verify` 和临时 HTTP smoke。
+- APK：`android/app/build/outputs/apk/debug/app-debug.apk`。
+- APK size：`25,393,803 bytes`。
+- APK verify：`bundledReact=true`，`nativeShellOnly=false`。
+
+当前可以交给用户做真机测试，但不要把真机离线能力写成已自动验证。

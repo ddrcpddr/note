@@ -1,3 +1,29 @@
+测试时间：2026-07-07 / 交付检查补充
+
+本轮在第一阶段提交后继续补充运行总检查，不新增业务功能。
+
+## 运行命令
+
+```bash
+npm.cmd run android:device-smoke
+npm.cmd run android:delivery-check
+```
+
+## 测试结果
+
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到 USB 连接且授权的手机；APK 路径为 `android/app/build/outputs/apk/debug/app-debug.apk`。这说明真机飞行模式测试仍需要用户手机实测。
+- `npm.cmd run android:delivery-check`：通过。该命令覆盖 `check`、`test`、`build`、`android:build`、`android:verify`，并启动临时 `http://127.0.0.1:3400` 跑 HTTP smoke。
+- delivery check 中 `npm.cmd run test`：通过，84 项测试通过。
+- delivery check 中 `npm.cmd run android:build`：通过，APK 大小 `25,393,803 bytes`。
+- delivery check 中 `npm.cmd run android:verify`：通过，`bundledReact=true`，`nativeShellOnly=false`。
+- HTTP smoke：通过，覆盖 health、app-data、notes-list、note-detail、search、category-filter、member-filter、categories-api、create-note、created-note-detail、notestation-web-import、storage-probe、manual-backup、json-export、frontend-shell。
+
+## 结论
+
+- 本机可验证交付链路通过，APK 不是 49KB 壳。
+- 仍不能宣称真机离线完全通过；需要在 vivo X300 Pro 和 Huawei P30 Pro / HarmonyOS 上安装当前 APK 后测试。
+
+---
 测试时间：2026-07-07
 
 当前目标：停止 49KB WebView 壳路线，完成第一阶段真正离线 Android App 基础。范围只覆盖：本地打包前端、Android SQLite 基础层、本地优先 notes 读取 / 新建 / 编辑 / 删除 / 归档链路、APK 构建与结构校验。NAS 同步 push/pull 仍是下一阶段。
@@ -2778,4 +2804,5 @@ npm.cmd run android:device-smoke
 仍然存在的问题：
 - 尚未在用户真实手机上验证“附件同步后浏览器端可下载/查看”。
 - 原生 APK 仍未迁入 `.nsx` 文件导入。
+
 
