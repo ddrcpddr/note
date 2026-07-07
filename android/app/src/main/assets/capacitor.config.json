@@ -1,0 +1,20 @@
+{
+	"appId": "com.homeoldnote.app",
+	"appName": "家事记",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	},
+	"android": {
+		"allowMixedContent": true
+	},
+	"plugins": {
+		"CapacitorSQLite": {
+			"iosDatabaseLocation": "Library/CapacitorDatabase",
+			"androidIsEncryption": false,
+			"androidBiometric": {
+				"biometricAuth": false
+			}
+		}
+	}
+}

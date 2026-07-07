@@ -542,3 +542,46 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 3. 关闭重开 APK，确认记录和附件仍在。
 4. 设置 Docker/NAS 地址并手动同步。
 5. 用浏览器打开 Docker/NAS 端同一记录，确认附件已进入服务端。
+
+---
+
+## 2026-07-07 Capacitor 本地离线 APK 第一阶段
+
+当前 APK 不再是 49KB 远程 URL 壳。`npm.cmd run android:build` 会先执行 Vite build，再执行 `npx cap sync android`，最后 Gradle 生成 debug APK。
+
+### 当前 APK
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+APK size: 25,393,803 bytes
+```
+
+### 已验证
+
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，APK 内含 `assets/public/index.html`、`assets/capacitor.config.json`、本地 React JS、`classes.dex` 和 `res/drawable/app_icon.png`。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，84 项测试通过。
+- `npm.cmd run build`：通过。
+
+### 本阶段已完成
+
+- Capacitor 本地资源打包。
+- Android SQLite schema 和 notes / attachments / sync_queue 基础 repository。
+- 前端离线存储层开始优先接入 Android SQLite；浏览器仍保留 IndexedDB。
+- 新建、编辑、删除、归档的本地优先代码路径已接入并有静态 / 单元测试覆盖。
+
+### 还不能声明已完成
+
+- 尚未在真实手机飞行模式下完成实测。
+- 尚未完成 NAS 手动同步 push/pull。
+- 尚未完成附件本地文件系统和 NAS 附件同步的完整真机验证。
+
+### 用户下一步测试
+
+1. 安装 debug APK。
+2. 关闭 WiFi / 开飞行模式。
+3. 打开 App，确认首页能进入。
+4. 新建一条记录，退出 App 后重新打开。
+5. 编辑、删除、归档这条记录。
+6. 把测试结果反馈给主开发线程，再进入 NAS 同步阶段。

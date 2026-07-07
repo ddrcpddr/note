@@ -1,3 +1,60 @@
+测试时间：2026-07-07
+
+当前目标：停止 49KB WebView 壳路线，完成第一阶段真正离线 Android App 基础。范围只覆盖：本地打包前端、Android SQLite 基础层、本地优先 notes 读取 / 新建 / 编辑 / 删除 / 归档链路、APK 构建与结构校验。NAS 同步 push/pull 仍是下一阶段。
+
+## 复现步骤
+
+1. 检查 Android 工程是否仍以远程 NAS URL 作为启动入口。
+2. 执行 `npm.cmd run android:build`，确认 Vite build、Capacitor sync 和 Gradle assembleDebug 全流程通过。
+3. 执行 `npm.cmd run android:verify`，确认 APK 内含本地 React 资源、Capacitor 配置、classes.dex、图标资源，且 APK 大小不是几十 KB。
+4. 运行 `npm.cmd run check`、`npm.cmd run test`、`npm.cmd run build` 验证现有功能。
+
+## 问题原因
+
+- 旧 APK 仍属于 WebView 壳思路，依赖远程 / Docker 服务，离线不可作为完整 App 使用。
+- Android 工程没有 Capacitor 本地资源同步和本地 SQLite 数据层，无法支撑离线长期使用。
+- 构建过程中还缺少 AndroidX、minSdk、Capacitor 核心依赖和 APK 校验脚本路径适配。
+
+## 修复内容
+
+- 新增 Capacitor 配置和 Android 插件依赖，前端资源从 `dist` 本地打入 APK。
+- Android `MainActivity` 改为 Capacitor `BridgeActivity`。
+- 新增 `src/data/local/`：SQLite schema、notes / attachments / sync_queue repositories。
+- `offlineStore` 和 `main.jsx` 接入本地优先初始化、读取、写入、归档、删除和待同步队列。
+- 修复 Android Gradle 构建配置：AndroidX / Jetifier、minSdk 24、AppCompat、Capacitor core dependency、本机 SDK 路径忽略。
+- 更新 APK 构建脚本和校验脚本，APK 小于 1MB 会直接失败。
+
+## 运行命令
+
+```bash
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+```
+
+## 测试结果
+
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- APK 大小：`25,393,803 bytes`，不再是 49KB 壳。
+- `npm.cmd run android:verify`：通过，`ok=true`，`kind=capacitor-local-first`，`bundledReact=true`，`nativeShellOnly=false`。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，当前本地测试库 `noteCount=236`。
+- `npm.cmd run test`：通过，16 suites / 84 tests / 84 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+
+## 仍然存在的问题
+
+- 本轮没有连接真实 Android 手机跑飞行模式真机测试；不能把“真机离线已通过”当成已验证事实。
+- NAS 手动同步 push/pull、附件本地文件系统持久化和冲突处理还没有完成。
+- Android SQLite 已接入基础层，但仍需要在真机上用日志验证 create/edit/delete/archive 全链路。
+
+## 下一步建议
+
+- 先安装当前 debug APK，在 vivo 和 Huawei / HarmonyOS 上测试：飞行模式打开、离线新建、编辑、删除、归档、重启后保留。
+- 通过后再做手动同步：本地 pending 队列 push 到 NAS，NAS changes pull 回手机。
+
+---
 测试时间：2026-07-06
 
 当前目标：继续按家庭自用小 Gate 推进离线 Android APK。本轮只补“离线进入 App 后还能重新修改 Docker/NAS 服务器地址”的缺口，不改业务逻辑、不改数据库、不碰真实运行数据。
@@ -2721,3 +2778,4 @@ npm.cmd run android:device-smoke
 仍然存在的问题：
 - 尚未在用户真实手机上验证“附件同步后浏览器端可下载/查看”。
 - 原生 APK 仍未迁入 `.nsx` 文件导入。
+

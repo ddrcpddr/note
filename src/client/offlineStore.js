@@ -1,3 +1,7 @@
+import { initializeLocalDatabase, shouldUseNativeSqlite } from '../data/local/localDb.js';
+import { deleteLocalNoteFromSqlite, markLocalNoteArchivedInSqlite, readLocalNotesFromSqlite, upsertLocalNoteToSqlite } from '../data/local/localNotesRepository.js';
+import { markMutationFailedInSqlite, queueMutationToSqlite, readPendingMutationsFromSqlite, removeMutationFromSqlite } from '../data/local/syncQueueRepository.js';
+
 const OFFLINE_DB_NAME = 'home-notes-offline-first-v1';
 const OFFLINE_DB_VERSION = 1;
 
@@ -127,7 +131,11 @@ async function getMeta(key) {
   return result?.value ?? null;
 }
 
+export async function initializeLocalStore() {
+  return initializeLocalDatabase();
+}
 export async function saveLocalSnapshot(snapshot = {}) {
+  await initializeLocalStore();
   const notes = Array.isArray(snapshot.notes) ? snapshot.notes : [];
   const categories = Array.isArray(snapshot.categories) ? snapshot.categories : [];
   const members = Array.isArray(snapshot.members) ? snapshot.members : [];
@@ -146,9 +154,26 @@ export async function saveLocalSnapshot(snapshot = {}) {
     currentMemberId: snapshot.currentMemberId || 'self',
     savedAt: snapshot.savedAt || new Date().toISOString()
   });
+  if (shouldUseNativeSqlite()) {
+    for (const note of notes) await upsertLocalNoteToSqlite(note);
+  }
 }
 
 export async function readLocalSnapshot() {
+  await initializeLocalStore();
+  if (shouldUseNativeSqlite()) {
+    const sqliteNotes = await readLocalNotesFromSqlite();
+    const [categories, members, tags, meta] = await Promise.all([
+      getAll('categories'),
+      getAll('members'),
+      getAll('tags'),
+      getMeta('snapshot')
+    ]);
+    if (sqliteNotes.length || categories.length || members.length) {
+      return { notes: sqliteNotes, categories, members, tags, currentMemberId: meta?.currentMemberId || 'self', savedAt: meta?.savedAt || null };
+    }
+  }
+
   const [notes, categories, members, tags, meta] = await Promise.all([
     getAll('notes'),
     getAll('categories'),
@@ -171,6 +196,8 @@ export async function readLocalSnapshot() {
 
 export async function upsertLocalNote(localNote) {
   if (!localNote?.id) return;
+  await initializeLocalStore();
+  if (shouldUseNativeSqlite()) await upsertLocalNoteToSqlite(localNote);
   await putMany('notes', [{
     ...localNote,
     localUpdatedAt: new Date().toISOString()
@@ -178,6 +205,8 @@ export async function upsertLocalNote(localNote) {
 }
 
 export async function deleteLocalNote(noteId) {
+  await initializeLocalStore();
+  if (shouldUseNativeSqlite()) await deleteLocalNoteFromSqlite(noteId);
   const db = await openOfflineDb();
   if (!db || !noteId) return;
   const transaction = db.transaction('notes', 'readwrite');
@@ -188,6 +217,7 @@ export async function deleteLocalNote(noteId) {
 
 export async function queueLocalMutation(mutation) {
   if (!mutation?.action || !mutation?.payload) return null;
+  await initializeLocalStore();
   const now = new Date().toISOString();
   const localId = mutation.localId || mutation.noteId || null;
   const existingMutations = await getAll('syncQueue');
@@ -207,6 +237,7 @@ export async function queueLocalMutation(mutation) {
       lastError: null
     };
     await putMany('syncQueue', [mergedCreate]);
+    if (shouldUseNativeSqlite()) await queueMutationToSqlite(mergedCreate);
     return mergedCreate;
   }
 
@@ -224,10 +255,16 @@ export async function queueLocalMutation(mutation) {
     lastError: null
   };
   await putMany('syncQueue', [item]);
+  if (shouldUseNativeSqlite()) await queueMutationToSqlite(item);
   return item;
 }
 
 export async function readPendingMutations() {
+  await initializeLocalStore();
+  if (shouldUseNativeSqlite()) {
+    const sqliteMutations = await readPendingMutationsFromSqlite();
+    if (sqliteMutations.length) return sqliteMutations;
+  }
   const mutations = await getAll('syncQueue');
   return mutations
     .filter((item) => item.status !== 'synced')
@@ -235,6 +272,8 @@ export async function readPendingMutations() {
 }
 
 export async function markMutationSynced(mutationId) {
+  await initializeLocalStore();
+  if (shouldUseNativeSqlite()) await removeMutationFromSqlite(mutationId);
   const db = await openOfflineDb();
   if (!db || !mutationId) return;
   const transaction = db.transaction('syncQueue', 'readwrite');
@@ -245,6 +284,8 @@ export async function markMutationSynced(mutationId) {
 
 export async function markMutationFailed(mutation, errorMessage) {
   if (!mutation?.id) return;
+  await initializeLocalStore();
+  if (shouldUseNativeSqlite()) await markMutationFailedInSqlite(mutation, errorMessage);
   await putMany('syncQueue', [{
     ...mutation,
     status: 'failed',
@@ -254,5 +295,6 @@ export async function markMutationFailed(mutation, errorMessage) {
   }]);
 }
 
-export { OFFLINE_DB_NAME, OFFLINE_DB_VERSION, STORE_NAMES, toIndexedDbSafeValue };
+export { OFFLINE_DB_NAME, OFFLINE_DB_VERSION, STORE_NAMES, toIndexedDbSafeValue, markLocalNoteArchivedInSqlite };
+
 

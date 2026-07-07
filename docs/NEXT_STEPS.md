@@ -571,3 +571,13 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 4. 最后补多设备冲突提示。
 
 暂不做：重做 UI、Android 壳路线、复杂发布流程。
+
+---
+
+## 2026-07-07 离线 Android App 当前下一步
+
+- 当前主线已经从 49KB WebView 壳切换到 Capacitor 本地打包 + Android SQLite 本地数据层。
+- 第一阶段目标已推进到：APK 能打包本地 React 资源，SQLite schema / repository / 本地优先 notes 写入链路已接入，APK 校验不再允许几十 KB 壳通过。
+- 下一步不要直接做 Android 外壳细节，应先做真机离线验收：飞行模式打开首页、本地新建、本地编辑、本地删除 / 归档、重启后保留。
+- 真机离线稳定后，再做手动 NAS 同步：device register、sync status、push pending queue、pull changes、附件上传下载、冲突副本。
+- 不要提交 `data/`、数据库、附件、备份、导出、`.nsx`、日志或 APK 文件。

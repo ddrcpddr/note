@@ -1,5 +1,6 @@
 import './webviewCompat.js';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { createRoot } from 'react-dom/client';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -77,6 +78,8 @@ import {
 import { categoryImageAssets, illustrationAssets, memberAvatarAssets } from './assetMap.js';
 import {
   deleteLocalNote,
+  initializeLocalStore,
+  markLocalNoteArchivedInSqlite,
   markMutationFailed,
   markMutationSynced,
   queueLocalMutation,
@@ -87,6 +90,14 @@ import {
 } from './offlineStore.js';
 import { buildSyncRequestDescriptor, syncPendingMutationBatch } from './offlineSync.js';
 import './styles.css';
+
+function isNativeAndroidApp() {
+  try {
+    return Boolean(Capacitor?.isNativePlatform?.());
+  } catch {
+    return false;
+  }
+}
 
 function getAndroidServerUrl() {
   try {
@@ -110,6 +121,7 @@ function openAndroidServerSettings() {
 }
 
 function canUseRemoteApi() {
+  if (isNativeAndroidApp()) return Boolean(getAndroidServerUrl());
   return window.location.protocol !== 'file:' || Boolean(getAndroidServerUrl());
 }
 
@@ -367,6 +379,7 @@ function App() {
     let isMounted = true;
 
     async function loadData() {
+      await initializeLocalStore();
       try {
         const accessResponse = await fetchApi('/api/access/status');
         if (accessResponse.ok) {
@@ -803,37 +816,35 @@ function App() {
   }
 
   async function archiveNote(noteId) {
-    if (dataMode === 'sqlite') {
-      try {
-        const response = await fetchApi('/api/notes/' + noteId + '/archive', { method: 'POST' });
-        if (!response.ok) throw new Error('archive failed');
-        removeNoteFromCurrentView(noteId, '记录已归档');
-        return;
-      } catch {
-        showToast('暂时没有连上家庭记录服务，归档未保存');
-        return;
-      }
-    }
-
-    removeNoteFromCurrentView(noteId, '记录已在当前页面归档');
+    const note = notesData.find((item) => item.id === noteId);
+    if (!note) return;
+    const archivedNote = { ...note, isArchived: true, syncStatus: 'pending', isOffline: true, status: '待同步到 NAS', updatedAt: '刚刚' };
+    await upsertLocalNote(archivedNote);
+    await markLocalNoteArchivedInSqlite(archivedNote);
+    await queueLocalMutation({
+      action: 'archive',
+      localId: noteId,
+      noteId,
+      serverId: String(noteId).startsWith('local-') ? null : noteId,
+      payload: { id: noteId, serverId: String(noteId).startsWith('local-') ? null : noteId }
+    });
+    await refreshPendingMutationState();
+    removeNoteFromCurrentView(noteId, '记录已归档，恢复连接后会同步');
   }
 
   async function deleteNote(noteId) {
-    if (dataMode === 'sqlite') {
-      try {
-        const response = await fetchApi('/api/notes/' + noteId, { method: 'DELETE' });
-        if (!response.ok) throw new Error('delete failed');
-        removeNoteFromCurrentView(noteId, '记录已删除');
-        return;
-      } catch {
-        showToast('暂时没有连上家庭记录服务，删除未保存');
-        return;
-      }
-    }
-
-    removeNoteFromCurrentView(noteId, '记录已从当前页面移除');
+    const note = notesData.find((item) => item.id === noteId);
+    await deleteLocalNote(noteId);
+    await queueLocalMutation({
+      action: 'delete',
+      localId: noteId,
+      noteId,
+      serverId: String(noteId).startsWith('local-') ? null : noteId,
+      payload: { id: noteId, title: note?.title || '', serverId: String(noteId).startsWith('local-') ? null : noteId }
+    });
+    await refreshPendingMutationState();
+    removeNoteFromCurrentView(noteId, '记录已删除，恢复连接后会同步');
   }
-
   async function updateMemberProfile(memberId, profile) {
     const nextName = profile.name.trim() || '家人';
     const nextAvatar = profile.avatar.trim().slice(0, 2) || nextName.slice(0, 1);
@@ -3051,3 +3062,7 @@ function BottomNav({ active, onChange }) {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+
+
+
+

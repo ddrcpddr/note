@@ -31,7 +31,7 @@ data/imports/**
 data/backups/**
 data/exports/**
 data/attachments/**
-data/
+/data/
 backups/
 exports/
 attachments/
@@ -43,3 +43,4 @@ android/**/build/
 
 android/.gradle/
 android/build/
+android/local.properties
