@@ -2473,3 +2473,58 @@ npm.cmd run android:device-smoke
 - 原生端还没有冲突详情/合并界面，目前只阻止静默覆盖并显示失败原因。
 - 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
 - 需要真实手机验证：离线新建、同步、编辑、冲突失败提示。
+
+---
+
+测试时间：2026-07-07
+
+当前目标：原生离线 Android 记录归档 / 删除生命周期。
+
+## 复现 / 风险来源
+
+当前原生 APK 已经支持离线新建、编辑、搜索、分类和同步，但日常记事 App 不能只增改不删。用户反馈“开发 15 个小时只实现一点点功能”后，本轮改为补一个更完整的可用闭环：本机离线可归档、删除，并在恢复联网后同步到 Docker/NAS。
+
+## TDD 过程
+
+- 新增 `supports native offline archive and delete lifecycle with sync` 测试。
+- 红灯结果：测试因缺少 `DATABASE_VERSION = 7`、`is_archived`、`is_deleted`、`archiveNote`、`deleteNote`、`postArchiveMutation`、`postDeleteMutation` 和删除请求而失败。
+- 实现后定向 Android 测试通过。
+
+## 修复内容
+
+- Android 原生数据库升级到 v7。
+- `notes` 新增 `is_archived` 和 `is_deleted` 字段。
+- 首页列表过滤已归档和已删除记录。
+- 详情页新增“归档记录”和“删除记录”。
+- 归档/删除会写入本机同步队列，恢复联网后同步到服务端。
+- 未同步的新建记录被删除时直接清理本机记录和 pending create，避免无远端 ID 的同步失败。
+
+## 运行命令
+
+```bash
+node --test tests/android-wrapper.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+npm.cmd run android:delivery-check
+npm.cmd run android:device-smoke
+```
+
+## 测试结果
+
+- 定向 Android 测试：通过，13 tests。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 93 tests / 93 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，生成 `android/app/build/outputs/apk/debug/app-debug.apk`。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`hasClassesDex=true`、`hasLauncherIcon=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含临时 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未通过，原因是当前电脑没有检测到可用 USB 手机；真机验证交给用户在实际手机上执行。
+
+## 仍然存在的问题
+
+- 原生端没有归档列表/回收站，归档和删除后只是从默认列表隐藏。
+- 原生端富文本、图片、附件、Note Station `.nsx` 导入未完成。
+- 原生端标签筛选仍然比较基础，当前主要依赖搜索框搜索标签。

@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
     private static final String DATABASE_NAME = "home_note_native.db";
     private static final String PREFS_NAME = "home_note_native_prefs";
     private static final String PREF_SERVER_URL = "server_url";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 7;
     private static final int GREEN = Color.rgb(61, 170, 108);
     private static final int DARK = Color.rgb(13, 24, 37);
     private static final int MUTED = Color.rgb(113, 123, 138);
@@ -384,6 +384,17 @@ public class MainActivity extends Activity {
                     }
                     RemoteSyncState remoteState = postUpdateMutation(serverUrl, mutation);
                     db.saveRemoteSyncState(mutation.noteId, remoteState.remoteId, remoteState.remoteUpdatedAt);
+                } else if ("archive".equals(mutation.mutationType)) {
+                    if (mutation.remoteId == null || mutation.remoteId.trim().length() == 0) {
+                        throw new Exception("没有远端记录 ID，先同步新建记录");
+                    }
+                    RemoteSyncState remoteState = postArchiveMutation(serverUrl, mutation);
+                    db.saveRemoteSyncState(mutation.noteId, remoteState.remoteId, remoteState.remoteUpdatedAt);
+                } else if ("delete".equals(mutation.mutationType)) {
+                    if (mutation.remoteId == null || mutation.remoteId.trim().length() == 0) {
+                        throw new Exception("没有远端记录 ID，先同步新建记录");
+                    }
+                    postDeleteMutation(serverUrl, mutation);
                 } else {
                     throw new Exception("暂不支持的同步类型：" + mutation.mutationType);
                 }
@@ -427,6 +438,57 @@ public class MainActivity extends Activity {
         }
         connection.disconnect();
         return parseRemoteSyncState(response);
+    }
+
+    private RemoteSyncState postArchiveMutation(String serverUrl, SyncMutation mutation) throws Exception {
+        URL url = new URL(normalizeServerUrl(serverUrl) + "/api/notes/" + mutation.remoteId + "/archive");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setConnectTimeout(8000);
+        connection.setReadTimeout(12000);
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+        connection.setRequestProperty("Accept", "application/json");
+
+        JSONObject payload = new JSONObject();
+        if (mutation.remoteUpdatedAt != null && mutation.remoteUpdatedAt.trim().length() > 0) {
+            payload.put("baseUpdatedAt", mutation.remoteUpdatedAt);
+        }
+        byte[] body = payload.toString().getBytes("UTF-8");
+        connection.setFixedLengthStreamingMode(body.length);
+        OutputStream output = connection.getOutputStream();
+        try {
+            output.write(body);
+        } finally {
+            output.close();
+        }
+
+        int code = connection.getResponseCode();
+        String response = readResponse(connection);
+        if (code < 200 || code >= 300) {
+            if (code == 409 || response.contains("note_conflict")) {
+                throw new Exception("记录已经在其他设备更新，请先确认后再同步");
+            }
+            throw new Exception("HTTP " + code + " " + response);
+        }
+        connection.disconnect();
+        return parseRemoteSyncState(response);
+    }
+
+    private void postDeleteMutation(String serverUrl, SyncMutation mutation) throws Exception {
+        URL url = new URL(normalizeServerUrl(serverUrl) + "/api/notes/" + mutation.remoteId);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setConnectTimeout(8000);
+        connection.setReadTimeout(12000);
+        connection.setRequestMethod("DELETE");
+        connection.setRequestProperty("Accept", "application/json");
+
+        int code = connection.getResponseCode();
+        String response = readResponse(connection);
+        if (code < 200 || code >= 300) {
+            throw new Exception("HTTP " + code + " " + response);
+        }
+        connection.disconnect();
     }
 
     private RemoteSyncState postUpdateMutation(String serverUrl, SyncMutation mutation) throws Exception {
@@ -600,6 +662,34 @@ public class MainActivity extends Activity {
         content.setLineSpacing(dp(4), 1.0f);
         contentCard.addView(content);
         page.addView(contentCard, cardParams());
+
+        LinearLayout actions = card();
+        actions.setPadding(dp(16), dp(14), dp(16), dp(14));
+        actions.addView(text("记录操作", 18, GREEN, true));
+        LinearLayout actionRow = horizontal();
+        Button archive = smallButton("归档记录");
+        archive.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.archiveNote(note.id);
+                Toast.makeText(MainActivity.this, "已归档，联网后可同步到 NAS", Toast.LENGTH_SHORT).show();
+                showHome();
+            }
+        });
+        actionRow.addView(archive, new LinearLayout.LayoutParams(0, dp(48), 1));
+        Button delete = smallButton("删除记录");
+        delete.setTextColor(Color.rgb(200, 78, 78));
+        delete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.deleteNote(note.id);
+                Toast.makeText(MainActivity.this, "已从本机列表删除", Toast.LENGTH_SHORT).show();
+                showHome();
+            }
+        });
+        actionRow.addView(delete, new LinearLayout.LayoutParams(0, dp(48), 1));
+        actions.addView(actionRow);
+        page.addView(actions, cardParams());
 
         setScrollable(page);
     }
@@ -855,6 +945,9 @@ public class MainActivity extends Activity {
             if (oldVersion < 6) {
                 ensureRemoteUpdatedAtColumn(db);
             }
+            if (oldVersion < 7) {
+                ensureNoteLifecycleColumns(db);
+            }
         }
 
         private void createNotesTable(SQLiteDatabase db) {
@@ -866,9 +959,11 @@ public class MainActivity extends Activity {
                 "remote_updated_at TEXT," +
                 "category TEXT NOT NULL DEFAULT '未分类 / 待整理'," +
                 "tags TEXT NOT NULL DEFAULT ''," +
+                "is_archived INTEGER NOT NULL DEFAULT 0," +
+                "is_deleted INTEGER NOT NULL DEFAULT 0," +
                 "created_at TEXT NOT NULL," +
                 "updated_at TEXT NOT NULL" +
-                ")");
+            ")");
         }
 
         private void ensureRemoteIdColumn(SQLiteDatabase db) {
@@ -893,6 +988,23 @@ public class MainActivity extends Activity {
                 cursor.close();
             }
             db.execSQL("ALTER TABLE notes ADD COLUMN remote_updated_at TEXT");
+        }
+
+        private void ensureNoteLifecycleColumns(SQLiteDatabase db) {
+            Cursor cursor = db.rawQuery("PRAGMA table_info(notes)", null);
+            boolean hasArchived = false;
+            boolean hasDeleted = false;
+            try {
+                while (cursor.moveToNext()) {
+                    String name = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+                    if ("is_archived".equals(name)) hasArchived = true;
+                    if ("is_deleted".equals(name)) hasDeleted = true;
+                }
+            } finally {
+                cursor.close();
+            }
+            if (!hasArchived) db.execSQL("ALTER TABLE notes ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0");
+            if (!hasDeleted) db.execSQL("ALTER TABLE notes ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0");
         }
 
         private void createCategoriesTable(SQLiteDatabase db) {
@@ -969,6 +1081,37 @@ public class MainActivity extends Activity {
             values.put("updated_at", nowText());
             getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(id)});
             queueSyncMutation(id, "update");
+        }
+
+        void archiveNote(long id) {
+            ContentValues values = new ContentValues();
+            values.put("is_archived", 1);
+            values.put("updated_at", nowText());
+            getWritableDatabase().update("notes", values, "id=? AND is_deleted = 0", new String[]{String.valueOf(id)});
+            if (hasPendingCreate(id)) return;
+            queueLifecycleMutation(id, "archive");
+        }
+
+        void deleteNote(long id) {
+            if (hasPendingCreate(id)) {
+                getWritableDatabase().delete("sync_queue", "note_id=?", new String[]{String.valueOf(id)});
+                getWritableDatabase().delete("notes", "id=?", new String[]{String.valueOf(id)});
+                return;
+            }
+            ContentValues values = new ContentValues();
+            values.put("is_deleted", 1);
+            values.put("updated_at", nowText());
+            getWritableDatabase().update("notes", values, "id=?", new String[]{String.valueOf(id)});
+            queueLifecycleMutation(id, "delete");
+        }
+
+        void queueLifecycleMutation(long noteId, String mutationType) {
+            getWritableDatabase().delete(
+                "sync_queue",
+                "note_id=? AND mutation_type IN ('update','archive','delete') AND status IN ('pending','failed')",
+                new String[]{String.valueOf(noteId)}
+            );
+            queueSyncMutation(noteId, mutationType);
         }
 
         void queueSyncMutation(long noteId, String mutationType) {
@@ -1097,11 +1240,13 @@ public class MainActivity extends Activity {
             StringBuilder where = new StringBuilder();
             List<String> args = new ArrayList<String>();
             if (searchQuery != null && searchQuery.trim().length() > 0) {
-                where.append("(title LIKE ? OR content LIKE ? OR tags LIKE ?)");
+                where.append("is_deleted = 0 AND is_archived = 0 AND (title LIKE ? OR content LIKE ? OR tags LIKE ?)");
                 String like = "%" + searchQuery.trim() + "%";
                 args.add(like);
                 args.add(like);
                 args.add(like);
+            } else {
+                where.append("is_deleted = 0 AND is_archived = 0");
             }
             if (categoryFilter != null && categoryFilter.trim().length() > 0) {
                 if (where.length() > 0) where.append(" AND ");
@@ -1160,7 +1305,7 @@ public class MainActivity extends Activity {
         }
 
         Note getNote(long id) {
-            Cursor cursor = getReadableDatabase().query("notes", null, "id=?", new String[]{String.valueOf(id)}, null, null, null);
+            Cursor cursor = getReadableDatabase().query("notes", null, "id=? AND is_deleted = 0", new String[]{String.valueOf(id)}, null, null, null);
             try {
                 if (!cursor.moveToFirst()) return null;
                 return readNote(cursor);

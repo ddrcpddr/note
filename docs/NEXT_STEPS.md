@@ -460,3 +460,25 @@ Gate 3 才处理恢复联网后的同步、重复提交和冲突提示。
 2. 真机验证冲突保护：手机同步一条记录后，Web 端改同一条，手机端再改并同步，应出现冲突失败提示而不是覆盖。
 3. 原生端继续补日常富文本、图片、附件能力。
 4. 最后迁入原生端 Note Station `.nsx` 导入。
+
+## 2026-07-07 原生 Android 记录生命周期后续
+
+当前已经实现：原生离线 APK 支持记录归档和删除，并能在恢复联网后把已同步记录的归档/删除同步到 Docker/NAS。
+
+已验证：
+
+- 定向 Android 测试通过，覆盖 v7 数据库、`is_archived`、`is_deleted`、归档/删除 UI 和同步请求。
+- `npm.cmd run check` / `npm.cmd run test` / `npm.cmd run build` 通过。
+- `npm.cmd run android:build` / `npm.cmd run android:verify` / `npm.cmd run android:delivery-check` 通过。
+- `npm.cmd run android:device-smoke` 未完成，当前没有检测到 USB 手机。
+
+给用户真机测试的 APK：
+
+- `android/app/build/outputs/apk/debug/app-debug.apk`
+
+下一步不再做很小的字段级修补，继续按“可用闭环”推进：
+
+1. 真机验证当前离线闭环：新建、编辑、搜索、分类、新增分类、归档、删除、同步。
+2. 补原生端更可用的标签能力：标签 chip、标签筛选、删除标签。
+3. 补原生富文本基础能力：至少加粗、列表、待办、图片/附件本地保存。
+4. 再迁入 Note Station `.nsx` 导入和富文本展示。

@@ -336,3 +336,44 @@ APK 仍为原生离线包：`npm.cmd run android:verify` 显示 `nativeOffline=t
 - 冲突合并界面。
 - 原生端富文本、图片、附件和 `.nsx` 导入。
 - 两台家庭手机真机通过，除非用户后续人工确认。
+
+## 2026-07-07 原生归档 / 删除补充
+
+当前 debug APK 已加入原生记录生命周期能力：
+
+- 本机 SQLite 数据库版本为 v7。
+- `notes.is_archived` 和 `notes.is_deleted` 保存本机归档/删除状态。
+- 首页默认不显示已归档和已删除记录。
+- 详情页新增“记录操作”，包括“归档记录”和“删除记录”。
+- 归档已同步记录后，手动同步会调用 Docker/NAS 的 `POST /api/notes/:id/archive`。
+- 删除已同步记录后，手动同步会调用 Docker/NAS 的 `DELETE /api/notes/:id`。
+- 本地新建但还没同步的记录如果直接删除，会清理本机记录和待同步 create，不会生成无法同步的远端 delete。
+
+本机验证结果：
+
+- `node --test tests/android-wrapper.test.js`：通过，13 tests。
+- `npm.cmd run check`：通过。
+- `npm.cmd run test`：通过，93 tests。
+- `npm.cmd run build`：通过。
+- `npm.cmd run android:build`：通过。
+- `npm.cmd run android:verify`：通过，`nativeOffline=true`、`webAssetCount=0`。
+- `npm.cmd run android:delivery-check`：通过，包含 HTTP smoke。
+- `npm.cmd run android:device-smoke`：未完成，当前电脑没有检测到 USB 手机。
+
+当前可测试 APK：
+
+- `D:\工作文件夹\XYZL\领航未来\GitHub项目\note\android\app\build\outputs\apk\debug\app-debug.apk`
+
+建议真机重点测：
+
+1. 不连接 Docker/NAS，新建一条记录。
+2. 编辑这条记录，确认保存后列表和详情更新。
+3. 删除一条未同步的新建记录，确认它从列表消失且不会增加待同步失败项。
+4. 同步一条记录到 Docker/NAS 后，在 APK 里归档或删除，再手动同步，确认 Web 端默认列表不再显示。
+5. 搜索、分类筛选和新增分类仍可用。
+
+仍不承诺：
+
+- 归档列表 / 回收站。
+- 原生端富文本、图片、附件和 `.nsx` 导入。
+- 两台家庭手机真机通过，除非用户后续人工确认。
