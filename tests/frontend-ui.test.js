@@ -269,6 +269,12 @@ describe('Frontend mobile interactions', () => {
     assert.ok(!source.includes('text-[26px] font-bold leading-tight">家庭成员身份'));
     assert.ok(!source.includes('h-16 w-16 shrink-0 border'));
   });
+  test('falls back to contentHtml when cached note misses richContent', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes("note.richContent || (note.contentHtml ? { format: 'html', html: note.contentHtml, source: 'content_html' } : null)"));
+  });
+
   test('does not ship hardcoded sample notes or related records', () => {
     const source = readText('src/client/main.jsx');
     const defaults = readText('src/shared/defaults.js');

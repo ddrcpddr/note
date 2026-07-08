@@ -1163,7 +1163,7 @@ function normalizeNote(note, categoryList = fallbackCategories) {
     contentHtml: note.contentHtml || null,
     contentJson: note.contentJson || null,
     sourceHtml: note.sourceHtml || null,
-    richContent: note.richContent || null,
+    richContent: note.richContent || (note.contentHtml ? { format: 'html', html: note.contentHtml, source: 'content_html' } : null),
     createdAt: formatLongTime(note.createdAt),
     updatedAt: formatShortTime(note.updatedAt),
     updatedAtRaw: note.updatedAt || '',

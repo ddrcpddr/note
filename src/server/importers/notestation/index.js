@@ -98,7 +98,7 @@ function processNotestationNsxPreview(importId) {
   if (!batch || !isNsxImportBatch(batch) || batch.status !== 'processing') return;
 
   try {
-    const preview = dryRunNsxFile(batch.file_path);
+    const preview = dryRunNsxFile(batch.file_path, { includeContent: true, includeRawContent: true });
     writeNsxPreviewCache(importId, preview);
 
     const insertFailure = db.prepare(`

@@ -2954,3 +2954,57 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 - npm.cmd run build：通过，仅保留已知 Vite chunk size warning。
 - npm.cmd run android:build：第一次在受限沙箱中遇到 Gradle loopback 环境错误；提升权限重跑后通过，重新生成 debug APK。
 - npm.cmd run android:verify：通过，nativeShellOnly=false，APK size=25707952。
+
+---
+
+测试时间：2026-07-08
+
+当前目标：修复服务端 Docker / GHCR 版本中 Note Station .nsx 导入后详情页富文本和图片附件展示不稳定的问题。
+
+当前 commit：2ba4a83（修复前基线）
+
+## 复现 / 诊断步骤
+
+1. 对本地真实 .nsx 做只读 dry-run 统计，不输出隐私正文。结果：93 条记录、0 失败、20 个附件；93 条均为 HTML；存在表格、粗体、列表和图片引用。
+2. 对用户截图中的“用户截图中的某条导入记录”做脱敏字段检查：原始 HTML 长度存在，包含表格和粗体，该条本身没有图片附件。
+3. 在临时 NOTE_DATA_DIR 中完整执行真实 .nsx 导入，确认服务端入库后 content_html / source_html / richContent 可以生成，带图片记录能生成 /api/attachments/.../file 内联引用。
+4. 检查前端详情页：旧本地缓存或旧快照如果只有 contentHtml、没有 richContent，会导致详情页退回纯文本。
+
+## 问题原因
+
+- 上一轮异步 .nsx 预览只保证大文件不超时，但后台预览缓存没有保存 raw HTML，属于后续链路隐患。
+- 前端详情页只认 note.richContent；如果本地缓存 / 离线快照 / 旧列表对象只有 contentHtml，没有 richContent，就会显示纯文本。
+- 之前测试只覆盖了同步 Web 导入和异步 preview 完成，没有覆盖异步 preview -> commit -> 详情 richContent / inline attachment 的完整链路。
+
+## 修复内容
+
+- 异步 NSX 后台预览改为 dryRunNsxFile(..., { includeContent: true, includeRawContent: true })，避免缓存链路丢原始 HTML。
+- normalizeNote 增加 contentHtml 兜底：缺少 richContent 但存在 contentHtml 时，详情页仍按富文本展示。
+- API 回归测试补齐异步 .nsx 上传、轮询、确认导入、详情 API 富文本和内联图片断言。
+- 前端静态测试补齐旧缓存 contentHtml 兜底断言。
+
+## 运行命令
+
+- node --test tests/mvp-api.test.js --test-name-pattern "NSX|Note Station"
+- node --test tests/frontend-ui.test.js --test-name-pattern "richContent|Note Station|attachments"
+- npm.cmd run check
+- npm.cmd run test
+- npm.cmd run build
+
+## 测试结果
+
+- 定向 API 回归：通过，25/25。
+- 前端静态回归：通过，21/21。
+- npm.cmd run check：通过，integrityCheck=ok。
+- npm.cmd run test：通过，16 suites / 89 tests / 89 pass。
+- npm.cmd run build：通过，仍保留已知 Vite chunk size warning。
+
+## 仍然存在的问题
+
+- 当前电脑 Docker daemon 未运行，无法本机拉取并运行 GHCR 镜像复测容器。需要推送后等待 GitHub Actions 构建新镜像，再在用户 NAS / Docker 环境重新拉取验证。
+- 已经用旧镜像导入过的旧数据，如果当时没有保存 source_html/raw_metadata.originalContent，无法凭空恢复格式；建议清空测试数据后用新镜像重新导入 .nsx。
+
+## 下一步建议
+
+- 推送本修复，等待 GHCR 新镜像。
+- 用户 NAS 拉取新镜像后，清空测试库或新建数据卷，重新导入 .nsx，再打开“用户截图中的该条导入记录”和一条带图片附件的记录验证：前者应看到富文本格式/表格，后者应在正文中看到图片预览，图片不应只留在外置附件区。

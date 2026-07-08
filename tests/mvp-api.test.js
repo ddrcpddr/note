@@ -880,6 +880,7 @@ describe('MVP API', () => {
     assert.equal(after.notes.length, before.notes.length + 1);
   });
   test('uploads a Note Station NSX file through the async web preview path', async () => {
+    const before = await requestJson('/api/notes?limit=all');
     const nsx = createWebImportNsxFixture();
     const response = await requestRaw('/api/imports/notestation/dry-run', {
       method: 'POST',
@@ -909,6 +910,27 @@ describe('MVP API', () => {
     assert.equal(preview.records.length, 1);
     assert.equal(preview.records[0].attachments.length, 2);
     assert.match(preview.records[0].content, /上传解析/);
+
+    const committed = await requestJson(`/api/imports/notestation/${response.data.importId}/commit`, {
+      method: 'POST',
+      body: JSON.stringify({ memberId: 'self' })
+    });
+
+    assert.equal(committed.status, 'completed');
+    assert.equal(committed.importedNoteIds.length, 1);
+
+    const detail = await requestJson(`/api/notes?id=${encodeURIComponent(committed.importedNoteIds[0])}`);
+    assert.equal(detail.notes.length, 1);
+    assert.equal(detail.notes[0].sourceType, 'notestation_import');
+    assert.equal(detail.notes[0].richContent.source, 'content_html');
+    assert.match(detail.notes[0].richContent.html, /<strong>网页端上传解析正文<\/strong>/);
+    assert.match(detail.notes[0].richContent.html, /data-notestation-inline-images="true"/);
+    assert.equal((detail.notes[0].richContent.html.match(/\/api\/attachments\//g) || []).length, 2);
+    assert.equal(detail.notes[0].attachments.length, 2);
+    assert.ok(detail.notes[0].attachments.every((attachment) => attachment.isInline));
+
+    const after = await requestJson('/api/notes?limit=all');
+    assert.equal(after.notes.length, before.notes.length + 1);
   });
 });
 
