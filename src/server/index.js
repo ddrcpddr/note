@@ -17,6 +17,51 @@ const accessToken = accessPin ? createHash('sha256').update(accessPin).digest('h
 getDb();
 startAutomaticBackups();
 
+const builtInCorsOrigins = new Set(['capacitor://localhost', 'ionic://localhost']);
+const allowedCorsHeaders = 'Content-Type, X-File-Name, X-Member-Id, Authorization';
+
+function getConfiguredCorsOrigins() {
+  return String(process.env.NOTE_CORS_ORIGINS || process.env.NOTE_CORS_ORIGIN || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return false;
+  if (builtInCorsOrigins.has(origin)) return true;
+
+  try {
+    const parsed = new URL(origin);
+    if (['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname)) return true;
+  } catch {
+    // Non-URL origins such as capacitor://localhost are handled above.
+  }
+
+  return getConfiguredCorsOrigins().includes(origin);
+}
+
+function setCorsHeaders(request, response) {
+  const origin = request.headers.origin;
+  if (!isAllowedCorsOrigin(origin)) return false;
+
+  response.setHeader('Access-Control-Allow-Origin', origin);
+  response.setHeader('Vary', 'Origin');
+  response.setHeader('Access-Control-Allow-Credentials', 'true');
+  response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', allowedCorsHeaders);
+  response.setHeader('Access-Control-Max-Age', '86400');
+  return true;
+}
+
+app.use((request, response, next) => {
+  const corsAllowed = setCorsHeaders(request, response);
+  if (request.method === 'OPTIONS' && corsAllowed) {
+    response.status(204).end();
+    return;
+  }
+  next();
+});
 app.use(express.json({ limit: '12mb' }));
 
 app.get('/api/health', (_request, response) => {

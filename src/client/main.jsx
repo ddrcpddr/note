@@ -171,7 +171,7 @@ function fetchApi(path, options) {
   if (!canUseRemoteApi()) throw new Error('remote api unavailable in offline Android mode');
   const url = apiUrl(path);
   if (!url) throw new Error('remote api unavailable in offline Android mode');
-  return fetch(url, options);
+  return fetch(url, { credentials: 'include', ...options });
 }
 
 if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {

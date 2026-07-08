@@ -2883,3 +2883,26 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 - 修复后 node --test tests/frontend-ui.test.js 通过，20/20。
 - 完整交付检查 npm.cmd run android:delivery-check 通过：check/test/build/android:build/android:verify/HTTP smoke 全部 ok。
 - 重新生成 APK：android/app/build/outputs/apk/debug/app-debug.apk，大小 25,707,473 bytes。
+
+## 2026-07-08 10:30 Android APK 远程 Docker 连接 QA
+
+问题：
+- APK 填入家庭 NAS / Docker 服务地址后无法连接服务端。
+
+复现 / 证据：
+- 直接请求用户 NAS Docker 的 /api/health 返回 200。
+- 带 Origin: capacitor://localhost 请求时，当前线上 Docker 返回 Access-Control-Allow-Origin=null、Access-Control-Allow-Credentials=null。
+- 说明服务端可达，但 APK 跨域请求会被 WebView 拦截。
+
+修复：
+- 服务端增加 CORS 中间件，允许 Android / Capacitor 本地 Origin 调用 API。
+- OPTIONS 预检请求返回 204。
+- 前端 fetchApi 增加 credentials: include。
+
+回归测试：
+- tests/mvp-api.test.js 新增 Android APK Origin CORS 测试。
+- tests/frontend-ui.test.js 新增 credentials 回归断言。
+- 验证：npm.cmd run check 通过，integrityCheck=ok。
+- 验证：npm.cmd run test 通过，87 tests / 0 failures。
+- 验证：npm.cmd run build 通过。
+- 验证：npm.cmd run android:build 和 npm.cmd run android:verify 通过，APK 大小 25,707,491 bytes。

@@ -658,3 +658,14 @@ pm.cmd run build：通过。
 - 如果清空输入，App 继续作为离线 App 使用，本地记录仍保留，待后续重新设置地址后同步。
 - 本轮验证：npm.cmd run android:delivery-check 通过，覆盖 check/test/build/android:build/android:verify/HTTP smoke。
 - 新 APK 路径：android/app/build/outputs/apk/debug/app-debug.apk，大小 25,707,473 bytes；安装后在设置页填写服务器地址再测试同步。
+
+## 2026-07-08 10:30 Android APK 连接 NAS Docker 注意事项
+
+- APK 连接远程 Docker 不是浏览器同源访问，会以 Android / Capacitor 本地 Origin 访问服务端。
+- Docker 镜像必须包含本轮 CORS 修复，否则 APK 填入家庭 NAS / Docker 地址仍可能被 WebView 拦截。
+- 验收方式：对服务端 /api/health 发送 Origin: capacitor://localhost，应返回 Access-Control-Allow-Origin: capacitor://localhost。
+- 如果以后使用特殊前端 Origin，可通过 NOTE_CORS_ORIGINS 或 NOTE_CORS_ORIGIN 追加允许来源。
+- 验证：npm.cmd run check 通过，integrityCheck=ok。
+- 验证：npm.cmd run test 通过，87 tests / 0 failures。
+- 验证：npm.cmd run build 通过。
+- 验证：npm.cmd run android:build 和 npm.cmd run android:verify 通过，APK 大小 25,707,491 bytes。

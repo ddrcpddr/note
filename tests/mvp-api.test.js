@@ -188,6 +188,28 @@ describe('MVP API', () => {
     assert.equal(path.resolve(paths.exportsDir), path.join(path.resolve(tempDataDir), 'exports'));
   });
 
+  test('allows Android APK origins to call Docker API', async () => {
+    const origin = 'capacitor://localhost';
+    const healthResponse = await fetch(`${baseUrl}/api/health`, {
+      headers: { Origin: origin }
+    });
+    assert.equal(healthResponse.headers.get('access-control-allow-origin'), origin);
+    assert.equal(healthResponse.headers.get('access-control-allow-credentials'), 'true');
+    assert.match(healthResponse.headers.get('vary') || '', /Origin/);
+
+    const preflight = await fetch(`${baseUrl}/api/notes`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: origin,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type,x-file-name,x-member-id'
+      }
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), origin);
+    assert.match(preflight.headers.get('access-control-allow-methods') || '', /POST/);
+    assert.match(preflight.headers.get('access-control-allow-headers') || '', /X-File-Name/);
+  });
   test('reads clean app data and note list', async () => {
     const appData = await requestJson('/api/app-data');
 
