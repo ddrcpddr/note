@@ -648,3 +648,13 @@ pm.cmd run build：通过。
 - 最近本地库错误。
 
 用途：用户真机离线测试时，如果无法连接 Docker/NAS，可以先打开设置页查看本地库是否初始化成功，减少盲测。
+
+## 2026-07-08 09:02 Android 服务器地址设置入口
+
+- APK 设置页现在不再依赖 HomeNoteAndroid.openServerSettings 才显示服务器地址入口。
+- 在 Android App 内进入：设置 -> 手机端连接 -> 修改手机端服务器地址。
+- 可填写 http://192.168.x.x:3300，也可以填写 192.168.x.x:3300，App 会自动补 http://。
+- 保存后，Android/native 或 file 离线模式的 API 请求都会使用该地址连接 Docker/NAS。
+- 如果清空输入，App 继续作为离线 App 使用，本地记录仍保留，待后续重新设置地址后同步。
+- 本轮验证：npm.cmd run android:delivery-check 通过，覆盖 check/test/build/android:build/android:verify/HTTP smoke。
+- 新 APK 路径：android/app/build/outputs/apk/debug/app-debug.apk，大小 25,707,473 bytes；安装后在设置页填写服务器地址再测试同步。

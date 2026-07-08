@@ -324,17 +324,17 @@ docker compose up -d --build
 ## 复现问题
 
 - 设置页仍保留旧版大标题、大装饰和大备份卡，上次备份 文案在 390px Docker 页面中被挤压成接近竖排。
-- 导入 Note Station 页仍保留旧版文件卡，待选择文件标题使用 	runcate，显示为 等待选择 Note Statio...，不符合新版 390 x 844 规格。
+- 导入 Note Station 页仍保留旧版文件卡，待选择文件标题使用 truncate，显示为 等待选择 Note Statio...，不符合新版 390 x 844 规格。
 
 ## 问题原因
 
 - 上一轮视觉收敛主要覆盖首页、分类、搜索、新建和共享组件，设置页与导入页仍残留旧版大字号、大图标和宽度不足的横向布局。
-- 导入页文件标题显式使用 	runcate，导致 .nsx 状态文案被截断。
+- 导入页文件标题显式使用 truncate，导致 .nsx 状态文案被截断。
 
 ## 修复内容
 
 - 设置页：Header 收敛到 20px 标题和紧凑装饰；备份卡改为 42px 图标、13px 状态标题、84px 备份按钮的紧凑网格，避免文字竖排；导出、目录、成员区统一缩小为新版卡片密度。
-- 导入页：步骤圆点从 44px 收敛到 36px；文件卡 ZIP 图标和标题缩小；待选择标题改为 等待选择 .nsx 文件，移除 	runcate；底部操作栏高度和按钮字号收敛。
+- 导入页：步骤圆点从 44px 收敛到 36px；文件卡 ZIP 图标和标题缩小；待选择标题改为 等待选择 .nsx 文件，移除 truncate；底部操作栏高度和按钮字号收敛。
 - 只修改前端视觉层和 QA/记忆文档，没有改 API、数据库、导入数据、备份逻辑或附件逻辑。
 
 ## 运行命令
@@ -364,7 +364,7 @@ npm.cmd run build：通过。
 
 - 设置页：scrollWidth == clientWidth，无页面级横向溢出。
 - 设置页：上次备份：7月3日 03:56 文本框实测高度 18px，不再出现竖排挤压。
-- 导入页：等待选择 .nsx 文件 完整显示，标题 class 不再包含 	runcate。
+- 导入页：等待选择 .nsx 文件 完整显示，标题 class 不再包含 truncate。
 - 导入页：390px / 430px 均无页面级横向溢出。
 
 临时截图和测试文件已从 output/playwright/ 删除，不提交 Git。
@@ -1153,9 +1153,9 @@ ote.icon.
 - IndexedDB structured clone rejected React component symbols, aborting the UI save flow before the note became searchable.
 
 ### Fix
-- Added 	oIndexedDbSafeValue() in src/client/offlineStore.js.
+- Added toIndexedDbSafeValue() in src/client/offlineStore.js.
 - All IndexedDB writes now strip functions, symbols, undefined values, and circular references while preserving plain data and cloneable binary values.
-- Added regression coverage in 	ests/offline-store-static.test.js.
+- Added regression coverage in tests/offline-store-static.test.js.
 
 ### Verification
 -
@@ -2814,7 +2814,7 @@ npm.cmd run android:device-smoke
 测试目标：补齐 Android 本地 SQLite 对分类、成员、标签、附件元数据的持久化，减少首次离线和长期离线时只依赖 IndexedDB / fallback 的风险。
 
 修复内容：
-- SQLite schema 新增 categories、members、	ags。
+- SQLite schema 新增 categories、members、tags。
 - 新增分类 / 成员 / 标签本地仓储读写。
 - 附件本地仓储新增批量写入和读取。
 - offlineStore 在 Android 原生环境保存 / 读取快照时接入上述仓储，并将附件元数据挂回记录。
@@ -2860,3 +2860,26 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 仍需真机验证：
 - 手机断网打开设置页，查看“本地数据诊断”是否显示。
 - 新建离线记录后刷新诊断，记录数 / 待同步数量是否变化。
+
+## 2026-07-08 09:02 Android 服务器地址设置 QA
+
+问题：
+- 离线 APK 设置页看不到 NAS/Docker 服务器地址设置入口，用户无法连接家庭服务端。
+
+根因：
+- 设置页用 typeof window.HomeNoteAndroid?.openServerSettings === 'function' 控制显示。
+- 当前 Android MainActivity 未注入 HomeNoteAndroid，所以入口在真机 APK 中被隐藏。
+- apiUrl() 之前只在 file: 协议下使用 Android server URL，Capacitor/native 环境存在保存地址后仍不拼接 NAS 地址的风险。
+
+修复内容：
+- 前端新增本地服务器地址存储 key：ANDROID_SERVER_URL_STORAGE_KEY。
+- 没有 native bridge 时使用 App 内 prompt 输入 / 清空服务器地址。
+- 设置页在 Android native 或 file 协议下始终显示“修改手机端服务器地址”。
+- apiUrl() 在 Android native 和 file 模式下都会使用保存的 NAS/Docker 地址。
+
+验证：
+- 已先让 node --test tests/frontend-ui.test.js 失败，失败点为缺少 ANDROID_SERVER_URL_STORAGE_KEY。
+- 增加 apiUrl 测试后再次失败，失败点为 native 模式未使用保存的服务器地址。
+- 修复后 node --test tests/frontend-ui.test.js 通过，20/20。
+- 完整交付检查 npm.cmd run android:delivery-check 通过：check/test/build/android:build/android:verify/HTTP smoke 全部 ok。
+- 重新生成 APK：android/app/build/outputs/apk/debug/app-debug.apk，大小 25,707,473 bytes。

@@ -100,12 +100,29 @@ function isNativeAndroidApp() {
   }
 }
 
+const ANDROID_SERVER_URL_STORAGE_KEY = 'home-note-android-server-url';
+
+function normalizeAndroidServerUrl(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed.replace(/\/+$/, '') : 'http://' + trimmed.replace(/\/+$/, '');
+}
+
+function getStoredAndroidServerUrl() {
+  try {
+    return normalizeAndroidServerUrl(window.localStorage.getItem(ANDROID_SERVER_URL_STORAGE_KEY));
+  } catch {
+    return '';
+  }
+}
+
 function getAndroidServerUrl() {
   try {
     const value = window.HomeNoteAndroid?.getServerUrl?.();
-    return typeof value === 'string' ? value.trim() : '';
+    const nativeUrl = typeof value === 'string' ? normalizeAndroidServerUrl(value) : '';
+    return nativeUrl || getStoredAndroidServerUrl();
   } catch {
-    return '';
+    return getStoredAndroidServerUrl();
   }
 }
 
@@ -116,9 +133,25 @@ function openAndroidServerSettings() {
       return true;
     }
   } catch {
-    // The Android shell will show its own settings screen when available.
+    // Fall back to the in-app prompt below.
   }
-  return false;
+
+  try {
+    const currentUrl = getAndroidServerUrl();
+    const input = window.prompt('填写家庭 NAS / Docker 服务地址，例如 http://192.168.2.213:3300', currentUrl);
+    if (input === null) return false;
+    const normalizedUrl = normalizeAndroidServerUrl(input);
+    if (normalizedUrl) {
+      window.localStorage.setItem(ANDROID_SERVER_URL_STORAGE_KEY, normalizedUrl);
+      window.alert?.('服务器地址已保存：' + normalizedUrl);
+    } else {
+      window.localStorage.removeItem(ANDROID_SERVER_URL_STORAGE_KEY);
+      window.alert?.('已清空服务器地址，App 会继续离线使用。');
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function canUseRemoteApi() {
@@ -128,7 +161,7 @@ function canUseRemoteApi() {
 
 function apiUrl(path) {
   const normalizedPath = path.startsWith('/') ? path : '/' + path;
-  const androidServerUrl = window.location.protocol === 'file:' ? getAndroidServerUrl() : '';
+  const androidServerUrl = isNativeAndroidApp() || window.location.protocol === 'file:' ? getAndroidServerUrl() : '';
   if (window.location.protocol === 'file:' && !androidServerUrl) return null;
   if (!androidServerUrl) return normalizedPath;
   return androidServerUrl.replace(/\/+$/, '') + normalizedPath;
@@ -2586,7 +2619,7 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
   const [storageMessage, setStorageMessage] = useState('');
   const [storageProbe, setStorageProbe] = useState(null);
   const [localDiagnostics, setLocalDiagnostics] = useState(null);
-  const canOpenAndroidServerSettings = typeof window.HomeNoteAndroid?.openServerSettings === 'function';
+  const shouldShowAndroidServerSettings = isNativeAndroidApp() || window.location.protocol === 'file:' || typeof window.HomeNoteAndroid?.openServerSettings === 'function';
 
   async function refreshLocalDiagnostics() {
     try {
@@ -2812,13 +2845,13 @@ function SettingsScreen({ members, currentMemberId, onSwitchMember, onOpenImport
         <SettingsRow title="导入 Note Station" desc="导入旧记录并保留来源信息" icon={FileText} action=">" onClick={onOpenImport} />
       </section>
 
-      {canOpenAndroidServerSettings && (
+      {shouldShowAndroidServerSettings && (
         <>
           <SectionTitle>手机端连接</SectionTitle>
           <section className="soft-card">
             <SettingsRow
               title="修改手机端服务器地址"
-              desc="离线使用后，可重新填写 Docker/NAS 的局域网地址"
+              desc={getAndroidServerUrl() || '离线使用后，可重新填写 Docker/NAS 的局域网地址'}
               icon={Cloud}
               action=">"
               onClick={onOpenAndroidServerSettings}
