@@ -2906,3 +2906,51 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 - 验证：npm.cmd run test 通过，87 tests / 0 failures。
 - 验证：npm.cmd run build 通过。
 - 验证：npm.cmd run android:build 和 npm.cmd run android:verify 通过，APK 大小 25,707,491 bytes。
+
+## 2026-07-08 Note Station 大文件 NSX 导入稳定性修复 QA
+
+测试时间：2026-07-08
+
+当前 commit：100375f（修复前基线，用户 NAS Docker 当前运行镜像）
+
+复现步骤：
+- 用户确认 NAS Docker 运行镜像为 ghcr.io/ddrcpddr/note:100375f4a8322655fab61c1d0e87af5b47cf3344。
+- 对用户家庭 NAS Docker 健康接口检查，返回 build.commit=100375f4a8322655fab61c1d0e87af5b47cf3344。
+- 对同一远程 Docker 执行 HTTP smoke，小型合成 Note Station 导入可通过。
+- 上传本地真实 22MB 级 .nsx 到远程 dry-run 时，请求约 90 秒后出现 ECONNRESET / terminated。
+- 本地对同一个 .nsx 执行解析脚本，结果为 93 条记录全部解析成功，失败 0，附件 20。
+
+问题原因：
+- 旧实现把 .nsx 文件上传、解析、预览结果生成放在同一个 HTTP 请求内完成。
+- 小型合成文件可通过，但真实 .nsx 文件较大，NAS / 域名 / 反向链路上的长请求容易被重置。
+- 根因不是用户拉错镜像，也不是 parser 无法识别该 .nsx；是大文件同步解析请求不适合家庭 NAS 部署链路。
+
+修复内容：
+- Web 上传 .nsx 时增加异步预览模式：请求先保存文件并返回 processing。
+- 服务端后台执行 dry-run 解析，解析完成后将 import 状态更新为 previewed，并缓存预览结果。
+- 前端导入页上传时发送 X-Async-Import: 1，并轮询 /api/imports/notestation/:importId，直到 previewed 或 failed。
+- 确认导入前阻止 processing / failed 批次进入 commit，避免写入半解析数据。
+
+运行命令：
+- node --test tests/mvp-api.test.js --test-name-pattern "NSX|Note Station"：通过，25/25。
+- node --test tests/frontend-ui.test.js --test-name-pattern "Note Station"：通过，20/20。
+
+测试结果：
+- 同步小型 NSX 导入仍可预览并提交。
+- 异步 NSX 预览路径可从 processing 自动变成 previewed。
+- 前端导入页已包含异步上传头、后台解析提示、轮询读取和按钮禁用规则。
+
+仍然存在的问题：
+- 当前电脑 Docker daemon 不可用，无法在本机直接拉取 GHCR 镜像做容器内复现。
+- 需要本次修复提交并由 GitHub Actions 构建新 GHCR 镜像后，再让用户在 NAS 上拉取新镜像实测真实 .nsx。
+
+下一步建议：
+- 合并并推送本次修复后，等待 GHCR 生成新镜像。
+- 用户 NAS 拉取新 commit/tag 镜像后，重新上传真实 .nsx 验证大文件导入不再断开。
+
+补充完整验证：
+- npm.cmd run check：通过，integrityCheck=ok。
+- npm.cmd run test：通过，16 suites / 88 tests / 88 pass。
+- npm.cmd run build：通过，仅保留已知 Vite chunk size warning。
+- npm.cmd run android:build：第一次在受限沙箱中遇到 Gradle loopback 环境错误；提升权限重跑后通过，重新生成 debug APK。
+- npm.cmd run android:verify：通过，nativeShellOnly=false，APK size=25707952。

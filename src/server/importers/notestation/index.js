@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { createId, getDataPaths, getDb, slugifyTag } from '../../db/database.js';
 import { notestationSampleFailures, notestationSampleRecords } from './sample.js';
@@ -39,7 +39,11 @@ export function createNotestationDryRunPreview(payload = {}) {
   };
 }
 
-export function createNotestationNsxPreview(filePath, memberId = 'self') {
+export function createNotestationNsxPreview(filePath, memberId = 'self', options = {}) {
+  if (options.async) {
+    return createNotestationNsxProcessingPreview(filePath, memberId);
+  }
+
   const db = getDb();
   const preview = dryRunNsxFile(filePath);
   const importId = createId('import_nsx_web');
@@ -72,6 +76,80 @@ export function createNotestationNsxPreview(filePath, memberId = 'self') {
   return normalizeNsxPreview(preview, { importId, status: 'previewed' });
 }
 
+function createNotestationNsxProcessingPreview(filePath, memberId = 'self') {
+  const db = getDb();
+  const importId = createId('import_nsx_web');
+  const fileName = path.basename(filePath);
+  db.prepare(`
+    INSERT INTO imports
+      (id, source_type, file_name, file_path, status, total_count, success_count, failed_count, created_by_member_id)
+    VALUES
+      (?, 'notestation', ?, ?, 'processing', 0, 0, 0, ?)
+  `).run(importId, fileName, filePath, memberId);
+
+  setImmediate(() => processNotestationNsxPreview(importId));
+
+  return buildProcessingNsxPreview({ id: importId, file_name: fileName, status: 'processing' });
+}
+
+function processNotestationNsxPreview(importId) {
+  const db = getDb();
+  const batch = db.prepare('SELECT * FROM imports WHERE id = ?').get(importId);
+  if (!batch || !isNsxImportBatch(batch) || batch.status !== 'processing') return;
+
+  try {
+    const preview = dryRunNsxFile(batch.file_path);
+    writeNsxPreviewCache(importId, preview);
+
+    const insertFailure = db.prepare(`
+      INSERT INTO import_failures
+        (id, import_id, original_title, original_path, error_message, raw_data)
+      VALUES
+        (?, ?, ?, ?, ?, ?)
+    `);
+
+    db.exec('BEGIN');
+    db.prepare('DELETE FROM import_failures WHERE import_id = ?').run(importId);
+    for (const failure of preview.failures || []) {
+      insertFailure.run(
+        createId('import_failure'),
+        importId,
+        failure.originalTitle || failure.originalId,
+        failure.originalPath || failure.originalId || '',
+        failure.errorMessage,
+        JSON.stringify(failure)
+      );
+    }
+    db.prepare(
+      "UPDATE imports SET status = 'previewed', total_count = ?, success_count = ?, failed_count = ? WHERE id = ?"
+    ).run(preview.totalCount, preview.successCount, preview.failedCount, importId);
+    db.exec('COMMIT');
+  } catch (error) {
+    try {
+      db.exec('ROLLBACK');
+    } catch {}
+    markNsxPreviewFailed(importId, batch, error);
+  }
+}
+
+function markNsxPreviewFailed(importId, batch, error) {
+  const db = getDb();
+  const message = error?.message || 'NSX parse failed';
+  db.prepare("UPDATE imports SET status = 'failed', failed_count = 1 WHERE id = ?").run(importId);
+  db.prepare(`
+    INSERT INTO import_failures
+      (id, import_id, original_title, original_path, error_message, raw_data)
+    VALUES
+      (?, ?, ?, ?, ?, ?)
+  `).run(
+    createId('import_failure'),
+    importId,
+    batch?.file_name || 'notestation-import.nsx',
+    batch?.file_path || '',
+    message,
+    JSON.stringify({ errorMessage: message })
+  );
+}
 export function createNotestationSamplePreview(memberId = 'self') {
   const db = getDb();
   const importId = createId('import');
@@ -222,6 +300,10 @@ export function getImportPreview(importId) {
   }
 
   if (isNsxImportBatch(batch)) {
+    if (batch.status === 'processing') return buildProcessingNsxPreview(batch);
+    if (batch.status === 'failed') return buildFailedNsxPreview(batch);
+    const cachedPreview = readNsxPreviewCache(importId);
+    if (cachedPreview) return normalizeNsxPreview(cachedPreview, { importId, status: batch.status });
     const preview = dryRunNsxFile(batch.file_path);
     return normalizeNsxPreview(preview, { importId, status: batch.status });
   }
@@ -249,6 +331,63 @@ export function getImportPreview(importId) {
   };
 }
 
+function buildProcessingNsxPreview(batch) {
+  return {
+    importId: batch.id,
+    dryRun: true,
+    fileName: batch.file_name,
+    fileType: 'nsx',
+    status: 'processing',
+    totalCount: Number(batch.total_count || 0),
+    successCount: Number(batch.success_count || 0),
+    failedCount: Number(batch.failed_count || 0),
+    attachmentCount: 0,
+    originalCategoryCount: 0,
+    tagCount: 0,
+    records: [],
+    failures: getStoredImportFailures(batch.id),
+    message: 'NSX file uploaded. Parsing is running in the background.'
+  };
+}
+
+function buildFailedNsxPreview(batch) {
+  return {
+    ...buildProcessingNsxPreview(batch),
+    status: 'failed',
+    failedCount: Math.max(1, Number(batch.failed_count || 1)),
+    message: 'NSX parsing failed. Existing notes were not changed.'
+  };
+}
+
+function getStoredImportFailures(importId) {
+  return getDb()
+    .prepare(
+      `SELECT id, original_title AS originalTitle, original_path AS originalPath, error_message AS errorMessage
+       FROM import_failures
+       WHERE import_id = ?
+       ORDER BY created_at ASC`
+    )
+    .all(importId);
+}
+
+function nsxPreviewCachePath(importId) {
+  return path.join(getDataPaths().importsDir, `${safeFileName(importId)}-preview.json`);
+}
+
+function writeNsxPreviewCache(importId, preview) {
+  mkdirSync(getDataPaths().importsDir, { recursive: true });
+  writeFileSync(nsxPreviewCachePath(importId), JSON.stringify(preview));
+}
+
+function readNsxPreviewCache(importId) {
+  const cachePath = nsxPreviewCachePath(importId);
+  if (!existsSync(cachePath)) return null;
+  try {
+    return JSON.parse(readFileSync(cachePath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
 function getImportResult(importId) {
   const preview = getImportPreview(importId);
   const notes = getDb()
@@ -283,6 +422,13 @@ function normalizeNsxPreview(preview, overrides = {}) {
 }
 
 function commitUploadedNsxImport(batch, memberId = 'self') {
+  if (batch.status === 'processing') {
+    throw new Error('NSX 文件仍在后台解析，请稍后再确认导入。');
+  }
+  if (batch.status === 'failed') {
+    throw new Error('NSX 解析失败，不能确认导入。');
+  }
+
   const db = getDb();
   const existingImportedNotes = db
     .prepare("SELECT id FROM notes WHERE source_type = 'notestation_import' AND source_id = ? ORDER BY created_at DESC")

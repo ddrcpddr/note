@@ -879,5 +879,36 @@ describe('MVP API', () => {
     const after = await requestJson('/api/notes?limit=all');
     assert.equal(after.notes.length, before.notes.length + 1);
   });
+  test('uploads a Note Station NSX file through the async web preview path', async () => {
+    const nsx = createWebImportNsxFixture();
+    const response = await requestRaw('/api/imports/notestation/dry-run', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-File-Name': encodeURIComponent('web-import-async.nsx'),
+        'X-Member-Id': 'self',
+        'X-Async-Import': '1'
+      },
+      body: nsx
+    });
+
+    assert.equal(response.response.status, 202);
+    assert.equal(response.data.status, 'processing');
+    assert.ok(response.data.importId);
+
+    let preview = response.data;
+    for (let index = 0; index < 30 && preview.status === 'processing'; index += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      preview = await requestJson(`/api/imports/notestation/${response.data.importId}`);
+    }
+
+    assert.equal(preview.status, 'previewed');
+    assert.equal(preview.successCount, 1);
+    assert.equal(preview.failedCount, 0);
+    assert.equal(preview.attachmentCount, 2);
+    assert.equal(preview.records.length, 1);
+    assert.equal(preview.records[0].attachments.length, 2);
+    assert.match(preview.records[0].content, /上传解析/);
+  });
 });
 

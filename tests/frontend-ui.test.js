@@ -141,8 +141,12 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes("'Content-Type': 'application/octet-stream'"));
     assert.ok(source.includes("'X-File-Name': encodeURIComponent(selectedNsxFile.name)"));
     assert.ok(source.includes('body: selectedNsxFile'));
-    assert.ok(source.includes('disabled={canPreview && !canCommitPreview}'));
-    assert.ok(source.includes('等待网页解析接入'));
+    assert.ok(source.includes("'X-Async-Import': '1'"));
+    assert.ok(source.includes("preview.status !== 'processing'"));
+    assert.ok(source.includes('/api/imports/notestation/${preview.importId}'));
+    assert.ok(source.includes('disabled={isPreviewLoading || isImportProcessing || (canPreview && !canCommitPreview)}'));
+    assert.ok(source.includes('正在后台解析'));
+    assert.ok(source.includes('正在解析'));
     assert.ok(source.includes("/api/imports/notestation/dry-run"));
   });
 

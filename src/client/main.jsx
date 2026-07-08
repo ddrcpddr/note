@@ -2178,6 +2178,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
   const [preview, setPreview] = useState(null);
   const [selectedNsxFile, setSelectedNsxFile] = useState(null);
   const [error, setError] = useState('');
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const steps = [
     ['1', '选择文件'],
     ['2', '预览记录'],
@@ -2185,9 +2186,37 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
     ['4', '导入完成']
   ];
   const canPreview = stage >= 2;
-  const canCommitPreview = Boolean(preview?.importId);
+  const isImportProcessing = preview?.status === 'processing';
+  const canCommitPreview = Boolean(preview?.importId && preview.status === 'previewed');
   const displayFileName = canPreview ? preview?.fileName || 'Note Station 导入摘要' : selectedNsxFile?.name || '等待选择 .nsx 文件';
   const displayFileMeta = selectedNsxFile ? formatBytes(selectedNsxFile.size) + ' · 网页端预检' : '先预览导入记录，再决定是否写入';
+
+  useEffect(() => {
+    if (!preview?.importId || preview.status !== 'processing') return undefined;
+
+    let cancelled = false;
+    const pollPreview = async () => {
+      try {
+        const response = await fetchApi(`/api/imports/notestation/${preview.importId}`);
+        if (!response.ok) throw new Error('导入解析状态读取失败');
+        const data = await response.json();
+        if (cancelled) return;
+        setPreview(data);
+        if (data.status === 'failed') {
+          setError(data.failures?.[0]?.errorMessage || 'NSX 解析失败，已有记录不会被修改。');
+        }
+      } catch (pollError) {
+        if (!cancelled) setError(pollError.message || '导入解析状态读取失败');
+      }
+    };
+
+    const timer = window.setInterval(pollPreview, 1500);
+    pollPreview();
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [preview?.importId, preview?.status]);
 
   function handleNsxFileChange(event) {
     const file = event.target.files?.[0];
@@ -2201,6 +2230,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
     setStage(1);
     setPreview(null);
     setSelectedNsxFile(null);
+    setIsPreviewLoading(false);
     setError('');
     if (nsxInputRef.current) nsxInputRef.current.value = '';
   }
@@ -2212,10 +2242,12 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
         nsxInputRef.current?.click();
         return;
       }
+      setIsPreviewLoading(true);
       const response = await fetchApi('/api/imports/notestation/dry-run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/octet-stream',
+          'X-Async-Import': '1',
           'X-File-Name': encodeURIComponent(selectedNsxFile.name),
           'X-Member-Id': currentMemberId
         },
@@ -2227,6 +2259,8 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       setStage(2);
     } catch (previewError) {
       setError(previewError.message || '导入预览没有完成，已有记录不会被修改。');
+    } finally {
+      setIsPreviewLoading(false);
     }
   }
 
@@ -2255,7 +2289,7 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
       return;
     }
     if (stage === 2) {
-      if (!canCommitPreview) return;
+      if (isImportProcessing || !canCommitPreview) return;
       setStage(3);
       return;
     }
@@ -2285,13 +2319,18 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-[16px] font-bold leading-snug text-ink" style={{ overflowWrap: 'anywhere' }}>{displayFileName}</h2>
-            <p className="mt-1 text-[12px] leading-relaxed text-muted">{canPreview ? '已完成 dry-run 预检' : displayFileMeta}</p>
+            <p className="mt-1 text-[12px] leading-relaxed text-muted">{isImportProcessing ? '已上传，正在后台解析' : canPreview ? '已完成 dry-run 预检' : displayFileMeta}</p>
           </div>
         </div>
         <button className="mt-4 inline-flex items-center gap-2 text-[14px] font-medium text-teal-600" type="button" onClick={() => nsxInputRef.current?.click()}>
           {canPreview ? <><CheckCircle2 size={18} /> 已预检</> : selectedNsxFile ? <><Upload size={18} /> 重新选择 .nsx 文件</> : <><Upload size={18} /> 选择 .nsx 文件</>}
         </button>
       </section>
+      {isImportProcessing && (
+        <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3 text-[15px] text-teal-700">
+          NSX 文件已上传，正在后台解析。大文件在 NAS 上可能需要等一会儿，页面会自动刷新预览结果。
+        </div>
+      )}
       {error && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-[15px] text-amber-600">
           {error}
@@ -2364,8 +2403,8 @@ function ImportScreen({ currentMemberId, onBack, onImported }) {
         <button className="rounded-2xl border border-teal-600 text-[14px] font-medium text-teal-600" type="button" onClick={canPreview || selectedNsxFile ? resetSelectedFile : onBack}>
           {canPreview || selectedNsxFile ? '重新选择文件' : '取消'}
         </button>
-        <button className="rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float disabled:bg-slate-300 disabled:shadow-none" type="button" onClick={handlePrimaryAction} disabled={canPreview && !canCommitPreview}>
-          {stage === 1 ? (selectedNsxFile ? '预览导入记录' : '选择 .nsx 文件') : stage === 2 ? (canCommitPreview ? '继续确认' : '等待网页解析接入') : stage === 3 ? '开始导入' : '已完成'}
+        <button className="rounded-2xl bg-teal-600 text-[15px] font-semibold text-white shadow-float disabled:bg-slate-300 disabled:shadow-none" type="button" onClick={handlePrimaryAction} disabled={isPreviewLoading || isImportProcessing || (canPreview && !canCommitPreview)}>
+          {stage === 1 ? (isPreviewLoading ? '正在上传' : selectedNsxFile ? '预览导入记录' : '选择 .nsx 文件') : stage === 2 ? (isImportProcessing ? '正在解析' : canCommitPreview ? '继续确认' : '等待解析完成') : stage === 3 ? '开始导入' : '已完成'}
         </button>
       </div>
     </>

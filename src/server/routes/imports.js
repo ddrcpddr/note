@@ -24,6 +24,12 @@ importsRouter.post('/notestation/dry-run', async (request, response) => {
   try {
     if (isNsxBinaryUpload(request)) {
       const uploaded = await saveNsxUpload(request);
+      if (shouldPreviewAsync(request, uploaded.fileSize)) {
+        const preview = createNotestationNsxPreview(uploaded.filePath, uploaded.memberId, { async: true });
+        response.status(202).json(preview);
+        return;
+      }
+
       response.status(201).json(createNotestationNsxPreview(uploaded.filePath, uploaded.memberId));
       return;
     }
@@ -76,8 +82,14 @@ async function saveNsxUpload(request) {
 
   return {
     filePath: targetPath,
+    fileSize: buffer.length,
     memberId: decodeHeaderValue(request.headers['x-member-id']) || 'self'
   };
+}
+
+function shouldPreviewAsync(request, fileSize) {
+  const asyncHeader = String(request.headers['x-async-import'] || '').toLowerCase();
+  return asyncHeader === '1' || asyncHeader === 'true' || fileSize > 5 * 1024 * 1024;
 }
 
 function readRequestBuffer(request, maxBytes) {
