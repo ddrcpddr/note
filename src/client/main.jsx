@@ -2415,8 +2415,35 @@ function hasSafeRichContent(note) {
   return Boolean(note?.richContent?.format === 'html' && note.richContent?.html);
 }
 
+function rewriteRichTextResourceUrls(html) {
+  const source = String(html || '');
+  if (!source || !source.includes('/api/attachments/')) return source;
+
+  try {
+    const documentFragment = new DOMParser().parseFromString(`<div>${source}</div>`, 'text/html');
+    documentFragment.querySelectorAll('img[src^="/api/attachments/"]').forEach((image) => {
+      const src = image.getAttribute('src') || '';
+      const resolved = apiUrl(src);
+      if (resolved) image.setAttribute('src', resolved);
+      image.setAttribute('loading', 'lazy');
+    });
+    documentFragment.querySelectorAll('a[href^="/api/attachments/"]').forEach((anchor) => {
+      const href = anchor.getAttribute('href') || '';
+      const resolved = apiUrl(href);
+      if (resolved) anchor.setAttribute('href', resolved);
+    });
+    return documentFragment.body.firstElementChild?.innerHTML || source;
+  } catch {
+    return source.replace(/(src|href)="(\/api\/attachments\/[\w-]+\/file)"/g, (match, attr, url) => {
+      const resolved = apiUrl(url);
+      return resolved ? `${attr}="${resolved}"` : match;
+    });
+  }
+}
+
 function RichTextContent({ html }) {
-  return <div className="rich-text-content mt-4" dangerouslySetInnerHTML={{ __html: html }} />;
+  const safeHtml = rewriteRichTextResourceUrls(html);
+  return <div className="rich-text-content mt-4" dangerouslySetInnerHTML={{ __html: safeHtml }} />;
 }
 function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
   const [showActions, setShowActions] = useState(false);
@@ -2513,7 +2540,8 @@ function DetailScreen({ note, onBack, onEdit, onArchive, onDelete }) {
                 <Download className="shrink-0 text-teal-600" size={24} />
               </div>
             );
-            return item.downloadUrl ? <a href={item.downloadUrl} key={item.id || name || index} target="_blank" rel="noreferrer">{row}</a> : row;
+            const downloadHref = item.downloadUrl ? apiUrl(item.downloadUrl) || item.downloadUrl : '';
+            return downloadHref ? <a href={downloadHref} key={item.id || name || index} target="_blank" rel="noreferrer">{row}</a> : row;
             })}
           </div>
         </section>
@@ -3176,6 +3204,8 @@ function BottomNav({ active, onChange }) {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
+
+
 
 
 

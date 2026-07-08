@@ -275,6 +275,16 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes("note.richContent || (note.contentHtml ? { format: 'html', html: note.contentHtml, source: 'content_html' } : null)"));
   });
 
+  test('rewrites rich text attachment image URLs through the configured API base', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('function rewriteRichTextResourceUrls(html)'));
+    assert.ok(source.includes("querySelectorAll('img[src^=\"/api/attachments/\"]')"));
+    assert.ok(source.includes('const resolved = apiUrl(src)'));
+    assert.ok(source.includes('const downloadHref = item.downloadUrl ? apiUrl(item.downloadUrl) || item.downloadUrl :'));
+    assert.ok(source.includes('<RichTextContent html={note.richContent.html} />'));
+  });
+
   test('does not ship hardcoded sample notes or related records', () => {
     const source = readText('src/client/main.jsx');
     const defaults = readText('src/shared/defaults.js');
@@ -287,3 +297,5 @@ describe('Frontend mobile interactions', () => {
     assert.ok(!source.includes('Note Station 导入记录待整理'));
   });
 });
+
+

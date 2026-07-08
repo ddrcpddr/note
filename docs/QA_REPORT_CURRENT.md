@@ -3008,3 +3008,55 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 
 - 推送本修复，等待 GHCR 新镜像。
 - 用户 NAS 拉取新镜像后，清空测试库或新建数据卷，重新导入 .nsx，再打开“用户截图中的该条导入记录”和一条带图片附件的记录验证：前者应看到富文本格式/表格，后者应在正文中看到图片预览，图片不应只留在外置附件区。
+
+---
+
+测试时间：2026-07-08
+
+当前目标：修复 Android APK 查看 Docker 同步的 Note Station 导入记录时，富文本正文图片裂图、附件链接无法按服务器地址打开的问题。
+
+当前 commit：待提交
+
+## 复现 / 诊断步骤
+
+1. 用户真机截图显示：记录来自 Note Station 导入，正文内已经出现图片位置和文件名，但图片未加载。
+2. 代码检查确认服务端富文本图片地址为 `/api/attachments/<id>/file`。
+3. APK 内置页面运行在 Android / Capacitor 本地 origin 下，根相对 `/api/...` 不会自动指向用户在设置中填写的 Docker/NAS 服务地址。
+
+## 问题原因
+
+- 不是这条记录没有进入富文本，也不是 .nsx 本身缺图片。
+- 根因是前端渲染富文本时没有把相对附件 API 地址通过 `apiUrl(...)` 重写为当前配置的服务端地址。
+- 浏览器同源访问 Docker 时不明显；APK 访问远程 Docker 时会暴露。
+
+## 修复内容
+
+- 新增 `rewriteRichTextResourceUrls(html)`：渲染富文本前扫描正文内 `/api/attachments/.../file` 图片和附件链接，并用 `apiUrl(...)` 解析为当前服务端地址。
+- 详情页外置附件下载链接同样改为 `apiUrl(item.downloadUrl)`。
+- 不修改数据库、不修改真实 Note Station 导入数据、不写死真实 NAS 地址。
+
+## 运行命令
+
+- node --test tests/frontend-ui.test.js --test-name-pattern "rewrites rich text attachment"
+
+## 测试结果
+
+- 定向前端回归测试通过，22/22。
+
+## 仍然存在的问题
+
+- 仍需运行完整 check/test/build/android build 后再提交。
+- 需要用户安装新 APK 并拉取新 Docker 镜像后，用同一条带图片的 Note Station 记录复测。
+
+## 下一步建议
+
+- 完整验证通过后推送 GitHub，等待 GHCR 构建新镜像。
+- 用户重新安装新 APK，并确认设置中的服务器地址仍指向当前 Docker/NAS 服务。
+
+补充验证：
+
+- npm.cmd run check：通过，integrityCheck=ok。
+- npm.cmd run test：通过，16 suites / 90 tests / 90 pass。
+- npm.cmd run build：通过，仅保留已知 Vite chunk size warning。
+- npm.cmd run android:build：通过，重新生成 debug APK。
+- npm.cmd run android:verify：通过，kind=capacitor-local-first，nativeShellOnly=false，APK size=25,708,238 bytes。
