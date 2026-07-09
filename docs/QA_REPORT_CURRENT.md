@@ -3309,3 +3309,10 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3339
 
 - 提交并推送本修复，等待 GitHub Actions 生成新 GHCR 镜像。
 - 用户 NAS 拉取新 tag 后，用手机 APK 测试：打开首页同步数据、进入搜索 / 分类、打开带图 Note Station 详情、连续返回和切换页面，观察是否仍闪退。
+
+补充 GHCR 精确镜像验证：
+
+- GitHub Actions `Build Docker image` run `29033964416` 已成功完成。
+- 已拉取 `ghcr.io/ddrcpddr/note:f3d73f7d7543aef90c5087e9d241ce4928f34ebe` 并启动临时容器 `http://127.0.0.1:3340`。
+- GHCR 容器 HTTP smoke 通过，health 返回 build.commit=`f3d73f7d7543aef90c5087e9d241ce4928f34ebe`。
+- GHCR 容器 smoke 后检查：`/api/app-data` noteCount=2，appDataRichPayloadCount=0；Note Station 详情 detailHasRichContent=true，detailInlineAttachmentRefs=2，detailAttachmentCount=2。
