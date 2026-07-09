@@ -3178,3 +3178,12 @@ docker run --rm -d --name note-stale-attachment-fix-test -p 3322:3300 -e NOTE_DA
 
 - 提交并推送本修复，等待 GitHub Actions 生成新 GHCR 镜像。
 - NAS 拉新镜像后，用同一个 `.nsx` 重测：选择文件、预览、确认导入、打开带图记录；检查图片在正文中直接显示，外置附件区不再重复显示内联图片，网络面板中附件 URL 应为 200。
+
+补充 GHCR 发布镜像验证：
+
+- GitHub Actions `Build Docker image` 对 commit `f05896f9de526a0d391918176209225133a340b8` 已完成且 success。
+- 拉取 `ghcr.io/ddrcpddr/note:f05896f9de526a0d391918176209225133a340b8` 后启动临时容器。
+- 使用真实 `.nsx` 重新执行网页异步预览和确认导入：预览 93 条 / 成功 93 条 / 导入 93 条。
+- 导入后统计：4 条记录包含富文本图片，20 个内联图片引用。
+- 对 20 个 `/api/attachments/{id}/file` 逐个发起 HTTP GET，结果 `brokenImageRefs=0`。
+- 本次验证确认：刚发布到 GHCR 的镜像本身不会复现用户截图中的附件 404。
