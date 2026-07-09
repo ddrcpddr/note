@@ -183,6 +183,39 @@ describe('Safe rich text read-only rendering', () => {
     assert.doesNotMatch(richContent.html, /transparent.gif/);
   });
 
+  test('repairs stale Note Station attachment ids with current copied attachments', () => {
+    const imageName = 'ns_attach_image_5451763620911341.png';
+    const imageRef = Buffer.from(`1763620911341${imageName}`).toString('base64');
+    const richContent = buildRichContentFromNote(
+      {
+        sourceType: 'notestation_import',
+        contentHtml: '<p>旧缓存正文</p><img src="/api/attachments/attachment_old_missing/file" alt="ns_attach_image_5451763620911341.png" data-attachment-id="attachment_old_missing">',
+        sourceHtml: `<p>旧缓存正文</p><p><img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="${imageRef}" alt="${imageName}"></p>`
+      },
+      [{ id: 'attachment_current_1', originalName: imageName, mimeType: 'image/png', kind: 'image' }]
+    );
+
+    assert.equal(richContent.source, 'source_html');
+    assert.match(richContent.html, /\/api\/attachments\/attachment_current_1\/file/);
+    assert.match(richContent.html, /data-attachment-id="attachment_current_1"/);
+    assert.doesNotMatch(richContent.html, /attachment_old_missing/);
+  });
+
+  test('keeps edited content_html when inline attachment ids are still current', () => {
+    const richContent = buildRichContentFromNote(
+      {
+        sourceType: 'notestation_import',
+        contentHtml: '<p>用户编辑后正文</p><img src="/api/attachments/attachment_current_1/file" alt="图片" data-attachment-id="attachment_current_1">',
+        sourceHtml: '<p>Note Station 原文</p>'
+      },
+      [{ id: 'attachment_current_1', originalName: 'ns_attach_image_1.png', mimeType: 'image/png', kind: 'image' }]
+    );
+
+    assert.equal(richContent.source, 'content_html');
+    assert.match(richContent.html, /用户编辑后正文/);
+    assert.doesNotMatch(richContent.html, /Note Station 原文/);
+  });
+
   test('preserves Note Station block divs and appends unmatched image attachments', () => {
     const sanitized = sanitizeRichTextHtml('<div style="text-align:center">第一段</div><figure data-attachment-id="attachment_keep"><img src="/api/attachments/attachment_keep/file" alt="图片" data-attachment-id="attachment_keep"><figcaption>图片说明</figcaption></figure>');
     assert.match(sanitized, /<div[^>]+text-align:center[^>]*>第一段<\/div>/);
@@ -214,3 +247,4 @@ describe('Safe rich text read-only rendering', () => {
     );
   });
 });
+

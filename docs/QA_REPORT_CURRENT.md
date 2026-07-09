@@ -3117,3 +3117,64 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3319
 
 - 推送后等待 GitHub Actions 生成新 GHCR 镜像，再在 NAS 上拉取新 tag。
 - 用真实 `.nsx` 重新执行：选择文件、预览记录、确认导入、打开带图记录、检查图片是否直接显示在富文本正文里。
+
+---
+测试时间：2026-07-09
+
+当前目标：修复 Note Station 导入记录在 NAS / Docker 页面中出现旧附件 ID 404、富文本图片显示不稳定的问题，避免修一个路径又丢格式或丢附件。
+
+当前 commit：待提交
+
+## 复现 / 诊断步骤
+
+1. 用户截图显示：本地 `127.0.0.1:3321` 同类附件接口返回 `200 OK image/png`，NAS 域名 `nas.minmiu.cn:3300` 的某个 `/api/attachments/.../file` 返回 `404 Not Found`。
+2. 只读查询 NAS `/api/health`，确认运行 commit 为 `f79d802dce23f434b19c9efbf40a15696144f355`。
+3. 只读查询 NAS `/api/app-data`，对 Note Station 导入记录统计富文本附件引用和附件表，当前服务端数据未发现 missing refs；因此还需要防御旧 `content_html` / 本地缓存 / 旧导入残留继续渲染的问题。
+4. 新增失败测试模拟：`content_html` 指向 `attachment_old_missing`，当前附件表只有 `attachment_current_1`，旧逻辑错误返回 `content_html`。
+
+## 问题原因
+
+- 旧逻辑只判断 `content_html` 是否包含 `/api/attachments/` 图片；只要包含，就优先使用它。
+- 当测试数据清空重导、Docker 数据卷更换、浏览器 / 离线缓存保留旧 HTML 时，`content_html` 可能包含已经不存在的旧附件 ID。
+- 这种情况下页面仍会渲染图片标签，但请求会打到不存在的 `/api/attachments/{旧id}/file`，最终表现为 404 / 裂图 / 附件和正文不一致。
+
+## 修复内容
+
+- `src/server/rich-text.js`：新增旧附件引用检测。如果 `content_html` 中的附件 ID 不属于当前笔记 attachments，则用 `source_html + 当前 attachments` 重建富文本图片。
+- `src/server/rich-text.js`：运行时 NSX 图片匹配扩展为 `ref/src/alt/title/source path` 多候选，与导入链路保持一致。
+- `src/client/main.jsx`：`fetchApi()` 默认使用 `cache: 'no-store'`，避免 API 数据被浏览器 / PWA / 代理缓存成旧状态。
+- `tests/rich-text.test.js`：新增旧附件 ID 修复测试和有效 `content_html` 保留测试。
+- `tests/frontend-ui.test.js`：锁定 `fetchApi()` 的 no-store 行为。
+
+## 运行命令
+
+```bash
+node --test tests/rich-text.test.js --test-name-pattern "stale|current copied|content_html"
+node --test tests/rich-text.test.js tests/frontend-ui.test.js
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker build -t note:stale-attachment-fix-test .
+docker run --rm -d --name note-stale-attachment-fix-test -p 3322:3300 -e NOTE_DATA_DIR=/data note:stale-attachment-fix-test
+# 上传真实 .nsx 到临时容器，轮询 preview，commit 后检查所有富文本附件 URL 状态码
+```
+
+## 测试结果
+
+- 定向失败测试：先失败，确认旧逻辑返回 `content_html`；修复后通过。
+- `node --test tests/rich-text.test.js tests/frontend-ui.test.js`：33 tests / 33 pass。
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，本地当前 noteCount=523。
+- `npm.cmd run test`：通过，16 suites / 93 tests / 93 pass。
+- `npm.cmd run build`：通过，仅保留已知 Vite chunk size warning。
+- Docker 本机构建：通过。
+- Docker 真实 `.nsx` 端到端：预览 93 条 / 成功 93 条 / 导入 93 条；4 条记录有图片，20 个内联图片引用；全量 GET 附件 URL 后 `brokenImageRefs=0`。
+
+## 仍然存在的问题
+
+- 用户 NAS 需要拉取本次 commit 对应的新 GHCR 镜像后再复测。旧页面如仍显示旧附件 ID，建议强刷页面或清理站点数据，因为本次服务端和 API no-store 已经避免继续产出旧引用。
+- 当前没有把真实 `.nsx`、数据库、附件或导入内容提交到 Git。
+
+## 下一步建议
+
+- 提交并推送本修复，等待 GitHub Actions 生成新 GHCR 镜像。
+- NAS 拉新镜像后，用同一个 `.nsx` 重测：选择文件、预览、确认导入、打开带图记录；检查图片在正文中直接显示，外置附件区不再重复显示内联图片，网络面板中附件 URL 应为 200。

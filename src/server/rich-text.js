@@ -96,7 +96,11 @@ export function buildRichContentFromNote(row = {}, attachments = []) {
     ? inlineNsxImageRefsFromAttachments(sourceHtml, attachments)
     : '';
 
-  if (sourceWithAttachments && hasInlineAttachmentImage(sourceWithAttachments) && !hasInlineAttachmentImage(userHtml)) {
+  const sourceHasInlineAttachment = hasInlineAttachmentImage(sourceWithAttachments);
+  const userHasInlineAttachment = hasInlineAttachmentImage(userHtml);
+  const userHasStaleAttachmentRefs = hasStaleAttachmentRefs(userHtml, attachments);
+
+  if (sourceWithAttachments && sourceHasInlineAttachment && (!userHasInlineAttachment || userHasStaleAttachmentRefs)) {
     const richContent = buildRichContent(sourceWithAttachments, 'source_html');
     if (richContent) return richContent;
   }
@@ -124,8 +128,7 @@ function inlineNsxImageRefsFromAttachments(html, attachments = []) {
 
   const usedIds = new Set();
   const withRefs = String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
-    const decodedRef = decodeBase64Text(extractAttribute(attrs, 'ref'));
-    const attachment = imageAttachments.find((item) => decodedRef.endsWith(String(item.originalName || item.original_name || item.fileName || item.file_name || '')));
+    const attachment = findNsxImageAttachment(attrs, imageAttachments);
     if (!attachment) return match;
     const attachmentId = attachment.id;
     if (!attachmentId) return match;
@@ -152,10 +155,62 @@ function inlineNsxImageRefsFromAttachments(html, attachments = []) {
   return `${withRefs}<div data-notestation-inline-images="true">${appendedImages.join('')}</div>`;
 }
 
+function findNsxImageAttachment(attrs, attachments = []) {
+  const ref = extractAttribute(attrs, 'ref');
+  const src = extractAttribute(attrs, 'src');
+  const alt = extractAttribute(attrs, 'alt');
+  const title = extractAttribute(attrs, 'title');
+  const decodedRef = decodeBase64Text(ref);
+  const probes = [decodedRef, src, alt, title].filter(Boolean);
+
+  return attachments.find((attachment) => {
+    const names = [
+      attachment.originalName || attachment.original_name,
+      attachment.fileName || attachment.file_name,
+      attachment.sourceAttachmentId || attachment.source_attachment_id,
+      attachment.sourcePath || attachment.source_path
+    ].filter(Boolean);
+    return probes.some((probe) => names.some((name) => isNsxImageReferenceMatch(probe, name)));
+  });
+}
+
+function isNsxImageReferenceMatch(probe, name) {
+  const normalizedProbe = normalizeReference(probe);
+  const normalizedName = normalizeReference(name);
+  if (!normalizedProbe || !normalizedName) return false;
+  return normalizedProbe === normalizedName || normalizedProbe.endsWith(`/${normalizedName}`) || normalizedProbe.endsWith(normalizedName);
+}
+
+function normalizeReference(value) {
+  const text = String(value || '').replace(/\\/g, '/').trim();
+  if (!text) return '';
+  const basename = text.split('/').pop() || text;
+  try {
+    return decodeURIComponent(basename).toLowerCase();
+  } catch {
+    return basename.toLowerCase();
+  }
+}
 function hasInlineAttachmentImage(html) {
   return /<img\b[^>]+\/api\/attachments\//i.test(String(html || ''));
 }
 
+function hasStaleAttachmentRefs(html, attachments = []) {
+  const refs = extractAttachmentRefs(html);
+  if (!refs.length) return false;
+  const currentIds = new Set(attachments.map((attachment) => String(attachment.id || '')).filter(Boolean));
+  if (!currentIds.size) return true;
+  return refs.some((id) => !currentIds.has(id));
+}
+
+function extractAttachmentRefs(html) {
+  const text = String(html || '');
+  if (!text.includes('/api/attachments/') && !text.includes('data-attachment-id')) return [];
+  const refs = new Set();
+  for (const match of text.matchAll(/\/api\/attachments\/([\w-]+)\/file/gi)) refs.add(match[1]);
+  for (const match of text.matchAll(/data-attachment-id=["']([\w-]+)["']/gi)) refs.add(match[1]);
+  return [...refs];
+}
 
 function decodeBase64Text(value) {
   if (!value) return '';
@@ -457,3 +512,5 @@ function decodeHtmlEntities(value) {
 function stripTags(value) {
   return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
+
+

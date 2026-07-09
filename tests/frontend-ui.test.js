@@ -82,7 +82,7 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('function apiUrl(path)'));
     assert.ok(source.includes("const androidServerUrl = isNativeAndroidApp() || window.location.protocol === 'file:' ? getAndroidServerUrl() : '';"));
     assert.ok(source.includes("window.location.protocol === 'file:'"));
-    assert.ok(source.includes("return fetch(url, { credentials: 'include', ...options });"));
+    assert.ok(source.includes("return fetch(url, { cache: 'no-store', credentials: 'include', ...options });"));
     assert.ok(source.includes("fetchApi('/api/app-data')"));
     assert.ok(source.includes("navigator.serviceWorker.register(apiUrl('/sw.js'))"));
     assert.ok(vite.includes("base: './'"));
@@ -297,5 +297,6 @@ describe('Frontend mobile interactions', () => {
     assert.ok(!source.includes('Note Station 导入记录待整理'));
   });
 });
+
 
 
