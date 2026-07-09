@@ -210,6 +210,18 @@ describe('MVP API', () => {
     assert.equal(preflight.headers.get('access-control-allow-origin'), origin);
     assert.match(preflight.headers.get('access-control-allow-methods') || '', /POST/);
     assert.match(preflight.headers.get('access-control-allow-headers') || '', /X-File-Name/);
+    const nsxPreflight = await fetch(`${baseUrl}/api/imports/notestation/dry-run`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: origin,
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'content-type,x-file-name,x-member-id,x-async-import'
+      }
+    });
+    assert.equal(nsxPreflight.status, 204);
+    assert.equal(nsxPreflight.headers.get('access-control-allow-origin'), origin);
+    assert.match(nsxPreflight.headers.get('access-control-allow-methods') || '', /POST/);
+    assert.match(nsxPreflight.headers.get('access-control-allow-headers') || '', /X-Async-Import/);
   });
   test('reads clean app data and note list', async () => {
     const appData = await requestJson('/api/app-data');

@@ -3187,3 +3187,65 @@ docker run --rm -d --name note-stale-attachment-fix-test -p 3322:3300 -e NOTE_DA
 - 导入后统计：4 条记录包含富文本图片，20 个内联图片引用。
 - 对 20 个 `/api/attachments/{id}/file` 逐个发起 HTTP GET，结果 `brokenImageRefs=0`。
 - 本次验证确认：刚发布到 GHCR 的镜像本身不会复现用户截图中的附件 404。
+
+---
+测试时间：2026-07-09
+
+当前目标：修复 Android APK 连接 Docker 后闪退 / 看不到同步数据，以及 Android 端 `.nsx` 上传预览 `Failed to fetch` 的问题。本轮只修 Android-Docker 通信和本地缓存兜底，不改业务功能、不提交运行数据。
+
+## 复现步骤
+
+1. 手机 APK 设置 Docker / NAS 服务地址。
+2. 进入应用后可能闪退或看不到 Docker 已同步的数据。
+3. 进入 Note Station 导入页，选择 `.nsx` 后点击预览，Android 端报 `Failed to fetch`。
+
+## 问题原因
+
+- NSX 大文件网页导入使用异步预览，会发送 `X-Async-Import: 1` 请求头。
+- Android WebView 的来源是 `capacitor://localhost`，跨域访问 Docker 时必须先通过 OPTIONS 预检。
+- 服务端 CORS 允许头缺少 `X-Async-Import`，导致预检失败，浏览器层直接拦截请求。
+- 同时，远程 Docker 数据加载成功后，前端会尝试写入本地离线快照；如果 Android 本地存储写入失败，旧逻辑会让远程数据加载一起失败。
+
+## 修复内容
+
+- `src/server/index.js`：CORS 允许请求头新增 `X-Async-Import`。
+- `src/client/main.jsx`：新增安全本地缓存读写包装。远程 Docker 数据加载成功后，本地 snapshot 写入失败只记录 warning，不再阻止页面显示远程数据。
+- `tests/mvp-api.test.js`：新增 Android `capacitor://localhost` 对 `/api/imports/notestation/dry-run` 的 `X-Async-Import` 预检测试。
+- `tests/frontend-ui.test.js` / `tests/offline-store-static.test.js`：锁定本地缓存失败不影响远程数据展示的行为。
+
+## 运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+docker build -t note:android-sync-hotfix-test .
+docker run -d --name note-android-sync-hotfix-3326 -p 3326:3300 -e NOTE_DATA_DIR=/data note:android-sync-hotfix-test
+npm.cmd run smoke -- --base-url http://127.0.0.1:3326
+```
+
+补充真实 `.nsx` 验证：向 `http://127.0.0.1:3326` 上传 22.4MB 真实 `.nsx`，轮询预览完成后确认导入，并抽查详情富文本与附件文件接口。
+
+## 测试结果
+
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`，本地 noteCount=523。
+- `npm.cmd run test`：通过，16 suites / 94 tests / 94 pass。
+- `npm.cmd run build`：通过，仅保留已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，APK 重新生成。
+- `npm.cmd run android:verify`：通过，`kind=capacitor-local-first`，`nativeShellOnly=false`，APK size=25,708,362 bytes。
+- 本地 Docker `note:android-sync-hotfix-test`：构建通过，`http://127.0.0.1:3326` HTTP smoke 通过。
+- Android CORS 预检：OPTIONS `/api/imports/notestation/dry-run` 返回 204，允许 `X-Async-Import`。
+- 真实 `.nsx` 预览：93 条 / 成功 93 条 / 失败 0 / 附件 20。
+- 真实 `.nsx` 确认导入后详情聚合：Note Station 导入记录 94 条，91 条有富文本，5 条有附件列表，5 条有内联附件引用，第一个内联附件文件接口返回 200。
+
+## 仍然存在的问题
+
+- 本轮已提供本地 Docker 测试容器；NAS / GHCR 镜像需要提交推送后等待 GitHub Actions 构建，再拉取新 tag。
+- 真机 APK 仍需要用户安装新 APK 后，用 `http://192.168.110.98:3326/` 或后续 NAS 新镜像地址复测。
+
+## 下一步建议
+
+- 提交并推送本修复。
+- 等 GHCR 新镜像完成后，NAS 拉取新 tag，再用手机 APK 设置 NAS 地址测试：打开首页同步数据、选择 `.nsx` 预览、确认导入、打开带图记录。

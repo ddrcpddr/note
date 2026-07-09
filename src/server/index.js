@@ -18,7 +18,7 @@ getDb();
 startAutomaticBackups();
 
 const builtInCorsOrigins = new Set(['capacitor://localhost', 'ionic://localhost']);
-const allowedCorsHeaders = 'Content-Type, X-File-Name, X-Member-Id, Authorization';
+const allowedCorsHeaders = 'Content-Type, X-File-Name, X-Member-Id, X-Async-Import, Authorization';
 
 function getConfiguredCorsOrigins() {
   return String(process.env.NOTE_CORS_ORIGINS || process.env.NOTE_CORS_ORIGIN || '')

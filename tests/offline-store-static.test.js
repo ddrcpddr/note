@@ -72,15 +72,15 @@ describe('Offline first local store', () => {
     const source = readText('src/client/main.jsx');
 
     assert.ok(source.includes("from './offlineStore.js'"));
-    assert.ok(source.includes('readLocalSnapshot()'));
-    assert.ok(source.includes('saveLocalSnapshot({'));
+    assert.ok(source.includes('safeReadLocalSnapshot()'));
+    assert.ok(source.includes('safeSaveLocalSnapshot({'));
     assert.ok(source.includes('upsertLocalNote(localNote)'));
     assert.ok(source.includes('await refreshPendingMutationState()'));
     assert.ok(!source.includes('OFFLINE_CREATE_QUEUE_KEY'));
     assert.ok(source.includes("'local-only'"));
     assert.ok(source.includes("'dirty'"));
     assert.ok(source.includes('queueLocalMutation({'));
-    assert.ok(source.includes('readPendingMutations()'));
+    assert.ok(source.includes('safeReadPendingMutations()'));
     assert.ok(source.includes('syncPendingLocalMutations()'));
     assert.ok(source.includes("if (dataMode === 'locked') return;"));
     assert.ok(source.includes('notes: notesData.slice(0, OFFLINE_APP_DATA_CACHE_LIMIT)'));

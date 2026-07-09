@@ -438,12 +438,12 @@ function App() {
         const nextMembers = keepDefaultMembers(loadedMembers);
         const nextCategories = normalizeCategories(data.categories);
         const nextNotes = Array.isArray(data.notes) ? data.notes.map((note) => normalizeNote(note, nextCategories)) : initialNotes;
-        const localSnapshot = await readLocalSnapshot();
+        const localSnapshot = await safeReadLocalSnapshot();
         const pendingNotes = pickPendingLocalNotes(localSnapshot, nextCategories);
-        const pendingMutations = await readPendingMutations();
+        const pendingMutations = await safeReadPendingMutations();
         const currentMember = nextMembers.find((member) => member.isCurrent) ?? nextMembers[0] ?? fallbackMembers[0];
 
-        await saveLocalSnapshot({
+        safeSaveLocalSnapshot({
           members: nextMembers,
           categories: nextCategories,
           tags: data.tags || [],
@@ -462,7 +462,7 @@ function App() {
         setDataMode('sqlite');
       } catch {
         if (!isMounted) return;
-        const localSnapshot = await readLocalSnapshot();
+        const localSnapshot = await safeReadLocalSnapshot();
         if (localSnapshot) {
           const localCategories = normalizeCategories(localSnapshot.categories);
           const localMembers = keepDefaultMembers(localSnapshot.members.length ? localSnapshot.members.map((member, index) => normalizeMember(member, index)) : fallbackMembers);
@@ -477,7 +477,7 @@ function App() {
           setCurrentMemberId(currentMember.id);
           setNotesData(nextNotes);
           setSelectedId(nextNotes[0]?.id ?? null);
-          setOfflineCreateQueue(await readPendingMutations());
+          setOfflineCreateQueue(await safeReadPendingMutations());
           setDataMode('offline-first');
           return;
         }
@@ -497,7 +497,7 @@ function App() {
           setCurrentMemberId(currentMember.id);
           setNotesData(nextNotes);
           setSelectedId(nextNotes[0]?.id ?? null);
-          setOfflineCreateQueue(await readPendingMutations());
+          setOfflineCreateQueue(await safeReadPendingMutations());
           setDataMode('offline-cache');
           return;
         }
@@ -507,7 +507,7 @@ function App() {
         setCurrentMemberId('self');
         setNotesData([]);
         setSelectedId(null);
-        setOfflineCreateQueue(await readPendingMutations());
+        setOfflineCreateQueue(await safeReadPendingMutations());
         setDataMode('offline-first');
       }
     }
@@ -574,6 +574,30 @@ function App() {
   function showToast(message) {
     setToast(message);
     window.setTimeout(() => setToast(''), 1800);
+  }
+
+  async function safeReadLocalSnapshot() {
+    try {
+      return await readLocalSnapshot();
+    } catch (error) {
+      console.warn('Local snapshot read failed', error);
+      return null;
+    }
+  }
+
+  async function safeReadPendingMutations() {
+    try {
+      return await readPendingMutations();
+    } catch (error) {
+      console.warn('Local pending mutation read failed', error);
+      return [];
+    }
+  }
+
+  function safeSaveLocalSnapshot(snapshot) {
+    saveLocalSnapshot(snapshot).catch((error) => {
+      console.warn('Local snapshot save failed', error);
+    });
   }
 
   function retryRemoteConnection() {
@@ -654,7 +678,7 @@ function App() {
   }
 
   async function refreshPendingMutationState() {
-    setOfflineCreateQueue(await readPendingMutations());
+    setOfflineCreateQueue(await safeReadPendingMutations());
   }
 
   async function syncPendingLocalMutations() {
@@ -665,7 +689,7 @@ function App() {
 
     try {
       const { syncedCount, failedMessage } = await syncPendingMutationBatch({
-        readPendingMutations,
+        readPendingMutations: safeReadPendingMutations,
         requestMutation: async (mutation) => {
           const request = buildSyncRequestDescriptor(mutation);
           const response = await fetchApi(request.endpoint, {
@@ -720,7 +744,7 @@ function App() {
   useEffect(() => {
     if (dataMode === 'locked') return;
     const savedAt = new Date().toISOString();
-    saveLocalSnapshot({
+    safeSaveLocalSnapshot({
       members,
       categories: categoriesData,
       currentMemberId,
@@ -3204,9 +3228,4 @@ function BottomNav({ active, onChange }) {
 }
 
 createRoot(document.getElementById('root')).render(<App />);
-
-
-
-
-
 

@@ -199,7 +199,20 @@ describe('Frontend mobile interactions', () => {
     assert.ok(source.includes('新分类'));
   });
 
-  test('keeps an IndexedDB offline queue and syncs it after the service returns', () => {
+  test('does not let Android local snapshot failures hide remote Docker data', () => {
+    const source = readText('src/client/main.jsx');
+
+    assert.ok(source.includes('async function safeReadLocalSnapshot()'));
+    assert.ok(source.includes('async function safeReadPendingMutations()'));
+    assert.ok(source.includes('function safeSaveLocalSnapshot(snapshot)'));
+    assert.ok(source.includes("console.warn('Local snapshot save failed'"));
+    assert.ok(source.includes('const localSnapshot = await safeReadLocalSnapshot();'));
+    assert.ok(source.includes('const pendingMutations = await safeReadPendingMutations();'));
+    assert.ok(source.includes('safeSaveLocalSnapshot({'));
+    assert.ok(source.includes('readPendingMutations: safeReadPendingMutations'));
+    assert.ok(!source.includes('await saveLocalSnapshot({'));
+  });
+test('keeps an IndexedDB offline queue and syncs it after the service returns', () => {
     const source = readText('src/client/main.jsx');
     const syncSource = readText('src/client/offlineSync.js');
 
@@ -297,6 +310,4 @@ describe('Frontend mobile interactions', () => {
     assert.ok(!source.includes('Note Station 导入记录待整理'));
   });
 });
-
-
 
