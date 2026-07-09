@@ -5,6 +5,8 @@ import { notestationSampleFailures, notestationSampleRecords } from './sample.js
 import { dryRunNsxFile, readNsxEntryBuffer } from './nsx.js';
 import { prepareStoredRichText } from '../../rich-text.js';
 
+const activeNsxPreviewJobs = new Set();
+
 export function createNotestationDryRunPreview(payload = {}) {
   const fileName = String(payload.fileName || 'notestation_export_sample.zip');
   const fileType = String(payload.fileType || 'unknown');
@@ -87,9 +89,21 @@ function createNotestationNsxProcessingPreview(filePath, memberId = 'self') {
       (?, 'notestation', ?, ?, 'processing', 0, 0, 0, ?)
   `).run(importId, fileName, filePath, memberId);
 
-  setImmediate(() => processNotestationNsxPreview(importId));
+  queueNotestationNsxPreview(importId);
 
   return buildProcessingNsxPreview({ id: importId, file_name: fileName, status: 'processing' });
+}
+
+function queueNotestationNsxPreview(importId) {
+  if (activeNsxPreviewJobs.has(importId)) return;
+  activeNsxPreviewJobs.add(importId);
+  setImmediate(() => {
+    try {
+      processNotestationNsxPreview(importId);
+    } finally {
+      activeNsxPreviewJobs.delete(importId);
+    }
+  });
 }
 
 function processNotestationNsxPreview(importId) {
@@ -128,7 +142,12 @@ function processNotestationNsxPreview(importId) {
     try {
       db.exec('ROLLBACK');
     } catch {}
-    markNsxPreviewFailed(importId, batch, error);
+    try {
+      markNsxPreviewFailed(importId, batch, error);
+    } catch (markError) {
+      console.error(`Failed to mark NSX preview ${importId} as failed:`, markError);
+      db.prepare("UPDATE imports SET status = 'failed', failed_count = 1 WHERE id = ?").run(importId);
+    }
   }
 }
 
@@ -300,7 +319,10 @@ export function getImportPreview(importId) {
   }
 
   if (isNsxImportBatch(batch)) {
-    if (batch.status === 'processing') return buildProcessingNsxPreview(batch);
+    if (batch.status === 'processing') {
+      queueNotestationNsxPreview(importId);
+      return buildProcessingNsxPreview(batch);
+    }
     if (batch.status === 'failed') return buildFailedNsxPreview(batch);
     const cachedPreview = readNsxPreviewCache(importId);
     if (cachedPreview) return normalizeNsxPreview(cachedPreview, { importId, status: batch.status });
@@ -632,21 +654,25 @@ function commitUploadedNsxImport(batch, memberId = 'self') {
 
 function inlineNsxImageRefs(html, attachments) {
   if (!html || !attachments.length) return html;
-  const byOriginalName = new Map();
+  const candidates = [];
   for (const attachment of attachments) {
     const originalName = attachment.result.originalName || '';
     const mimeType = attachment.result.mimeType || '';
     const isImage = mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(originalName);
     if (attachment.result.error || !isImage) continue;
-    byOriginalName.set(originalName, attachment);
+    candidates.push(attachment);
   }
 
   const usedIds = new Set();
   const withRefs = String(html).replace(/<img\b([^>]*)>/gi, (match, attrs) => {
-    const ref = extractAttribute(attrs, 'ref');
-    const decodedRef = decodeBase64Text(ref);
-    const attachment = [...byOriginalName.entries()].find(([name]) => decodedRef.endsWith(name))?.[1];
-    if (!attachment) return match;
+    const attachment = findNsxImageAttachment(attrs, candidates);
+    if (!attachment) {
+      const src = extractAttribute(attrs, 'src');
+      if (looksLikeLocalNsxImage(src)) {
+        return `<span data-missing-notestation-image="true">${escapeHtml(path.basename(src))}</span>`;
+      }
+      return match;
+    }
 
     attachment.isInline = true;
     usedIds.add(attachment.id);
@@ -659,7 +685,7 @@ function inlineNsxImageRefs(html, attachments) {
     return `<img src="/api/attachments/${attachment.id}/file" alt="${escapeAttribute(attachment.result.originalName)}" data-attachment-id="${attachment.id}"${sizeAttrs}>`;
   });
 
-  const appendedImages = [...byOriginalName.values()]
+  const appendedImages = candidates
     .filter((attachment) => !usedIds.has(attachment.id))
     .map((attachment) => {
       attachment.isInline = true;
@@ -670,6 +696,46 @@ function inlineNsxImageRefs(html, attachments) {
   return `${withRefs}<div data-notestation-inline-images="true">${appendedImages.join('')}</div>`;
 }
 
+function findNsxImageAttachment(attrs, attachments) {
+  const ref = extractAttribute(attrs, 'ref');
+  const src = extractAttribute(attrs, 'src');
+  const alt = extractAttribute(attrs, 'alt');
+  const title = extractAttribute(attrs, 'title');
+  const decodedRef = decodeBase64Text(ref);
+  const probes = [decodedRef, src, alt, title].filter(Boolean);
+
+  return attachments.find((attachment) => {
+    const names = [
+      attachment.result.originalName,
+      attachment.result.fileName,
+      attachment.sourceAttachmentId,
+      attachment.sourcePath
+    ].filter(Boolean);
+    return probes.some((probe) => names.some((name) => isNsxImageReferenceMatch(probe, name)));
+  });
+}
+
+function isNsxImageReferenceMatch(probe, name) {
+  const normalizedProbe = normalizeReference(probe);
+  const normalizedName = normalizeReference(name);
+  if (!normalizedProbe || !normalizedName) return false;
+  return normalizedProbe === normalizedName || normalizedProbe.endsWith(`/${normalizedName}`) || normalizedProbe.endsWith(normalizedName);
+}
+
+function normalizeReference(value) {
+  const text = String(value || '').replace(/\\/g, '/').trim();
+  if (!text) return '';
+  try {
+    return decodeURIComponent(path.posix.basename(text)).toLowerCase();
+  } catch {
+    return path.posix.basename(text).toLowerCase();
+  }
+}
+
+function looksLikeLocalNsxImage(src) {
+  const normalized = normalizeReference(src);
+  return /^ns_attach_/i.test(normalized) || /^file_/i.test(normalized) || /transparent\.gif$/i.test(normalized);
+}
 function extractAttribute(attrs, name) {
   const pattern = new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>]+))`, 'i');
   const match = String(attrs || '').match(pattern);

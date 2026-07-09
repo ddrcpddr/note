@@ -3060,3 +3060,60 @@ pm.cmd run build：通过，仅保留 Vite chunk size 提示。
 - npm.cmd run build：通过，仅保留已知 Vite chunk size warning。
 - npm.cmd run android:build：通过，重新生成 debug APK。
 - npm.cmd run android:verify：通过，kind=capacitor-local-first，nativeShellOnly=false，APK size=25,708,238 bytes。
+
+---
+测试时间：2026-07-09
+
+当前目标：修复 Note Station `.nsx` 导入在 Docker / NAS 环境中卡在“正在解析”，以及导入后富文本正文里的图片仍以 `ns_attach_*` 文件名显示为坏图的问题。本轮只修导入链路和测试，不改 UI、不改数据库结构、不提交任何运行数据。
+
+## 复现步骤
+
+1. 在 Docker 服务端上传 `.nsx` 文件。
+2. 导入页进入第 2 步后停留在“正在解析”，统计保持 0。
+3. 打开已导入的带图片记录，正文中出现坏图标和 `ns_attach_image_*.png/.jpg` 文件名。
+
+## 问题原因
+
+- 网页端异步 `.nsx` 预览只在上传请求里启动一次后台任务。如果容器重启、后台任务丢失或失败标记本身异常，`imports.status=processing` 会永久残留，页面只能一直轮询到“正在解析”。
+- Note Station 导出的图片标签不只使用 `ref`，也可能通过 `src`、`alt` 或文件名引用 `ns_attach_*` 图片。旧逻辑只按 `ref` 做窄匹配，导致部分图片没有映射到 `/api/attachments/:id/file`，浏览器只能显示坏图。
+
+## 修复内容
+
+- `getImportPreview()` 读取到仍为 `processing` 的 NSX 批次时，会重新排队后台解析任务，避免容器重启或 worker 丢失后永久卡住。
+- 后台解析失败时增加兜底失败标记，避免失败状态也写不回数据库。
+- NSX 图片内联映射改为按 `ref`、`src`、`alt`、`title`、原始文件名、source path 多候选匹配。
+- 对真实本地 NSX 图片引用，不再留下 `src="ns_attach_*"` 这种坏图地址；匹配成功后统一写为 `/api/attachments/<id>/file`。
+- 正式导入脚本同步相同图片映射规则，避免 CLI / web 两套导入行为不一致。
+- 测试新增“processing 批次丢失后台 worker 后自动恢复”的覆盖，并补充真实 filename/alt 图片引用场景。
+
+## 运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+docker build -t note:nsx-import-fix-test .
+docker run --rm -d --name note-nsx-import-fix-test -p 3319:3300 -e NOTE_DATA_DIR=/data note:nsx-import-fix-test
+npm.cmd run smoke -- --base-url http://127.0.0.1:3319
+```
+
+补充 Docker 详情检查：读取容器内导入记录详情，确认富文本 HTML 中有 2 个 `/api/attachments/` 图片引用，`hasRawNsAttach=false`，2 个附件均为 inline。
+
+## 测试结果
+
+- `npm.cmd run check`：通过，SQLite `integrityCheck=ok`。
+- `npm.cmd run test`：通过，16 suites / 91 tests / 91 pass。
+- `npm.cmd run build`：通过，仍有已知 Vite chunk size warning。
+- Docker 本机镜像构建：通过。
+- Docker 临时容器 HTTP smoke：通过，覆盖 health、app-data、notes-list、create-note、Note Station web import、storage-probe、manual-backup、json-export、frontend-shell。
+- Docker 中导入记录详情检查：通过，富文本图片已映射为附件 API 地址，没有残留 `ns_attach_*` 坏图 src。
+
+## 仍然存在的问题
+
+- 这次验证使用测试 NSX fixture 和本机临时 Docker 容器；用户 NAS 上的 GHCR 镜像仍需要重新拉取本次 commit 对应的新镜像后再测真实 `.nsx`。
+- 大体积真实 `.nsx` 的耗时取决于 NAS CPU 和附件数量，但不应再永久停在 processing；如果解析失败，应进入失败状态并显示原因。
+
+## 下一步建议
+
+- 推送后等待 GitHub Actions 生成新 GHCR 镜像，再在 NAS 上拉取新 tag。
+- 用真实 `.nsx` 重新执行：选择文件、预览记录、确认导入、打开带图记录、检查图片是否直接显示在富文本正文里。

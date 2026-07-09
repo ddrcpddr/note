@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, test } from 'node:test';
+import { DatabaseSync } from 'node:sqlite';
 
 const repoRoot = process.cwd();
 const tempDataDir = mkdtempSync(path.join(tmpdir(), 'note-mvp-test-'));
@@ -95,7 +96,7 @@ function createWebImportNsxFixture() {
       data: JSON.stringify({
         title: '网页 NSX 富文本记录',
         brief: '网页端上传解析摘要',
-        content: `<div><strong>网页端上传解析正文</strong><ul><li>能进入富文本</li></ul><p><img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="${imageRef}" width="320"></p></div>`,
+        content: `<div><strong>网页端上传解析正文</strong><ul><li>能进入富文本</li></ul><p><img src="webman/3rdparty/NoteStation/images/transparent.gif" ref="${imageRef}" width="320"></p><p><img src="ns_attach_unmatched_2.jpg" alt="ns_attach_unmatched_2.jpg"></p></div>`,
         ctime: '2026-07-03T08:00:00Z',
         mtime: '2026-07-03T08:30:00Z',
         parent_id: notebookId,
@@ -870,8 +871,8 @@ describe('MVP API', () => {
     assert.ok(detail.notes[0].attachments.every((attachment) => attachment.isInline));
     const richImageRefs = detail.notes[0].richContent.html.match(/\/api\/attachments\//g) || [];
     assert.equal(richImageRefs.length, 2);
-    assert.match(detail.notes[0].richContent.html, /data-notestation-inline-images="true"/);
-    assert.match(detail.notes[0].richContent.html, /ns_attach_unmatched_2\.jpg/);
+    assert.doesNotMatch(detail.notes[0].richContent.html, /src="ns_attach_unmatched_2\.jpg"/);
+    assert.doesNotMatch(detail.notes[0].richContent.html, /data-missing-notestation-image/);
 
     const search = await requestJson(`/api/notes?search=${encodeURIComponent('网页端上传解析正文')}`);
     assert.ok(search.notes.some((note) => committed.importedNoteIds.includes(note.id)));
@@ -879,6 +880,40 @@ describe('MVP API', () => {
     const after = await requestJson('/api/notes?limit=all');
     assert.equal(after.notes.length, before.notes.length + 1);
   });
+  test('recovers a persisted processing NSX preview after the background job was lost', async () => {
+    const nsx = createWebImportNsxFixture();
+    const importsDir = path.join(tempDataDir, 'imports', 'notestation');
+    mkdirSync(importsDir, { recursive: true });
+    const filePath = path.join(importsDir, 'lost-worker-web-import.nsx');
+    writeFileSync(filePath, nsx);
+
+    const importId = `import_lost_worker_${Date.now()}`;
+    const db = new DatabaseSync(path.join(tempDataDir, 'database', 'app.db'));
+    try {
+      db.prepare(`
+        INSERT INTO imports
+          (id, source_type, file_name, file_path, status, total_count, success_count, failed_count, created_by_member_id)
+        VALUES
+          (?, 'notestation', ?, ?, 'processing', 0, 0, 0, 'self')
+      `).run(importId, 'lost-worker-web-import.nsx', filePath);
+    } finally {
+      db.close();
+    }
+
+    let preview = await requestJson(`/api/imports/notestation/${importId}`);
+    assert.equal(preview.status, 'processing');
+
+    for (let index = 0; index < 30 && preview.status === 'processing'; index += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      preview = await requestJson(`/api/imports/notestation/${importId}`);
+    }
+
+    assert.equal(preview.status, 'previewed');
+    assert.equal(preview.successCount, 1);
+    assert.equal(preview.records.length, 1);
+    assert.equal(preview.attachmentCount, 2);
+  });
+
   test('uploads a Note Station NSX file through the async web preview path', async () => {
     const before = await requestJson('/api/notes?limit=all');
     const nsx = createWebImportNsxFixture();
@@ -924,7 +959,8 @@ describe('MVP API', () => {
     assert.equal(detail.notes[0].sourceType, 'notestation_import');
     assert.equal(detail.notes[0].richContent.source, 'content_html');
     assert.match(detail.notes[0].richContent.html, /<strong>网页端上传解析正文<\/strong>/);
-    assert.match(detail.notes[0].richContent.html, /data-notestation-inline-images="true"/);
+    assert.doesNotMatch(detail.notes[0].richContent.html, /src="ns_attach_unmatched_2\.jpg"/);
+    assert.doesNotMatch(detail.notes[0].richContent.html, /data-missing-notestation-image/);
     assert.equal((detail.notes[0].richContent.html.match(/\/api\/attachments\//g) || []).length, 2);
     assert.equal(detail.notes[0].attachments.length, 2);
     assert.ok(detail.notes[0].attachments.every((attachment) => attachment.isInline));
