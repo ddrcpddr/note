@@ -460,6 +460,13 @@ describe('MVP API', () => {
     const exportedMarkdown = await requestJson('/api/storage/export-markdown', { method: 'POST' });
     const markdown = readFileSync(exportedMarkdown.export.filePath, 'utf8');
     assert.match(markdown, /> 编辑后的 \*富文本\*/);
+
+    const lightweightAppData = await requestJson('/api/app-data');
+    const lightweightNote = lightweightAppData.notes.find((note) => note.id === created.note.id);
+    assert.ok(lightweightNote, 'app-data should still include the rich note list item');
+    assert.equal(lightweightNote.contentHtml, null, 'app-data should not carry rich HTML payloads');
+    assert.equal(lightweightNote.richContent, undefined, 'app-data should not build richContent for list sync');
+    assert.equal(lightweightNote.sourceHtml, undefined, 'app-data should not carry sourceHtml payloads');
   });
   test('archives and soft deletes a note from normal lists', async () => {
     const created = await requestJson('/api/notes', {
@@ -981,4 +988,3 @@ describe('MVP API', () => {
     assert.equal(after.notes.length, before.notes.length + 1);
   });
 });
-

@@ -3249,3 +3249,63 @@ npm.cmd run smoke -- --base-url http://127.0.0.1:3326
 
 - 提交并推送本修复。
 - 等 GHCR 新镜像完成后，NAS 拉取新 tag，再用手机 APK 设置 NAS 地址测试：打开首页同步数据、选择 `.nsx` 预览、确认导入、打开带图记录。
+
+---
+测试时间：2026-07-09
+
+当前目标：修复 Android 手机连接 Docker 并同步 / 导入 Note Station 数据后随机闪退的问题。本轮只修数据同步体积和本地快照缓存，不改 UI、不改 Note Station 解析格式、不提交运行数据。
+
+## 复现步骤
+
+1. Android APK 设置 Docker / NAS 服务地址。
+2. 手机端进入应用并同步 Docker 数据。
+3. 导入或查看 Note Station 大批量记录后，App 出现随机闪退或页面不可用。
+
+## 问题原因
+
+- `/api/app-data` 旧逻辑把首页列表数据按 `includeRichText=true` 返回，导致一次同步携带全部记录的富文本 HTML、source_html、图片引用等大字段。
+- APK 随后尝试把这些已同步远程记录写入本地 IndexedDB / SQLite 快照，真实 Note Station 导入数据量较大时会给 Android WebView / 本地存储造成明显压力。
+- 详情页需要完整富文本，但首页列表和本地同步快照不应该一次缓存全部富文本大字段。
+
+## 修复内容
+
+- `src/server/index.js`：`/api/app-data` 改为调用轻量 `listNotes()`，不再默认返回完整富文本。
+- `src/server/routes/notes.js`：当 `includeRichText=false` 时，`contentHtml/contentJson/sourceHtml/rawMetadata` 不返回。
+- `src/client/offlineStore.js`：保存本地快照前，对已同步远程记录剥离富文本大字段；本机未同步 / dirty 草稿继续保留富文本。
+- `src/data/local/localNotesRepository.js`：Android SQLite 本地快照同样只为本机未同步草稿保留富文本，避免远程大批量导入数据进入本地 payload。
+- `tests/mvp-api.test.js`：新增 app-data 轻量化断言。
+- `tests/offline-store-behavior.test.js`：新增远程同步快照轻量化、离线富文本草稿保留断言。
+
+## 运行命令
+
+```bash
+npm.cmd run check
+npm.cmd run test
+npm.cmd run build
+npm.cmd run android:build
+npm.cmd run android:verify
+docker build -t note:android-crash-fix-test .
+docker run -d --name note-android-crash-fix-3339 -p 3339:3300 -e NOTE_DATA_DIR=/data -e TZ=Asia/Shanghai -v C:\tmp\note-android-crash-fix-data:/data note:android-crash-fix-test
+npm.cmd run smoke -- --base-url http://127.0.0.1:3339
+```
+
+## 测试结果
+
+- `npm.cmd run check`：通过，integrityCheck=ok，noteCount=523。
+- `npm.cmd run test`：通过，16 suites / 95 tests / 95 pass。
+- `npm.cmd run build`：通过，仅保留已知 Vite chunk size warning。
+- `npm.cmd run android:build`：通过，APK 已重新生成。
+- `npm.cmd run android:verify`：通过，`kind=capacitor-local-first`，`nativeShellOnly=false`，APK size=25,708,435 bytes。
+- 本地 Docker 镜像 `note:android-crash-fix-test`：构建通过。
+- 本地 Docker HTTP smoke：通过，包含 health、app-data、notes、create-note、Note Station web import、storage probe、backup、JSON export、frontend shell。
+- smoke 后额外验证：`/api/app-data` 有 2 条记录，富文本大字段计数 0；Note Station 单条详情仍返回 richContent，inline attachment refs=2，attachments=2。
+
+## 仍然存在的问题
+
+- 由于当前环境没有用户手机 USB logcat，无法直接读取真机崩溃栈；本轮根据数据量和产物级验证修复最可能的闪退根因。
+- 用户仍需安装本轮新 APK 并连接新 Docker 镜像复测。如果仍闪退，下一步必须抓 Android logcat 或在 App 内暴露最近 JS / native error 日志。
+
+## 下一步建议
+
+- 提交并推送本修复，等待 GitHub Actions 生成新 GHCR 镜像。
+- 用户 NAS 拉取新 tag 后，用手机 APK 测试：打开首页同步数据、进入搜索 / 分类、打开带图 Note Station 详情、连续返回和切换页面，观察是否仍闪退。

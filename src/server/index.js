@@ -171,7 +171,7 @@ app.get('/api/app-data', (_request, response) => {
     members,
     categories,
     tags,
-    notes: listNotes({ includeRichText: 'true' }),
+    notes: listNotes(),
     dataPaths: getDataPaths()
   });
 });

@@ -321,7 +321,7 @@ export function listNotes(query = {}) {
         n.title,
         n.content,
         COALESCE(NULLIF(n.content_text, ''), n.content) AS contentText,
-        n.content_html AS contentHtml,
+        ${includeRichText ? 'n.content_html AS contentHtml' : 'NULL AS contentHtml'},
         ${includeRichText ? 'n.content_json AS contentJson' : 'NULL AS contentJson'},
         ${includeRichText ? 'n.source_html AS sourceHtml' : 'NULL AS sourceHtml'},
         n.content_format AS contentFormat,

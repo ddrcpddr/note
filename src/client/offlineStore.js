@@ -145,6 +145,23 @@ function extractSnapshotAttachments(snapshot = {}, notes = []) {
   });
   return [...byId.values()].filter((attachment) => attachment.id && attachment.noteId);
 }
+
+function isPendingLocalNote(note) {
+  return Boolean(note?.isOffline) || ['local-only', 'dirty', 'pending', 'failed'].includes(note?.syncStatus);
+}
+
+function toSnapshotNote(note) {
+  if (!note || isPendingLocalNote(note)) return note;
+  const {
+    contentHtml,
+    contentJson,
+    sourceHtml,
+    richContent,
+    rawMetadata,
+    ...lightweightNote
+  } = note;
+  return lightweightNote;
+}
 async function getMeta(key) {
   const db = await openOfflineDb();
   if (!db) return null;
@@ -165,12 +182,14 @@ export async function saveLocalSnapshot(snapshot = {}) {
   const tags = Array.isArray(snapshot.tags) ? snapshot.tags : [];
   const attachments = extractSnapshotAttachments(snapshot, notes);
 
-  await putMany('notes', notes.map((note) => ({
-    ...note,
+  const snapshotNotes = notes.map((note) => ({
+    ...toSnapshotNote(note),
     syncStatus: note.syncStatus || 'synced',
     isOffline: Boolean(note.isOffline),
     localUpdatedAt: note.localUpdatedAt || new Date().toISOString()
-  })));
+  }));
+
+  await putMany('notes', snapshotNotes);
   await putMany('categories', categories);
   await putMany('members', members);
   await putMany('tags', tags.map((tag, index) => ({ id: tag.id || tag.name || tag.label || `tag-${index}`, ...tag })));
@@ -184,7 +203,7 @@ export async function saveLocalSnapshot(snapshot = {}) {
     await upsertMembersToSqlite(members);
     await upsertTagsToSqlite(tags);
     await upsertAttachmentsToSqlite(attachments);
-    for (const note of notes) await upsertLocalNoteToSqlite(note);
+    for (const note of snapshotNotes) await upsertLocalNoteToSqlite(note);
   }
 }
 
@@ -201,7 +220,7 @@ export async function readLocalSnapshot() {
     ]);
     if (sqliteNotes.length || categories.length || members.length) {
       const notesWithAttachments = sqliteNotes.map((note) => ({
-        ...note,
+        ...toSnapshotNote(note),
         attachments: Array.isArray(note.attachments) && note.attachments.length
           ? note.attachments
           : attachments.filter((attachment) => attachment.noteId === note.id)

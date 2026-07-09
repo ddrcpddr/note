@@ -198,6 +198,44 @@ describe('offline IndexedDB behavior', () => {
     assert.deepEqual(await readPendingMutations(), []);
   });
 
+  test('keeps synced remote snapshots lightweight but preserves local rich drafts', async () => {
+    const richHtml = '<p>' + '富文本正文'.repeat(1000) + '</p>';
+
+    await saveLocalSnapshot({
+      notes: [
+        {
+          id: 'remote-rich-note',
+          title: '已同步导入记录',
+          content: '列表摘要',
+          syncStatus: 'synced',
+          contentHtml: richHtml,
+          sourceHtml: richHtml,
+          richContent: { format: 'html', html: richHtml, source: 'source_html' },
+          rawMetadata: { private: true }
+        },
+        {
+          id: 'local-rich-note',
+          title: '本地富文本草稿',
+          content: '本地正文',
+          syncStatus: 'dirty',
+          isOffline: true,
+          contentHtml: '<p><strong>离线富文本</strong></p>',
+          richContent: { format: 'html', html: '<p><strong>离线富文本</strong></p>', source: 'content_html' }
+        }
+      ]
+    });
+
+    const snapshot = await readLocalSnapshot();
+    const remoteNote = snapshot.notes.find((note) => note.id === 'remote-rich-note');
+    const localNote = snapshot.notes.find((note) => note.id === 'local-rich-note');
+
+    assert.equal(remoteNote.contentHtml, undefined);
+    assert.equal(remoteNote.sourceHtml, undefined);
+    assert.equal(remoteNote.richContent, undefined);
+    assert.equal(remoteNote.rawMetadata, undefined);
+    assert.match(localNote.contentHtml, /离线富文本/);
+    assert.match(localNote.richContent.html, /离线富文本/);
+  });
   test('stores updated local notes and strips unsafe values before IndexedDB writes', async () => {
     const cyclic = { id: 'unsafe-note', title: '循环对象' };
     cyclic.self = cyclic;

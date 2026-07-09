@@ -26,7 +26,8 @@ export async function upsertLocalNoteToSqlite(note) {
   const updatedAt = note.updatedAtRaw || note.localUpdatedAt || nowIso();
   const createdAt = note.createdAtRaw || note.createdAt || updatedAt;
   const contentText = note.contentText || note.content || note.summary || '';
-  const contentHtml = note.contentHtml || note.richContent?.html || null;
+  const shouldKeepRichDraft = note.isOffline || ['local-only', 'dirty', 'pending', 'failed'].includes(note.syncStatus);
+  const contentHtml = shouldKeepRichDraft ? note.contentHtml || note.richContent?.html || null : note.contentHtml || null;
   const contentJson = note.contentJson ? safeJson(note.contentJson, null) : null;
   const tagsJson = safeJson(note.tags || [], []);
   const status = note.isDeleted ? 'deleted' : note.isArchived ? 'archived' : 'active';
